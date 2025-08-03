@@ -119,8 +119,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <configLocation>config/checkstyle/checkstyle.xml</configLocation>
-                    <encoding>UTF-8</encoding>
+                    <configLocation>src/main/java/com/thentrees/gymhealthtech/config/checkstyle/checkstyle.xml</configLocation>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
                 </configuration>
