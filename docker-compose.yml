@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: gymapp_db
+      POSTGRES_USER: gymapp
+      POSTGRES_PASSWORD: gym123
+    ports:
+      - "5432:5432"
