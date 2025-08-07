@@ -30,7 +30,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: tnydevdocs/gymHealthTech:latest
+          tags: tnydevdocs/gymhealthtech:latest
         # Build image từ source và push lên Docker Hub
 
       - name: Deploy to EC2 via SSH
@@ -40,8 +40,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            docker pull your-dockerhub-username/your-app-name:latest
+            docker pull tnydevdocs/gymhealthtech:latest
             docker stop app || true
             docker rm app || true
-            docker run -d --name app -p 80:8080 your-dockerhub-username/your-app-name:latest
+            docker run -d --name app -p 80:8080 tnydevdocs/gymhealthtech:latest
         # SSH vào EC2 và pull + restart container từ image mới
