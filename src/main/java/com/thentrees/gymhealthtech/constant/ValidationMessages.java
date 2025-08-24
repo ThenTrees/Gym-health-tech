@@ -9,6 +9,7 @@ public final class ValidationMessages {
   public static final String PASSWORD_TOO_SHORT = "Password must be at least 8 characters long";
   public static final String PASSWORD_TOO_WEAK =
       "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+  public static final String PASSWORDS_DO_NOT_MATCH = "Passwords do not match";
 
   // Profile Validation
   public static final String FULL_NAME_REQUIRED = "Full name is required";
@@ -19,7 +20,7 @@ public final class ValidationMessages {
 
   // Measurement Validation
   public static final String WEIGHT_REQUIRED = "Weight is required";
-  public static final String WEIGHT_OUT_OF_RANGE = "Weight must be between 20kg and 400kg";
+  public static final String WEIGHT_OUT_OF_RANGE = "Weight must be between 20kg and 250kg";
   public static final String HEIGHT_REQUIRED = "Height is required";
   public static final String HEIGHT_OUT_OF_RANGE = "Height must be between 50cm and 250cm";
   public static final String BODYFAT_OUT_OF_RANGE =

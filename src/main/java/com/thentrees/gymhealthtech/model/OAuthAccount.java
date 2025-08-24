@@ -26,7 +26,7 @@ public class OAuthAccount {
   @Column(name = "provider_user_id", nullable = false, length = 128)
   private String providerUserId;
 
-  @Column(name = "email")
+  @Column(name = "email", columnDefinition = "citext")
   private String email;
 
   @Column(name = "created_at", nullable = false)

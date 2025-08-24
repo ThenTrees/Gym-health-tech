@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.thentrees.gymhealthtech.constant.ErrorCodes;
 import com.thentrees.gymhealthtech.dto.response.ApiError;
-import com.thentrees.gymhealthtech.dto.response.ApiResponse;
+import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.FieldError;
 import com.thentrees.gymhealthtech.util.*;
 import jakarta.persistence.EntityNotFoundException;
@@ -51,7 +51,7 @@ public class GlobalExceptionHandler {
   private final FormatFileSize formatFileSize;
 
   @ExceptionHandler(BaseException.class)
-  public ResponseEntity<ApiResponse<Object>> handleBaseException(
+  public ResponseEntity<APIResponse<Object>> handleBaseException(
       BaseException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -75,11 +75,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(status)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   @ExceptionHandler(BusinessException.class)
-  public ResponseEntity<ApiResponse<Object>> handleBusinessException(
+  public ResponseEntity<APIResponse<Object>> handleBusinessException(
       BusinessException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -101,11 +101,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+  public ResponseEntity<APIResponse<Object>> handleResourceNotFoundException(
       ResourceNotFoundException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -135,11 +135,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   @ExceptionHandler(ValidationException.class)
-  public ResponseEntity<ApiResponse<Object>> handleValidationException(
+  public ResponseEntity<APIResponse<Object>> handleValidationException(
       ValidationException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -160,8 +160,7 @@ public class GlobalExceptionHandler {
                           .field(entry.getKey())
                           .message(entry.getValue())
                           .code("INVALID_VALUE")
-                          .build())
-              .collect(Collectors.toList());
+                          .build()).toList();
     }
 
     ApiError error =
@@ -175,7 +174,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   // ========================================
@@ -183,7 +182,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(WorkoutInProgressException.class)
-  public ResponseEntity<ApiResponse<Object>> handleWorkoutInProgress(
+  public ResponseEntity<APIResponse<Object>> handleWorkoutInProgress(
       WorkoutInProgressException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -204,11 +203,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.CONFLICT)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   @ExceptionHandler(RateLimitExceededException.class)
-  public ResponseEntity<ApiResponse<Object>> handleRateLimitExceeded(
+  public ResponseEntity<APIResponse<Object>> handleRateLimitExceeded(
       RateLimitExceededException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -236,7 +235,7 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
         .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   // ========================================
@@ -244,7 +243,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(AuthenticationException.class)
-  public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(
+  public ResponseEntity<APIResponse<Object>> handleAuthenticationException(
       AuthenticationException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -281,11 +280,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(message, error));
+        .body(APIResponse.error(message, error));
   }
 
   @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(
+  public ResponseEntity<APIResponse<Object>> handleAccessDeniedException(
       AccessDeniedException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -307,11 +306,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Insufficient permissions", error));
+        .body(APIResponse.error("Insufficient permissions", error));
   }
 
   @ExceptionHandler(UnauthorizedException.class)
-  public ResponseEntity<ApiResponse<Object>> handleUnauthorizedException(
+  public ResponseEntity<APIResponse<Object>> handleUnauthorizedException(
       UnauthorizedException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -332,7 +331,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(ex.getMessage(), error));
+        .body(APIResponse.error(ex.getMessage(), error));
   }
 
   // ========================================
@@ -340,7 +339,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValid(
+  public ResponseEntity<APIResponse<Object>> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -390,11 +389,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Validation failed", error));
+        .body(APIResponse.error("Validation failed", error));
   }
 
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<ApiResponse<Object>> handleConstraintViolation(
+  public ResponseEntity<APIResponse<Object>> handleConstraintViolation(
       ConstraintViolationException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -427,7 +426,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Validation failed", error));
+        .body(APIResponse.error("Validation failed", error));
   }
 
   // ========================================
@@ -435,7 +434,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-  public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(
+  public ResponseEntity<APIResponse<Object>> handleMethodNotSupported(
       HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -464,11 +463,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Method not allowed", error));
+        .body(APIResponse.error("Method not allowed", error));
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(
+  public ResponseEntity<APIResponse<Object>> handleHttpMessageNotReadable(
       HttpMessageNotReadableException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -507,11 +506,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(userMessage, error));
+        .body(APIResponse.error(userMessage, error));
   }
 
   @ExceptionHandler(MissingServletRequestParameterException.class)
-  public ResponseEntity<ApiResponse<Object>> handleMissingServletRequestParameter(
+  public ResponseEntity<APIResponse<Object>> handleMissingServletRequestParameter(
       MissingServletRequestParameterException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -542,11 +541,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Missing required parameter", error));
+        .body(APIResponse.error("Missing required parameter", error));
   }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-  public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatch(
+  public ResponseEntity<APIResponse<Object>> handleMethodArgumentTypeMismatch(
       MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -580,11 +579,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(message, error));
+        .body(APIResponse.error(message, error));
   }
 
   @ExceptionHandler(NoHandlerFoundException.class)
-  public ResponseEntity<ApiResponse<Object>> handleNoHandlerFound(
+  public ResponseEntity<APIResponse<Object>> handleNoHandlerFound(
       NoHandlerFoundException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -606,7 +605,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Endpoint not found", error));
+        .body(APIResponse.error("Endpoint not found", error));
   }
 
   // ========================================
@@ -614,7 +613,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(
+  public ResponseEntity<APIResponse<Object>> handleDataIntegrityViolation(
       DataIntegrityViolationException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -649,11 +648,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error(userMessage, error));
+        .body(APIResponse.error(userMessage, error));
   }
 
   @ExceptionHandler(OptimisticLockException.class)
-  public ResponseEntity<ApiResponse<Object>> handleOptimisticLockException(
+  public ResponseEntity<APIResponse<Object>> handleOptimisticLockException(
       OptimisticLockException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -674,11 +673,11 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.CONFLICT)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Record has been modified", error));
+        .body(APIResponse.error("Record has been modified", error));
   }
 
   @ExceptionHandler(EntityNotFoundException.class)
-  public ResponseEntity<ApiResponse<Object>> handleEntityNotFoundException(
+  public ResponseEntity<APIResponse<Object>> handleEntityNotFoundException(
       EntityNotFoundException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -699,7 +698,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Resource not found", error));
+        .body(APIResponse.error("Resource not found", error));
   }
 
   // ========================================
@@ -707,7 +706,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(MaxUploadSizeExceededException.class)
-  public ResponseEntity<ApiResponse<Object>> handleMaxSizeException(
+  public ResponseEntity<APIResponse<Object>> handleMaxSizeException(
       MaxUploadSizeExceededException ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -736,7 +735,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("File too large", error));
+        .body(APIResponse.error("File too large", error));
   }
 
   // ========================================
@@ -744,7 +743,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler({TimeoutException.class, AsyncRequestTimeoutException.class})
-  public ResponseEntity<ApiResponse<Object>> handleTimeoutException(
+  public ResponseEntity<APIResponse<Object>> handleTimeoutException(
       Exception ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -765,7 +764,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Request timeout", error));
+        .body(APIResponse.error("Request timeout", error));
   }
 
   // ========================================
@@ -773,7 +772,7 @@ public class GlobalExceptionHandler {
   // ========================================
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiResponse<Object>> handleGenericException(
+  public ResponseEntity<APIResponse<Object>> handleGenericException(
       Exception ex, HttpServletRequest request) {
 
     String traceId = generateTraceId.generate();
@@ -796,6 +795,6 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .header(TRACE_ID_HEADER, traceId)
-        .body(ApiResponse.error("Internal server error", error));
+        .body(APIResponse.error("Internal server error", error));
   }
 }
