@@ -1,8 +1,7 @@
 package com.thentrees.gymhealthtech.exception;
 
-import lombok.Getter;
-
 import java.util.Map;
+import lombok.Getter;
 
 @Getter
 public class BusinessException extends BaseException {

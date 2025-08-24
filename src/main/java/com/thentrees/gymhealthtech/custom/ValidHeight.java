@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.custom;
+
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
-
 import java.lang.annotation.*;
 
 @Target({ElementType.FIELD})
@@ -10,6 +10,8 @@ import java.lang.annotation.*;
 @Documented
 public @interface ValidHeight {
   String message() default "Height must be between 50cm and 250cm";
+
   Class<?>[] groups() default {};
+
   Class<? extends Payload>[] payload() default {};
 }

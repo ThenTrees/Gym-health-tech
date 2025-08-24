@@ -1,6 +1,5 @@
 package com.thentrees.gymhealthtech.common;
 
-
 import java.time.format.DateTimeFormatter;
 
 public final class DateTimeConstants {
@@ -14,8 +13,10 @@ public final class DateTimeConstants {
 
   // Date Formatters
   public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
-  public static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
-  public static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern(DISPLAY_DATE_FORMAT);
+  public static final DateTimeFormatter DATETIME_FORMATTER =
+      DateTimeFormatter.ofPattern(DATETIME_FORMAT);
+  public static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
+      DateTimeFormatter.ofPattern(DISPLAY_DATE_FORMAT);
 
   // Time Zones
   public static final String DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";

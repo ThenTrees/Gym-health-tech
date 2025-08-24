@@ -8,7 +8,8 @@ public class ResourceNotFoundException extends BaseException {
   private final String resourceId;
 
   public ResourceNotFoundException(String resourceType, String resourceId) {
-    super(String.format("%s with id '%s' not found", resourceType, resourceId), "RESOURCE_NOT_FOUND");
+    super(
+        String.format("%s with id '%s' not found", resourceType, resourceId), "RESOURCE_NOT_FOUND");
     this.resourceType = resourceType;
     this.resourceId = resourceId;
   }

@@ -1,6 +1,9 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.Objects;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,13 +11,12 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.Where;
 
-import java.time.OffsetDateTime;
-import java.util.Objects;
-import java.util.UUID;
 @Getter
 @Setter
 @MappedSuperclass
-@SQLDelete(sql = "UPDATE #{#entityName} SET deleted_at = NOW(), is_deleted = true WHERE id = ? AND version = ?")
+@SQLDelete(
+    sql =
+        "UPDATE #{#entityName} SET deleted_at = NOW(), is_deleted = true WHERE id = ? AND version = ?")
 @Where(clause = "is_deleted = false")
 public abstract class BaseEntity {
 

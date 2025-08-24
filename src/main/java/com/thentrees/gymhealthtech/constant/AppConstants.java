@@ -1,6 +1,5 @@
 package com.thentrees.gymhealthtech.constant;
 
-
 public final class AppConstants {
 
   // API Versioning

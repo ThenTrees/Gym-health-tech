@@ -2,11 +2,10 @@ package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.common.DevicePlatform;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

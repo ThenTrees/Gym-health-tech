@@ -1,8 +1,7 @@
 package com.thentrees.gymhealthtech.util;
 
-import org.springframework.stereotype.Component;
-
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 @Component
 public class GenerateTraceId {

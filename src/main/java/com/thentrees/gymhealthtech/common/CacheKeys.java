@@ -1,6 +1,5 @@
 package com.thentrees.gymhealthtech.common;
 
-
 public final class CacheKeys {
 
   // User Cache Keys
