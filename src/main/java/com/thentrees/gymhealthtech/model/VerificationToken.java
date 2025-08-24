@@ -1,0 +1,41 @@
+package com.thentrees.gymhealthtech.model;
+
+
+import com.thentrees.gymhealthtech.common.VerificationType;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "verification_tokens")
+public class VerificationToken {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false)
+  private VerificationType type;
+
+  @Column(name = "token_hash", nullable = false)
+  private String tokenHash;
+
+  @Column(name = "expires_at", nullable = false)
+  private OffsetDateTime expiresAt;
+
+  @Column(name = "consumed_at")
+  private OffsetDateTime consumedAt;
+
+  @Column(name = "created_at", nullable = false)
+  private OffsetDateTime createdAt = OffsetDateTime.now();
+}
