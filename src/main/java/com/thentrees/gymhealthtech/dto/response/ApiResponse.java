@@ -1,6 +1,10 @@
 package com.thentrees.gymhealthtech.dto.response;
 
+import static com.thentrees.gymhealthtech.constant.AppConstants.STATUS_ERROR;
+import static com.thentrees.gymhealthtech.constant.AppConstants.STATUS_SUCCESS;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,36 +16,45 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
+public class APIResponse<T> {
 
-  private boolean success;
+  @Schema(description = "Response status", example = "success")
+  private String status;
+
+  @Schema(description = "Response message", example = "Operation completed successfully")
   private String message;
+
+  @Schema(description = "Response data")
   private T data;
+
+  @Schema(description = "Error details (if any)")
   private ApiError error;
+
   private ApiMeta meta;
+
   private OffsetDateTime timestamp;
 
   // Success response builders
-  public static <T> ApiResponse<T> success(T data) {
-    return ApiResponse.<T>builder()
-        .success(true)
+  public static <T> APIResponse<T> success(T data) {
+    return APIResponse.<T>builder()
+        .status(STATUS_SUCCESS)
         .data(data)
         .timestamp(OffsetDateTime.now())
         .build();
   }
 
-  public static <T> ApiResponse<T> success(T data, String message) {
-    return ApiResponse.<T>builder()
-        .success(true)
+  public static <T> APIResponse<T> success(T data, String message) {
+    return APIResponse.<T>builder()
+        .status(STATUS_SUCCESS)
         .message(message)
         .data(data)
         .timestamp(OffsetDateTime.now())
         .build();
   }
 
-  public static <T> ApiResponse<T> success(T data, String message, ApiMeta meta) {
-    return ApiResponse.<T>builder()
-        .success(true)
+  public static <T> APIResponse<T> success(T data, String message, ApiMeta meta) {
+    return APIResponse.<T>builder()
+        .status(STATUS_SUCCESS)
         .message(message)
         .data(data)
         .meta(meta)
@@ -50,26 +63,26 @@ public class ApiResponse<T> {
   }
 
   // Error response builders
-  public static <T> ApiResponse<T> error(String message) {
-    return ApiResponse.<T>builder()
-        .success(false)
+  public static <T> APIResponse<T> error(String message) {
+    return APIResponse.<T>builder()
+        .status(STATUS_ERROR)
         .message(message)
         .timestamp(OffsetDateTime.now())
         .build();
   }
 
-  public static <T> ApiResponse<T> error(String message, ApiError error) {
-    return ApiResponse.<T>builder()
-        .success(false)
+  public static <T> APIResponse<T> error(String message, ApiError error) {
+    return APIResponse.<T>builder()
+        .status(STATUS_ERROR)
         .message(message)
         .error(error)
         .timestamp(OffsetDateTime.now())
         .build();
   }
 
-  public static <T> ApiResponse<T> error(String message, String errorCode) {
-    return ApiResponse.<T>builder()
-        .success(false)
+  public static <T> APIResponse<T> error(String message, String errorCode) {
+    return APIResponse.<T>builder()
+        .status(STATUS_ERROR)
         .message(message)
         .error(ApiError.builder().code(errorCode).build())
         .timestamp(OffsetDateTime.now())

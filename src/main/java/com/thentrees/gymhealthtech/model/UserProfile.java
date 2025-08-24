@@ -2,11 +2,9 @@ package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -57,11 +55,33 @@ public class UserProfile extends BaseEntity {
     if (o == null || getClass() != o.getClass()) return false;
     if (!super.equals(o)) return false;
     UserProfile that = (UserProfile) o;
-    return Objects.equals(user, that.user) && Objects.equals(fullName, that.fullName) && gender == that.gender && Objects.equals(dateOfBirth, that.dateOfBirth) && Objects.equals(heightCm, that.heightCm) && Objects.equals(weightKg, that.weightKg) && Objects.equals(bmi, that.bmi) && Objects.equals(healthNotes, that.healthNotes) && Objects.equals(timezone, that.timezone) && Objects.equals(unitWeight, that.unitWeight) && Objects.equals(unitLength, that.unitLength);
+    return Objects.equals(user, that.user)
+        && Objects.equals(fullName, that.fullName)
+        && gender == that.gender
+        && Objects.equals(dateOfBirth, that.dateOfBirth)
+        && Objects.equals(heightCm, that.heightCm)
+        && Objects.equals(weightKg, that.weightKg)
+        && Objects.equals(bmi, that.bmi)
+        && Objects.equals(healthNotes, that.healthNotes)
+        && Objects.equals(timezone, that.timezone)
+        && Objects.equals(unitWeight, that.unitWeight)
+        && Objects.equals(unitLength, that.unitLength);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), user, fullName, gender, dateOfBirth, heightCm, weightKg, bmi, healthNotes, timezone, unitWeight, unitLength);
+    return Objects.hash(
+        super.hashCode(),
+        user,
+        fullName,
+        gender,
+        dateOfBirth,
+        heightCm,
+        weightKg,
+        bmi,
+        healthNotes,
+        timezone,
+        unitWeight,
+        unitLength);
   }
 }

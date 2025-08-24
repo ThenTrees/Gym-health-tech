@@ -60,6 +60,10 @@ public final class AppConstants {
   public static final String FEATURE_SOCIAL = "social";
   public static final String FEATURE_ADVANCED_ANALYTICS = "advanced_analytics";
 
+  // Status responses
+  public static final String STATUS_SUCCESS = "success";
+  public static final String STATUS_ERROR = "error";
+
   private AppConstants() {
     throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
   }

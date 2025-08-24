@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.Builder;
+import lombok.Data;
 
 @Data
 @Builder
@@ -29,6 +28,8 @@ public class RegisterResponse {
   @Schema(description = "Account creation timestamp")
   private OffsetDateTime createdAt;
 
-  @Schema(description = "Success message", example = "Account created successfully. Please check your email for verification.")
+  @Schema(
+      description = "Success message",
+      example = "Account created successfully. Please check your email for verification.")
   private String message;
 }

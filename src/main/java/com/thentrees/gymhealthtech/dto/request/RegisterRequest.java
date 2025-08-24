@@ -1,27 +1,22 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
+
 import com.thentrees.gymhealthtech.common.GenderType;
 import com.thentrees.gymhealthtech.custom.StrongPassword;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.Data;
 
-import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
-
-/**
- * DTO for user registration requests.
- * follow the `Fitbod` app registration
- */
-
+/** DTO for user registration requests. follow the `Fitbod` app registration */
 @Data
 @Schema(description = "Request for user registration")
 public class RegisterRequest {
 
   @NotBlank(message = EMAIL_REQUIRED)
-  @Email(message =  EMAIL_INVALID)
+  @Email(message = EMAIL_INVALID)
   @Schema(description = "User's email address", example = "user@example.com")
   private String email;
 

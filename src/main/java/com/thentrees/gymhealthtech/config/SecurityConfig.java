@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.config;
 
 import com.thentrees.gymhealthtech.filter.JwtAuthenticationFilter;
 import com.thentrees.gymhealthtech.service.impl.UserDetailsServiceImpl;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -35,22 +34,29 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-      .csrf(AbstractHttpConfigurer::disable)
-      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(auth -> auth
-        // Public endpoints
-        .requestMatchers("/api/v1/auth/**").permitAll()
-        .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
-        .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
-        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-        .requestMatchers("/error").permitAll()
-        // Protected endpoints
-        .anyRequest().authenticated()
-      )
-      .authenticationProvider(authenticationProvider())
-      .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+    http.csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth ->
+                auth
+                    // Public endpoints
+                    .requestMatchers("/api/v1/auth/**")
+                    .permitAll()
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
+                    .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
+                    .permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/info")
+                    .permitAll()
+                    .requestMatchers("/error")
+                    .permitAll()
+                    // Protected endpoints
+                    .anyRequest()
+                    .authenticated())
+        .authenticationProvider(authenticationProvider())
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
 
@@ -63,7 +69,8 @@ public class SecurityConfig {
   }
 
   @Bean
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+      throws Exception {
     return config.getAuthenticationManager();
   }
 
@@ -71,7 +78,8 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedMethods(
+        Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(Arrays.asList("*"));
     configuration.setAllowCredentials(true);
     configuration.setExposedHeaders(Arrays.asList("Authorization"));

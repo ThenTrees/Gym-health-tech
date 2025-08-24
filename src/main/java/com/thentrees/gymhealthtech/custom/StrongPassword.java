@@ -10,8 +10,7 @@ import java.lang.annotation.*;
 @Constraint(validatedBy = StrongPasswordValidator.class)
 @Documented
 public @interface StrongPassword {
-  String message() default
-    ValidationMessages.PASSWORD_TOO_WEAK;
+  String message() default ValidationMessages.PASSWORD_TOO_WEAK;
 
   Class<?>[] groups() default {};
 

@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
+
 import com.thentrees.gymhealthtech.common.UserRole;
 import com.thentrees.gymhealthtech.common.UserStatus;
 import com.thentrees.gymhealthtech.common.VerificationType;
@@ -14,19 +16,15 @@ import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.EmailService;
 import com.thentrees.gymhealthtech.service.UserRegistrationService;
 import com.thentrees.gymhealthtech.util.ResourceAlreadyExists;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-
-import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -143,14 +141,14 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
 
   private RegisterResponse buildRegisterResponse(User user) {
     return RegisterResponse.builder()
-      .userId(user.getId())
-      .email(user.getEmail())
-      .phone(user.getPhone())
-      .fullName(user.getProfile().getFullName())
-      .emailVerified(user.getEmailVerified())
-      .createdAt(user.getCreatedAt())
-      .message("Account created successfully. Please check your email for verification.")
-      .build();
+        .userId(user.getId())
+        .email(user.getEmail())
+        .phone(user.getPhone())
+        .fullName(user.getProfile().getFullName())
+        .emailVerified(user.getEmailVerified())
+        .createdAt(user.getCreatedAt())
+        .message("Account created successfully. Please check your email for verification.")
+        .build();
   }
 
   public boolean existsByEmail(String email) {
