@@ -2,7 +2,11 @@ package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
-import java.util.UUID;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Objects;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,10 +15,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "user_profiles")
 public class UserProfile extends BaseEntity {
-
-  @Id
-  @Column(name = "user_id")
-  private UUID userId;
 
   @OneToOne(fetch = FetchType.LAZY)
   @MapsId
@@ -29,16 +29,16 @@ public class UserProfile extends BaseEntity {
   private GenderType gender;
 
   @Column(name = "dob")
-  private java.time.LocalDate dateOfBirth;
+  private LocalDate dateOfBirth;
 
   @Column(name = "height_cm", precision = 5, scale = 2)
-  private java.math.BigDecimal heightCm;
+  private BigDecimal heightCm;
 
   @Column(name = "weight_kg", precision = 5, scale = 2)
-  private java.math.BigDecimal weightKg;
+  private BigDecimal weightKg;
 
   @Column(name = "bmi", precision = 5, scale = 2)
-  private java.math.BigDecimal bmi;
+  private BigDecimal bmi;
 
   @Column(name = "health_notes", columnDefinition = "TEXT")
   private String healthNotes;
@@ -51,4 +51,17 @@ public class UserProfile extends BaseEntity {
 
   @Column(name = "unit_length", nullable = false, length = 8)
   private String unitLength = "cm";
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    UserProfile that = (UserProfile) o;
+    return Objects.equals(user, that.user) && Objects.equals(fullName, that.fullName) && gender == that.gender && Objects.equals(dateOfBirth, that.dateOfBirth) && Objects.equals(heightCm, that.heightCm) && Objects.equals(weightKg, that.weightKg) && Objects.equals(bmi, that.bmi) && Objects.equals(healthNotes, that.healthNotes) && Objects.equals(timezone, that.timezone) && Objects.equals(unitWeight, that.unitWeight) && Objects.equals(unitLength, that.unitLength);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), user, fullName, gender, dateOfBirth, heightCm, weightKg, bmi, healthNotes, timezone, unitWeight, unitLength);
+  }
 }

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 spring:
   application:
     name: gym-health-tech
@@ -9,18 +9,49 @@ spring:
     url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:gymhealthtech}
     username: ${APP_DB_USER:postgres}
     password: ${APP_DB_PASSWORD:root}
-    jpa:
-      hibernate:
-        ddl-auto: validate
-      properties:
-        hibernate.jdbc.time_zone: UTC
+    hikari:
+      pool-name: HikariPool
+      maximum-pool-size: 15
+      minimum-idle: 3
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      auto-commit: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:thientri.trank17@gmail.com}
+    password: ${MAIL_PASSWORD:spgs mysu ghqy clqv}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 logging:
   level:
     root: INFO
     com.thentrees.gymhealthtech: DEBUG
     org.springframework: WARN # giảm noise từ Spring
+
+app:
+  prefix: ${APP_PREFIX:/api/v1}
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:seacretkey}
+    expiration: ${JWT_EXPIRATION:3600000} # 1 hour
+  verification:
+    email:
+      expiration: ${EMAIL_VERIFICATION_EXPIRATION:86400000} # 24 hours
