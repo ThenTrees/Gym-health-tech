@@ -3,8 +3,8 @@ package com.thentrees.gymhealthtech.exception;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.thentrees.gymhealthtech.constant.ErrorCodes;
-import com.thentrees.gymhealthtech.dto.response.ApiError;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
+import com.thentrees.gymhealthtech.dto.response.ApiError;
 import com.thentrees.gymhealthtech.dto.response.FieldError;
 import com.thentrees.gymhealthtech.util.*;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,7 +15,6 @@ import jakarta.validation.ConstraintViolationException;
 import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -160,7 +159,8 @@ public class GlobalExceptionHandler {
                           .field(entry.getKey())
                           .message(entry.getValue())
                           .code("INVALID_VALUE")
-                          .build()).toList();
+                          .build())
+              .toList();
     }
 
     ApiError error =

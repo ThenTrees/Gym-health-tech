@@ -9,12 +9,11 @@ import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import jakarta.transaction.Transactional;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -30,19 +29,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public void verifyEmail(EmailVerificationRequest request) {
     log.info("Email verification attempt");
 
-    VerificationToken verificationToken = verificationTokenRepository
-      .findByTokenHashAndType(request.getToken(), VerificationType.EMAIL)
-      .orElse(null);
+    VerificationToken verificationToken =
+        verificationTokenRepository
+            .findByTokenHashAndType(request.getToken(), VerificationType.EMAIL)
+            .orElse(null);
 
     // Check if token exists by comparing hashed versions
     if (verificationToken == null) {
-      verificationToken = verificationTokenRepository
-        .findAll()
-        .stream()
-        .filter(token -> token.getType() == VerificationType.EMAIL)
-        .filter(token -> passwordEncoder.matches(request.getToken(), token.getTokenHash()))
-        .findFirst()
-        .orElseThrow(() -> new BusinessException("Invalid verification token"));
+      verificationToken =
+          verificationTokenRepository.findAll().stream()
+              .filter(token -> token.getType() == VerificationType.EMAIL)
+              .filter(token -> passwordEncoder.matches(request.getToken(), token.getTokenHash()))
+              .findFirst()
+              .orElseThrow(() -> new BusinessException("Invalid verification token"));
     }
 
     if (verificationToken.getConsumedAt() != null) {

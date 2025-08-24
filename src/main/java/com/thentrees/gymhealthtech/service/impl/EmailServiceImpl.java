@@ -41,8 +41,10 @@ public class EmailServiceImpl implements EmailService {
       throw e;
     }
   }
+
   private String buildVerificationEmailText(String fullName, String verificationUrl) {
-    return String.format("""
+    return String.format(
+        """
             Hello %s,
 
             Welcome to GymHealthTech! Please verify your email address by clicking the link below:
@@ -55,7 +57,7 @@ public class EmailServiceImpl implements EmailService {
 
             Best regards,
             GymHealthTech Team
-            """, fullName, verificationUrl);
+            """,
+        fullName, verificationUrl);
   }
 }
-

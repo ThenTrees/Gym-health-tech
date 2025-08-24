@@ -3,17 +3,15 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.common.UserRole;
 import com.thentrees.gymhealthtech.common.UserStatus;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -86,11 +84,18 @@ public class User extends BaseEntity implements UserDetails {
     if (o == null || getClass() != o.getClass()) return false;
     if (!super.equals(o)) return false;
     User user = (User) o;
-    return Objects.equals(email, user.email) && Objects.equals(phone, user.phone) && Objects.equals(passwordHash, user.passwordHash) && status == user.status && role == user.role && Objects.equals(emailVerified, user.emailVerified) && Objects.equals(profile, user.profile);
+    return Objects.equals(email, user.email)
+        && Objects.equals(phone, user.phone)
+        && Objects.equals(passwordHash, user.passwordHash)
+        && status == user.status
+        && role == user.role
+        && Objects.equals(emailVerified, user.emailVerified)
+        && Objects.equals(profile, user.profile);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), email, phone, passwordHash, status, role, emailVerified, profile);
+    return Objects.hash(
+        super.hashCode(), email, phone, passwordHash, status, role, emailVerified, profile);
   }
 }
