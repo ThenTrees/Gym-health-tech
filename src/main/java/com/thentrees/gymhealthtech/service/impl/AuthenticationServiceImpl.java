@@ -89,10 +89,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public AuthResponse authenticate(LoginRequest request, String userAgent, String ipAddress) {
     log.info("Authentication attempt for identifier: {}", request.getIdentifier());
     try {
-      Authentication authentication = authenticationManager.authenticate(
+      Authentication authentication =
+          authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(
-                  request.getIdentifier(), request.getPassword())
-      );
+                  request.getIdentifier(), request.getPassword()));
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
       User user =
@@ -163,8 +163,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public void logout(LogoutRequest request, String currentUserEmail) {
     log.info("Logout attempt for user: {}", currentUserEmail);
 
-    User user = userRepository.findByEmail(currentUserEmail)
-      .orElseThrow(() -> new BusinessException("User not found"));
+    User user =
+        userRepository
+            .findByEmail(currentUserEmail)
+            .orElseThrow(() -> new BusinessException("User not found"));
 
     if (request.getLogoutFromAllDevices()) {
       refreshTokenService.revokeAllUserTokens(user);

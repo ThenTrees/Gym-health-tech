@@ -308,13 +308,11 @@ public class AuthenticationController {
     }
   }
 
-  @Operation(
-    summary = "Logout user",
-    description = "Revokes refresh token and logs out user"
-  )
+  @Operation(summary = "Logout user", description = "Revokes refresh token and logs out user")
   @SecurityRequirement(name = "Bearer Authentication")
   @PostMapping("/logout")
-  public ResponseEntity<APIResponse<String>> logout(@RequestBody(required = false) LogoutRequest request) {
+  public ResponseEntity<APIResponse<String>> logout(
+      @RequestBody(required = false) LogoutRequest request) {
     try {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
       String currentUserEmail = authentication.getName();
@@ -328,8 +326,7 @@ public class AuthenticationController {
       return ResponseEntity.ok(APIResponse.success("Logout successful"));
 
     } catch (BusinessException e) {
-      return ResponseEntity.badRequest()
-        .body(APIResponse.error(e.getMessage()));
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
     }
   }
 
