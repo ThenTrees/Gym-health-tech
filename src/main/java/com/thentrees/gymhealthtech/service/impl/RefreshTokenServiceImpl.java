@@ -5,18 +5,17 @@ import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.RefreshTokenRepository;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -66,21 +65,21 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
   @Transactional
   @Override
   public Optional<RefreshToken> findByToken(String token) {
-    return refreshTokenRepository.findActiveTokens()
-      .stream()
-      .filter(rt -> passwordEncoder.matches(token, rt.getTokenHash()))
-      .findFirst();
+    return refreshTokenRepository.findActiveTokens().stream()
+        .filter(rt -> passwordEncoder.matches(token, rt.getTokenHash()))
+        .findFirst();
   }
 
   @Transactional
   @Override
   public void revokeToken(String token) {
     Optional<RefreshToken> refreshToken = findByToken(token);
-    refreshToken.ifPresent(rt -> {
-      rt.setRevokedAt(OffsetDateTime.now());
-      refreshTokenRepository.save(rt);
-      log.info("Revoked refresh token for user: {}", rt.getUser().getEmail());
-    });
+    refreshToken.ifPresent(
+        rt -> {
+          rt.setRevokedAt(OffsetDateTime.now());
+          refreshTokenRepository.save(rt);
+          log.info("Revoked refresh token for user: {}", rt.getUser().getEmail());
+        });
   }
 
   @Transactional
@@ -99,6 +98,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
   public boolean isTokenRevoked(RefreshToken token) {
     return token.getRevokedAt() != null;
   }
+
   private String hashToken(String token) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");

@@ -192,18 +192,21 @@ public class AuthenticationController {
   }
 
   @Operation(
-    summary = "Login user",
-    description = "Authenticates user and returns JWT access and refresh tokens"
-  )
-  @ApiResponses(value = {
-    @ApiResponse(
-      responseCode = "200",
-      description = "Login successful",
-      content = @Content(
-        mediaType = "application/json",
-        examples = @ExampleObject(
-          name = "Successful Login",
-          value = """
+      summary = "Login user",
+      description = "Authenticates user and returns JWT access and refresh tokens")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Login successful",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Successful Login",
+                            value =
+                                """
                     {
                       "status": "success",
                       "message": "Login successful",
@@ -224,53 +227,50 @@ public class AuthenticationController {
                         }
                       }
                     }
-                    """
-        )
-      )
-    ),
-    @ApiResponse(
-      responseCode = "401",
-      description = "Invalid credentials",
-      content = @Content(
-        mediaType = "application/json",
-        examples = @ExampleObject(
-          name = "Invalid Credentials",
-          value = """
+                    """))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid credentials",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Invalid Credentials",
+                            value =
+                                """
                     {
                       "status": "error",
                       "message": "Invalid credentials",
                       "errors": null
                     }
-                    """
-        )
-      )
-    )
-  })
+                    """)))
+      })
   @PostMapping("/login")
   public ResponseEntity<APIResponse<AuthResponse>> login(
-    @Valid @RequestBody LoginRequest request,
-    HttpServletRequest httpRequest,
-    BindingResult bindingResult) {
+      @Valid @RequestBody LoginRequest request,
+      HttpServletRequest httpRequest,
+      BindingResult bindingResult) {
     try {
       if (bindingResult.hasErrors()) {
         Map<String, String> errors = extractValidationErrors.extract(bindingResult);
         ApiError apiError =
-          ApiError.builder()
-            .code("VALIDATION_ERROR")
-            .fieldErrors(
-              errors.entrySet().stream()
-                .map(
-                  entry ->
-                    FieldError.builder()
-                      .field(entry.getKey())
-                      .message(entry.getValue())
-                      .build())
-                .toList())
-            .build();
+            ApiError.builder()
+                .code("VALIDATION_ERROR")
+                .fieldErrors(
+                    errors.entrySet().stream()
+                        .map(
+                            entry ->
+                                FieldError.builder()
+                                    .field(entry.getKey())
+                                    .message(entry.getValue())
+                                    .build())
+                        .toList())
+                .build();
         return ResponseEntity.badRequest()
-          .body(
-            APIResponse.error(
-              "Validation failed", mapper.convertValue(apiError, ApiError.class)));
+            .body(
+                APIResponse.error(
+                    "Validation failed", mapper.convertValue(apiError, ApiError.class)));
       }
       String userAgent = httpRequest.getHeader("User-Agent");
       String ipAddress = getClientIpAddress.getClientIp(httpRequest);
@@ -280,23 +280,20 @@ public class AuthenticationController {
       return ResponseEntity.ok(APIResponse.success(response, "Login successful"));
 
     } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(APIResponse.error(e.getMessage()));
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
     } catch (Exception e) {
       log.error("Unexpected error during login", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(APIResponse.error("Internal server error occurred"));
+          .body(APIResponse.error("Internal server error occurred"));
     }
   }
 
   @Operation(
-    summary = "Refresh access token",
-    description = "Generates new access token using refresh token"
-  )
+      summary = "Refresh access token",
+      description = "Generates new access token using refresh token")
   @PostMapping("/refresh")
   public ResponseEntity<APIResponse<AuthResponse>> refreshToken(
-    @Valid @RequestBody RefreshTokenRequest request,
-    HttpServletRequest httpRequest) {
+      @Valid @RequestBody RefreshTokenRequest request, HttpServletRequest httpRequest) {
 
     try {
       String userAgent = httpRequest.getHeader("User-Agent");
@@ -307,8 +304,7 @@ public class AuthenticationController {
       return ResponseEntity.ok(APIResponse.success(response, "Token refreshed successfully"));
 
     } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(APIResponse.error(e.getMessage()));
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
     }
   }
 

@@ -1,6 +1,6 @@
-//package com.thentrees.gymhealthtech.common;
+// package com.thentrees.gymhealthtech.common;
 //
-//public final class CacheKeys {
+// public final class CacheKeys {
 //
 //  // User Cache Keys
 //  public static final String USER_PREFIX = "user:";
@@ -29,4 +29,4 @@
 //  private CacheKeys() {
 //    throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
 //  }
-//}
+// }

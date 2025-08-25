@@ -67,12 +67,12 @@ public class JwtServiceImpl implements JwtService {
       }
 
       return Jwts.builder()
-        .setClaims(claims)
-        .setSubject(user.getEmail())
-        .setIssuedAt(new Date())
-        .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-        .signWith(getSignInKey(), SignatureAlgorithm.HS256) // ✅ Key trước, alg sau
-        .compact();
+          .setClaims(claims)
+          .setSubject(user.getEmail())
+          .setIssuedAt(new Date())
+          .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+          .signWith(getSignInKey(), SignatureAlgorithm.HS256) // ✅ Key trước, alg sau
+          .compact();
     } catch (Exception e) {
       log.error("Error generating token for user {}: {}", user.getEmail(), e.getMessage());
       throw e;
@@ -114,13 +114,8 @@ public class JwtServiceImpl implements JwtService {
   }
 
   private Claims extractAllClaims(String token) {
-    return Jwts.parser()
-      .setSigningKey(getSignInKey())
-      .build()
-      .parseClaimsJws(token)
-      .getBody();
+    return Jwts.parser().setSigningKey(getSignInKey()).build().parseClaimsJws(token).getBody();
   }
-
 
   private Key getSignInKey() {
     byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);

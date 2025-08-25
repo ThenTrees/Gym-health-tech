@@ -17,7 +17,6 @@ import com.thentrees.gymhealthtech.service.RefreshTokenService;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,23 +88,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Authentication attempt for identifier: {}", request.getIdentifier());
     try {
       // Authenticate user
-      Authentication authentication = authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(
-          request.getIdentifier(),
-          request.getPassword()
-        )
-      );
+      Authentication authentication =
+          authenticationManager.authenticate(
+              new UsernamePasswordAuthenticationToken(
+                  request.getIdentifier(), request.getPassword()));
 
       // Get user details
-      User user = userRepository.findByEmailOrPhone(request.getIdentifier())
-        .orElseThrow(() -> new BusinessException("User not found"));
+      User user =
+          userRepository
+              .findByEmailOrPhone(request.getIdentifier())
+              .orElseThrow(() -> new BusinessException("User not found"));
 
       // Check if user account is active
       validateUserAccount(user);
 
-      //! BUGFIX: The accessToken and refreshToken values were hardcoded strings.
+      // ! BUGFIX: The accessToken and refreshToken values were hardcoded strings.
       String accessToken = jwtService.generateTokenForUser(user);
-      RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
+      RefreshToken refreshToken =
+          refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
 
       log.info("Authentication successful for user: {}", user.getEmail());
 
@@ -119,10 +119,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
   @Transactional
   @Override
-  public AuthResponse refreshToken(RefreshTokenRequest request, String userAgent, String ipAddress) {
+  public AuthResponse refreshToken(
+      RefreshTokenRequest request, String userAgent, String ipAddress) {
     log.info("Refresh token attempt");
 
-    Optional<RefreshToken> refreshTokenOpt = refreshTokenService.findByToken(request.getRefreshToken());
+    Optional<RefreshToken> refreshTokenOpt =
+        refreshTokenService.findByToken(request.getRefreshToken());
 
     if (refreshTokenOpt.isEmpty()) {
       throw new BusinessException("Invalid refresh token");
@@ -145,7 +147,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     String newAccessToken = jwtService.generateTokenForUser(user);
 
     // Generate new refresh token (rotate refresh tokens for security)
-    RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
+    RefreshToken newRefreshToken =
+        refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
 
     // Revoke old refresh token
     refreshTokenService.revokeToken(request.getRefreshToken());
@@ -165,6 +168,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
   /**
    * Generate and send email verification token
+   *
    * @param user The user to send the verification email to
    */
   private void generateAndSendVerificationToken(User user) {
@@ -198,21 +202,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
   private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
     return AuthResponse.builder()
-      .accessToken(accessToken)
-      .refreshToken(refreshToken)
-      .tokenType("Bearer")
-      .expiresIn(jwtExpiration / 1000) // Convert to seconds
-      .user(AuthResponse.UserInfo.builder()
-        .id(user.getId())
-        .email(user.getEmail())
-        .phone(user.getPhone())
-        .fullName(user.getProfile() != null ? user.getProfile().getFullName() : null)
-        .role(user.getRole().name())
-        .status(user.getStatus().name())
-        .emailVerified(user.getEmailVerified())
-        .createdAt(user.getCreatedAt())
-        .build())
-      .build();
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .tokenType("Bearer")
+        .expiresIn(jwtExpiration / 1000) // Convert to seconds
+        .user(
+            AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .fullName(user.getProfile() != null ? user.getProfile().getFullName() : null)
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
+                .emailVerified(user.getEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .build())
+        .build();
   }
-
 }
