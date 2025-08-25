@@ -54,24 +54,29 @@ public class JwtServiceImpl implements JwtService {
   }
 
   public String generateTokenForUser(User user) {
-    Map<String, Object> claims = new HashMap<>();
-    claims.put("userId", user.getId().toString());
-    claims.put("email", user.getEmail());
-    claims.put("role", user.getRole().name());
-    claims.put("status", user.getStatus().name());
-    claims.put("emailVerified", user.getEmailVerified());
+    try {
+      Map<String, Object> claims = new HashMap<>();
+      claims.put("userId", user.getId() != null ? user.getId().toString() : null);
+      claims.put("email", user.getEmail());
+      claims.put("role", user.getRole().getDisplayName());
+      claims.put("status", user.getStatus().getDisplayName());
+      claims.put("emailVerified", user.getEmailVerified());
 
-    if (user.getProfile() != null) {
-      claims.put("fullName", user.getProfile().getFullName());
+      if (user.getProfile() != null) {
+        claims.put("fullName", user.getProfile().getFullName());
+      }
+
+      return Jwts.builder()
+          .setClaims(claims)
+          .setSubject(user.getEmail())
+          .setIssuedAt(new Date())
+          .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+          .signWith(getSignInKey(), SignatureAlgorithm.HS256) // ✅ Key trước, alg sau
+          .compact();
+    } catch (Exception e) {
+      log.error("Error generating token for user {}: {}", user.getEmail(), e.getMessage());
+      throw e;
     }
-
-    return Jwts.builder()
-        .setClaims(claims)
-        .setSubject(user.getEmail())
-        .setIssuedAt(new Date())
-        .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-        .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-        .compact();
   }
 
   private String buildToken(

@@ -52,8 +52,12 @@ public class UserProfile extends BaseEntity {
 
   @Override
   public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) return false;
-    if (!super.equals(o)) return false;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
     UserProfile that = (UserProfile) o;
     return Objects.equals(user, that.user)
         && Objects.equals(fullName, that.fullName)

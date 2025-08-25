@@ -2,16 +2,27 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
+import com.thentrees.gymhealthtech.dto.request.LoginRequest;
+import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
+import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
+import com.thentrees.gymhealthtech.model.RefreshToken;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.VerificationToken;
 import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
+import com.thentrees.gymhealthtech.service.JwtService;
+import com.thentrees.gymhealthtech.service.RefreshTokenService;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +34,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private final VerificationTokenRepository verificationTokenRepository;
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AuthenticationManager authenticationManager;
+  private final JwtService jwtService;
+  private final EmailServiceImpl emailService;
+  private final RefreshTokenService refreshTokenService;
+
+  @Value("${app.jwt.expiration}")
+  private long jwtExpiration;
 
   @Transactional
   @Override
@@ -62,5 +80,143 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     userRepository.save(user);
 
     log.info("Email verification successful for user: {}", user.getEmail());
+  }
+
+  @Transactional
+  @Override
+  public AuthResponse authenticate(LoginRequest request, String userAgent, String ipAddress) {
+    log.info("Authentication attempt for identifier: {}", request.getIdentifier());
+    try {
+      // Authenticate user
+      Authentication authentication =
+          authenticationManager.authenticate(
+              new UsernamePasswordAuthenticationToken(
+                  request.getIdentifier(), request.getPassword()));
+
+      // Get user details
+      User user =
+          userRepository
+              .findByEmailOrPhone(request.getIdentifier())
+              .orElseThrow(() -> new BusinessException("User not found"));
+
+      // Check if user account is active
+      validateUserAccount(user);
+
+      // ! BUGFIX: The accessToken and refreshToken values were hardcoded strings.
+      String accessToken = jwtService.generateTokenForUser(user);
+      RefreshToken refreshToken =
+          refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
+
+      log.info("Authentication successful for user: {}", user.getEmail());
+
+      return buildAuthResponse(user, accessToken, refreshToken.getTokenHash());
+
+    } catch (Exception e) {
+      log.warn("Authentication failed for identifier: {}", request.getIdentifier());
+      throw new BusinessException("Invalid credentials");
+    }
+  }
+
+  @Transactional
+  @Override
+  public AuthResponse refreshToken(
+      RefreshTokenRequest request, String userAgent, String ipAddress) {
+    log.info("Refresh token attempt");
+
+    Optional<RefreshToken> refreshTokenOpt =
+        refreshTokenService.findByToken(request.getRefreshToken());
+
+    if (refreshTokenOpt.isEmpty()) {
+      throw new BusinessException("Invalid refresh token");
+    }
+
+    RefreshToken refreshToken = refreshTokenOpt.get();
+
+    if (refreshTokenService.isTokenExpired(refreshToken)) {
+      throw new BusinessException("Refresh token expired");
+    }
+
+    if (refreshTokenService.isTokenRevoked(refreshToken)) {
+      throw new BusinessException("Refresh token revoked");
+    }
+
+    User user = refreshToken.getUser();
+    validateUserAccount(user);
+
+    // Generate new access token
+    String newAccessToken = jwtService.generateTokenForUser(user);
+
+    // Generate new refresh token (rotate refresh tokens for security)
+    RefreshToken newRefreshToken =
+        refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
+
+    // Revoke old refresh token
+    refreshTokenService.revokeToken(request.getRefreshToken());
+
+    log.info("Token refresh successful for user: {}", user.getEmail());
+
+    return buildAuthResponse(user, newAccessToken, newRefreshToken.getTokenHash());
+  }
+
+  private void validateUserAccount(User user) {
+    switch (user.getStatus()) {
+      case INACTIVE -> throw new BusinessException("Account is inactive");
+      case SUSPENDED -> throw new BusinessException("Account is suspended");
+      case PENDING_VERIFICATION -> throw new BusinessException("Account is pending verification");
+    }
+  }
+
+  /**
+   * Generate and send email verification token
+   *
+   * @param user The user to send the verification email to
+   */
+  private void generateAndSendVerificationToken(User user) {
+    // Generate secure token
+    java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+    byte[] tokenBytes = new byte[32];
+    secureRandom.nextBytes(tokenBytes);
+    String token = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    String tokenHash = passwordEncoder.encode(token);
+
+    // Delete existing verification tokens for this user
+    verificationTokenRepository.deleteByUserIdAndType(user.getId(), VerificationType.EMAIL);
+
+    // Create verification token
+    VerificationToken verificationToken = new VerificationToken();
+    verificationToken.setUser(user);
+    verificationToken.setType(VerificationType.EMAIL);
+    verificationToken.setTokenHash(tokenHash);
+    verificationToken.setExpiresAt(OffsetDateTime.now().plusHours(24)); // 24 hours expiry
+
+    verificationTokenRepository.save(verificationToken);
+
+    // Send verification email (async)
+    try {
+      emailService.sendEmailVerification(user.getEmail(), user.getProfile().getFullName(), token);
+    } catch (Exception e) {
+      log.error("Failed to send verification email to: {}", user.getEmail(), e);
+      // Don't fail the operation if email fails
+    }
+  }
+
+  private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
+    return AuthResponse.builder()
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .tokenType("Bearer")
+        .expiresIn(jwtExpiration / 1000) // Convert to seconds
+        .user(
+            AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .fullName(user.getProfile() != null ? user.getProfile().getFullName() : null)
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
+                .emailVerified(user.getEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .build())
+        .build();
   }
 }

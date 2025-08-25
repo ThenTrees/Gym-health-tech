@@ -81,8 +81,12 @@ public class User extends BaseEntity implements UserDetails {
 
   @Override
   public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) return false;
-    if (!super.equals(o)) return false;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
     User user = (User) o;
     return Objects.equals(email, user.email)
         && Objects.equals(phone, user.phone)
