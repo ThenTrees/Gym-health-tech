@@ -2,15 +2,15 @@ package com.thentrees.gymhealthtech.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
+import com.thentrees.gymhealthtech.dto.request.LoginRequest;
+import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.RegisterRequest;
-import com.thentrees.gymhealthtech.dto.response.APIResponse;
-import com.thentrees.gymhealthtech.dto.response.ApiError;
-import com.thentrees.gymhealthtech.dto.response.FieldError;
-import com.thentrees.gymhealthtech.dto.response.RegisterResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import com.thentrees.gymhealthtech.service.UserRegistrationService;
 import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
+import com.thentrees.gymhealthtech.util.GetClientIp;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,8 @@ public class AuthenticationController {
   private final ExtractValidationErrors extractValidationErrors;
   private final UserRegistrationService userRegistrationService;
   private final AuthenticationService authenticationService;
-  ObjectMapper mapper = new ObjectMapper();
+  private final GetClientIp getClientIpAddress;
+  private final ObjectMapper mapper = new ObjectMapper();
 
   @Operation(
       method = "POST",
@@ -186,6 +188,127 @@ public class AuthenticationController {
       log.error("Unexpected error during user registration", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(APIResponse.error("Internal server error occurred"));
+    }
+  }
+
+  @Operation(
+    summary = "Login user",
+    description = "Authenticates user and returns JWT access and refresh tokens"
+  )
+  @ApiResponses(value = {
+    @ApiResponse(
+      responseCode = "200",
+      description = "Login successful",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Successful Login",
+          value = """
+                    {
+                      "status": "success",
+                      "message": "Login successful",
+                      "data": {
+                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refreshToken": "dGhpc2lzYXJlZnJlc2h0b2tlbg...",
+                        "tokenType": "Bearer",
+                        "expiresIn": 3600,
+                        "user": {
+                          "id": "123e4567-e89b-12d3-a456-426614174000",
+                          "email": "john.doe@example.com",
+                          "phone": "+84901234567",
+                          "fullName": "John Doe",
+                          "role": "USER",
+                          "status": "ACTIVE",
+                          "emailVerified": true,
+                          "createdAt": "2024-01-15T10:30:00+07:00"
+                        }
+                      }
+                    }
+                    """
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Invalid credentials",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Invalid Credentials",
+          value = """
+                    {
+                      "status": "error",
+                      "message": "Invalid credentials",
+                      "errors": null
+                    }
+                    """
+        )
+      )
+    )
+  })
+  @PostMapping("/login")
+  public ResponseEntity<APIResponse<AuthResponse>> login(
+    @Valid @RequestBody LoginRequest request,
+    HttpServletRequest httpRequest,
+    BindingResult bindingResult) {
+    try {
+      if (bindingResult.hasErrors()) {
+        Map<String, String> errors = extractValidationErrors.extract(bindingResult);
+        ApiError apiError =
+          ApiError.builder()
+            .code("VALIDATION_ERROR")
+            .fieldErrors(
+              errors.entrySet().stream()
+                .map(
+                  entry ->
+                    FieldError.builder()
+                      .field(entry.getKey())
+                      .message(entry.getValue())
+                      .build())
+                .toList())
+            .build();
+        return ResponseEntity.badRequest()
+          .body(
+            APIResponse.error(
+              "Validation failed", mapper.convertValue(apiError, ApiError.class)));
+      }
+      String userAgent = httpRequest.getHeader("User-Agent");
+      String ipAddress = getClientIpAddress.getClientIp(httpRequest);
+
+      AuthResponse response = authenticationService.authenticate(request, userAgent, ipAddress);
+
+      return ResponseEntity.ok(APIResponse.success(response, "Login successful"));
+
+    } catch (BusinessException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(APIResponse.error(e.getMessage()));
+    } catch (Exception e) {
+      log.error("Unexpected error during login", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(APIResponse.error("Internal server error occurred"));
+    }
+  }
+
+  @Operation(
+    summary = "Refresh access token",
+    description = "Generates new access token using refresh token"
+  )
+  @PostMapping("/refresh")
+  public ResponseEntity<APIResponse<AuthResponse>> refreshToken(
+    @Valid @RequestBody RefreshTokenRequest request,
+    HttpServletRequest httpRequest) {
+
+    try {
+      String userAgent = httpRequest.getHeader("User-Agent");
+      String ipAddress = getClientIpAddress.getClientIp(httpRequest);
+
+      AuthResponse response = authenticationService.refreshToken(request, userAgent, ipAddress);
+
+      return ResponseEntity.ok(APIResponse.success(response, "Token refreshed successfully"));
+
+    } catch (BusinessException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(APIResponse.error(e.getMessage()));
     }
   }
 
