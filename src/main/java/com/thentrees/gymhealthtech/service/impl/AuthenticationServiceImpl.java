@@ -3,6 +3,7 @@ package com.thentrees.gymhealthtech.service.impl;
 import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
 import com.thentrees.gymhealthtech.dto.request.LoginRequest;
+import com.thentrees.gymhealthtech.dto.request.LogoutRequest;
 import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -87,13 +89,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public AuthResponse authenticate(LoginRequest request, String userAgent, String ipAddress) {
     log.info("Authentication attempt for identifier: {}", request.getIdentifier());
     try {
-      // Authenticate user
       Authentication authentication =
           authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(
                   request.getIdentifier(), request.getPassword()));
+      SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // Get user details
       User user =
           userRepository
               .findByEmailOrPhone(request.getIdentifier())
@@ -102,7 +103,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       // Check if user account is active
       validateUserAccount(user);
 
-      // ! BUGFIX: The accessToken and refreshToken values were hardcoded strings.
       String accessToken = jwtService.generateTokenForUser(user);
       RefreshToken refreshToken =
           refreshTokenService.createRefreshToken(user, userAgent, ipAddress);
@@ -156,6 +156,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Token refresh successful for user: {}", user.getEmail());
 
     return buildAuthResponse(user, newAccessToken, newRefreshToken.getTokenHash());
+  }
+
+  @Transactional
+  @Override
+  public void logout(LogoutRequest request, String currentUserEmail) {
+    log.info("Logout attempt for user: {}", currentUserEmail);
+
+    User user =
+        userRepository
+            .findByEmail(currentUserEmail)
+            .orElseThrow(() -> new BusinessException("User not found"));
+
+    if (request.getLogoutFromAllDevices()) {
+      refreshTokenService.revokeAllUserTokens(user);
+      log.info("Logged out from all devices for user: {}", currentUserEmail);
+    } else if (request.getRefreshToken() != null) {
+      refreshTokenService.revokeToken(request.getRefreshToken());
+      log.info("Logged out from current device for user: {}", currentUserEmail);
+    }
   }
 
   private void validateUserAccount(User user) {
