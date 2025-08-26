@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -302,6 +305,28 @@ public class AuthenticationController {
 
     } catch (BusinessException e) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
+    }
+  }
+
+  @Operation(summary = "Logout user", description = "Revokes refresh token and logs out user")
+  @SecurityRequirement(name = "Bearer Authentication")
+  @PostMapping("/logout")
+  public ResponseEntity<APIResponse<String>> logout(
+      @RequestBody(required = false) LogoutRequest request) {
+    try {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      String currentUserEmail = authentication.getName();
+
+      if (request == null) {
+        request = new LogoutRequest();
+      }
+
+      authenticationService.logout(request, currentUserEmail);
+
+      return ResponseEntity.ok(APIResponse.success("Logout successful"));
+
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
     }
   }
 
