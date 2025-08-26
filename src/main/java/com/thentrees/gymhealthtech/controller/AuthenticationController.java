@@ -345,6 +345,26 @@ public class AuthenticationController {
   }
 
   @Operation(
+      summary = "Change password",
+      description = "Changes user password (requires authentication)")
+  @SecurityRequirement(name = "Bearer Authentication")
+  @PostMapping("/change-password")
+  public ResponseEntity<APIResponse<String>> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request) {
+    try {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      String currentUserEmail = authentication.getName();
+
+      authenticationService.changePassword(request, currentUserEmail);
+
+      return ResponseEntity.ok(APIResponse.success("Password changed successfully"));
+
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
+    }
+  }
+
+  @Operation(
       summary = "Resend verification email",
       description = "Sends new verification email to user")
   @PostMapping("/resend-verification")

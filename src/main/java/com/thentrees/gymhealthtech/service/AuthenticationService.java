@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.service;
 
+import com.thentrees.gymhealthtech.dto.request.ChangePasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
 import com.thentrees.gymhealthtech.dto.request.LoginRequest;
 import com.thentrees.gymhealthtech.dto.request.LogoutRequest;
@@ -15,6 +16,8 @@ public interface AuthenticationService {
   AuthResponse refreshToken(RefreshTokenRequest request, String userAgent, String ipAddress);
 
   void resendVerificationEmail(ResendVerificationRequest request);
-  
+
   void logout(LogoutRequest request, String currentUserEmail);
+
+  void changePassword(ChangePasswordRequest request, String currentUserEmail);
 }
