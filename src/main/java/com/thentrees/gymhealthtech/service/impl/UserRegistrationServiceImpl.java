@@ -151,6 +151,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
         .build();
   }
 
+  @Override
   public boolean existsByEmail(String email) {
     return userRepository.existsByEmail(email);
   }

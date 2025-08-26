@@ -7,4 +7,6 @@ import jakarta.transaction.Transactional;
 public interface UserRegistrationService {
   @Transactional
   RegisterResponse registerUser(RegisterRequest request);
+
+  boolean existsByEmail(String email);
 }
