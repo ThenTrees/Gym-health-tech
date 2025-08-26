@@ -1002,3 +1002,46 @@ org.springframework.web.servlet.resource.NoResourceFoundException: No static res
 2025-08-27 00:44:52 INFO  [http-nio-8080-exec-9] c.t.g.filter.LoggingFilter - Response: status=500, duration=10ms
 2025-08-27 00:45:08 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool - Shutdown initiated...
 2025-08-27 00:45:08 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool - Shutdown completed.
+2025-08-27 01:06:16 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-08-27 01:06:16 INFO  [main] c.t.g.GymHealthTechApplication - Starting GymHealthTechApplication using Java 17.0.12 with PID 11556 (D:\final-project\gym-health-tech\target\classes started by thien in D:\final-project\gym-health-tech)
+2025-08-27 01:06:16 DEBUG [main] c.t.g.GymHealthTechApplication - Running with Spring Boot v3.5.4, Spring v6.2.9
+2025-08-27 01:06:16 INFO  [main] c.t.g.GymHealthTechApplication - The following 1 profile is active: "dev"
+2025-08-27 01:06:18 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-08-27 01:06:18 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-08-27 01:06:18 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.43]
+2025-08-27 01:06:18 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-08-27 01:06:18 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool - Starting...
+2025-08-27 01:06:19 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool - Added connection org.postgresql.jdbc.PgConnection@212e39ee
+2025-08-27 01:06:19 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool - Start completed.
+2025-08-27 01:06:19 INFO  [main] org.flywaydb.core.FlywayExecutor - Database: jdbc:postgresql://localhost:5432/gymhealthtech (PostgreSQL 16.9)
+2025-08-27 01:06:19 INFO  [main] o.f.core.internal.command.DbValidate - Successfully validated 3 migrations (execution time 00:00.025s)
+2025-08-27 01:06:19 INFO  [main] o.f.core.internal.command.DbMigrate - Current version of schema "public": 3
+2025-08-27 01:06:19 INFO  [main] o.f.core.internal.command.DbMigrate - Schema "public" is up to date. No migration necessary.
+2025-08-27 01:06:19 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-08-27 01:06:19 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.22.Final
+2025-08-27 01:06:19 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-08-27 01:06:19 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool)']
+	Database driver: undefined/unknown
+	Database version: 16.9
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-08-27 01:06:20 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-08-27 01:06:21 DEBUG [main] c.t.g.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-08-27 01:06:21 DEBUG [main] c.t.gymhealthtech.filter.MDCFilter - Filter 'MDCFilter' configured for use
+2025-08-27 01:06:21 WARN  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2025-08-27 01:06:21 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-08-27 01:06:22 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-08-27 01:06:22 INFO  [main] c.t.g.GymHealthTechApplication - Started GymHealthTechApplication in 6.103 seconds (process running for 6.641)
+2025-08-27 01:06:22 INFO  [RMI TCP Connection(6)-172.23.192.1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-27 01:07:24 INFO  [http-nio-8080-exec-2] c.t.g.filter.LoggingFilter - Incoming request: method=POST, uri=/api/v1/auth/check-email
+2025-08-27 01:07:24 WARN  [http-nio-8080-exec-2] c.t.g.e.GlobalExceptionHandler - Method not supported [A5F31D70]: POST not supported for /api/v1/auth/check-email - Supported: [GET]
+2025-08-27 01:07:24 INFO  [http-nio-8080-exec-2] c.t.g.filter.LoggingFilter - Response: status=405, duration=24ms
+2025-08-27 01:07:29 INFO  [http-nio-8080-exec-6] c.t.g.filter.LoggingFilter - Incoming request: method=GET, uri=/api/v1/auth/check-email
+2025-08-27 01:07:29 INFO  [http-nio-8080-exec-6] c.t.g.filter.LoggingFilter - Response: status=200, duration=27ms
+2025-08-27 01:07:39 INFO  [http-nio-8080-exec-4] c.t.g.filter.LoggingFilter - Incoming request: method=GET, uri=/api/v1/auth/check-email
+2025-08-27 01:07:39 INFO  [http-nio-8080-exec-4] c.t.g.filter.LoggingFilter - Response: status=200, duration=4ms
+2025-08-27 01:07:51 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool - Shutdown initiated...
+2025-08-27 01:07:51 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool - Shutdown completed.
