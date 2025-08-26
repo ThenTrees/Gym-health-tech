@@ -4,7 +4,9 @@ import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.ChangePasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
 import com.thentrees.gymhealthtech.dto.request.LoginRequest;
+import com.thentrees.gymhealthtech.dto.request.LogoutRequest;
 import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
+import com.thentrees.gymhealthtech.dto.request.ResendVerificationRequest;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.RefreshToken;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -157,6 +160,53 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Token refresh successful for user: {}", user.getEmail());
 
     return buildAuthResponse(user, newAccessToken, newRefreshToken.getTokenHash());
+  }
+
+  @Transactional
+  @Override
+  public void resendVerificationEmail(ResendVerificationRequest request) {
+    log.info("Resend verification email for: {}", request.getEmail());
+
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new BusinessException("User not found"));
+
+    if (user.getEmailVerified()) {
+      throw new BusinessException("Email already verified");
+    }
+
+    // Check if there's an active token
+    Optional<VerificationToken> existingToken =
+        verificationTokenRepository.findActiveTokenByUserAndType(
+            user.getId(), VerificationType.EMAIL, OffsetDateTime.now());
+
+    if (existingToken.isPresent()) {
+      throw new BusinessException(
+          "Verification email already sent. Please check your inbox or wait before requesting again.");
+    }
+
+    // Generate and send new verification token
+    generateAndSendVerificationToken(user);
+  }
+
+  @Transactional
+  @Override
+  public void logout(LogoutRequest request, String currentUserEmail) {
+    log.info("Logout attempt for user: {}", currentUserEmail);
+
+    User user =
+        userRepository
+            .findByEmail(currentUserEmail)
+            .orElseThrow(() -> new BusinessException("User not found"));
+
+    if (request.getLogoutFromAllDevices()) {
+      refreshTokenService.revokeAllUserTokens(user);
+      log.info("Logged out from all devices for user: {}", currentUserEmail);
+    } else if (request.getRefreshToken() != null) {
+      refreshTokenService.revokeToken(request.getRefreshToken());
+      log.info("Logged out from current device for user: {}", currentUserEmail);
+    }
   }
 
   @Transactional

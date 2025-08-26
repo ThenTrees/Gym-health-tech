@@ -308,6 +308,28 @@ public class AuthenticationController {
     }
   }
 
+  @Operation(summary = "Logout user", description = "Revokes refresh token and logs out user")
+  @SecurityRequirement(name = "Bearer Authentication")
+  @PostMapping("/logout")
+  public ResponseEntity<APIResponse<String>> logout(
+      @RequestBody(required = false) LogoutRequest request) {
+    try {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      String currentUserEmail = authentication.getName();
+
+      if (request == null) {
+        request = new LogoutRequest();
+      }
+
+      authenticationService.logout(request, currentUserEmail);
+
+      return ResponseEntity.ok(APIResponse.success("Logout successful"));
+
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
+    }
+  }
+
   @Operation(
       summary = "Verify email address",
       description = "Verifies user email using verification token")
@@ -337,6 +359,20 @@ public class AuthenticationController {
 
       return ResponseEntity.ok(APIResponse.success("Password changed successfully"));
 
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
+    }
+  }
+
+  @Operation(
+      summary = "Resend verification email",
+      description = "Sends new verification email to user")
+  @PostMapping("/resend-verification")
+  public ResponseEntity<APIResponse<String>> resendVerification(
+      @Valid @RequestBody ResendVerificationRequest request) {
+    try {
+      authenticationService.resendVerificationEmail(request);
+      return ResponseEntity.ok(APIResponse.success("Verification email sent"));
     } catch (BusinessException e) {
       return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
     }
