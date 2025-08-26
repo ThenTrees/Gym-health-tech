@@ -1,10 +1,7 @@
 package com.thentrees.gymhealthtech.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
-import com.thentrees.gymhealthtech.dto.request.LoginRequest;
-import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
-import com.thentrees.gymhealthtech.dto.request.RegisterRequest;
+import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
@@ -317,6 +314,20 @@ public class AuthenticationController {
     try {
       authenticationService.verifyEmail(request);
       return ResponseEntity.ok(APIResponse.success("Email verified successfully", null));
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
+    }
+  }
+
+  @Operation(
+      summary = "Resend verification email",
+      description = "Sends new verification email to user")
+  @PostMapping("/resend-verification")
+  public ResponseEntity<APIResponse<String>> resendVerification(
+      @Valid @RequestBody ResendVerificationRequest request) {
+    try {
+      authenticationService.resendVerificationEmail(request);
+      return ResponseEntity.ok(APIResponse.success("Verification email sent"));
     } catch (BusinessException e) {
       return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
     }

@@ -4,6 +4,7 @@ import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
 import com.thentrees.gymhealthtech.dto.request.LoginRequest;
 import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
+import com.thentrees.gymhealthtech.dto.request.ResendVerificationRequest;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.RefreshToken;
@@ -156,6 +157,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Token refresh successful for user: {}", user.getEmail());
 
     return buildAuthResponse(user, newAccessToken, newRefreshToken.getTokenHash());
+  }
+
+  @Transactional
+  @Override
+  public void resendVerificationEmail(ResendVerificationRequest request) {
+    log.info("Resend verification email for: {}", request.getEmail());
+
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new BusinessException("User not found"));
+
+    if (user.getEmailVerified()) {
+      throw new BusinessException("Email already verified");
+    }
+
+    // Check if there's an active token
+    Optional<VerificationToken> existingToken =
+        verificationTokenRepository.findActiveTokenByUserAndType(
+            user.getId(), VerificationType.EMAIL, OffsetDateTime.now());
+
+    if (existingToken.isPresent()) {
+      throw new BusinessException(
+          "Verification email already sent. Please check your inbox or wait before requesting again.");
+    }
+
+    // Generate and send new verification token
+    generateAndSendVerificationToken(user);
   }
 
   private void validateUserAccount(User user) {
