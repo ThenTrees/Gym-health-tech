@@ -5,7 +5,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ public class LoggingFilter implements Filter {
     HttpServletResponse httpRes = (HttpServletResponse) response;
 
     long startTime = System.currentTimeMillis();
-    String requestId = UUID.randomUUID().toString();
+    String requestId = generateTraceId.generate();
     MDC.put("requestId", requestId); // generateTraceId
 
     try {

@@ -76,7 +76,11 @@ public class User extends BaseEntity implements UserDetails {
 
   @Override
   public boolean isEnabled() {
-    return true;
+    if (status == UserStatus.ACTIVE
+        || status.getDisplayName().toString().equalsIgnoreCase(UserStatus.ACTIVE.toString())) {
+      return true;
+    }
+    return false;
   }
 
   @Override

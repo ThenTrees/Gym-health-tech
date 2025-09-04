@@ -9,6 +9,12 @@ public final class SuccessMessages {
   public static final String EMAIL_VERIFIED = "Email verified successfully";
   public static final String PASSWORD_UPDATED = "Password updated successfully";
 
+  // UserProfile
+  public static final String PROFILE_CREATED = "User profile created successfully";
+  public static final String PROFILE_UPDATED = "User profile updated successfully";
+  public static final String PROFILE_DELETED = "User profile deleted successfully";
+  public static final String GET_PROFILE = "User profile retrieved successfully";
+
   // Authentication
   public static final String LOGIN_SUCCESSFUL = "Login successful";
   public static final String LOGOUT_SUCCESSFUL = "Logout successful";

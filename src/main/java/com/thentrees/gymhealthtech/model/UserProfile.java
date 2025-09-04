@@ -5,12 +5,14 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "user_profiles")
 public class UserProfile extends BaseEntity {
 
@@ -42,12 +44,15 @@ public class UserProfile extends BaseEntity {
   private String healthNotes;
 
   @Column(name = "timezone", nullable = false, length = 64)
+  @Builder.Default
   private String timezone = "Asia/Ho_Chi_Minh";
 
   @Column(name = "unit_weight", nullable = false, length = 8)
+  @Builder.Default
   private String unitWeight = "kg";
 
   @Column(name = "unit_length", nullable = false, length = 8)
+  @Builder.Default
   private String unitLength = "cm";
 
   @Override

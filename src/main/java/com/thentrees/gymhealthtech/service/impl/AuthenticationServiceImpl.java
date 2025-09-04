@@ -17,7 +17,6 @@ import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import com.thentrees.gymhealthtech.service.JwtService;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +27,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -100,7 +100,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       User user =
           userRepository
               .findByEmailOrPhone(request.getIdentifier())
-              .orElseThrow(() -> new BusinessException("User not found"));
+              .orElseThrow(() -> new BusinessException("identifier or password is incorrect"));
 
       // Check if user account is active
       validateUserAccount(user);
@@ -116,7 +116,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     } catch (Exception e) {
       log.warn("Authentication failed for identifier: {}", request.getIdentifier());
-      throw new BusinessException("Invalid credentials");
+      throw new BusinessException("identifier or password is incorrect");
     }
   }
 
@@ -245,7 +245,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
   private void validateUserAccount(User user) {
     switch (user.getStatus()) {
-      case INACTIVE -> throw new BusinessException("Account is inactive");
+      case INACTIVE, DELETED -> throw new BusinessException("identifier or password is incorrect");
       case SUSPENDED -> throw new BusinessException("Account is suspended");
       case PENDING_VERIFICATION -> throw new BusinessException("Account is pending verification");
     }
