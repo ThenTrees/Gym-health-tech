@@ -26,22 +26,28 @@ $$ LANGUAGE plpgsql;
 ----------------------
 -- 1) ENUMERATIONS  --
 ----------------------
-DO $$ BEGIN CREATE TYPE user_status      AS ENUM ('active','inactive');                    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE user_role        AS ENUM ('member','admin');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE gender_type      AS ENUM ('male','female','other');                EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE objective_type   AS ENUM ('lose_fat','gain_muscle','endurance','maintain'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE plan_status_type AS ENUM ('draft','active','completed','archived'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE plan_source_type AS ENUM ('ai','template','custom');               EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE session_status   AS ENUM ('in_progress','completed','cancelled','abandoned'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE asset_type       AS ENUM ('video','image');                        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE exercise_level   AS ENUM ('beginner','intermediate','advanced');   EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE notification_kind   AS ENUM ('session_reminder','rest_timer','system'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE notification_status AS ENUM ('scheduled','sent','cancelled','failed');    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE subscription_tier    AS ENUM ('free','pro');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE subscription_platform AS ENUM ('web','stripe','ios','android');    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE subscription_status AS ENUM ('active','trial','expired','cancelled');     EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE verification_type AS ENUM ('email_verify','password_reset','login_otp');  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE device_platform  AS ENUM ('ios','android','web');                  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE user_status AS ENUM (
+  'ACTIVE',
+  'INACTIVE',
+  'PENDING_VERIFICATION',
+  'DELETED',
+  'SUSPENDED'
+  );                 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE user_role        AS ENUM ('USER','ADMIN','GUEST');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE gender_type      AS ENUM ('MALE','FEMALE','OTHER');                EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE objective_type   AS ENUM ('LOSE_FAT','GAIN_MUSCLE','ENDURANCE','MAINTAIN'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE plan_status_type AS ENUM ('DRAP','ACTIVE','COMPLETED','ARCHIVED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE plan_source_type AS ENUM ('AI','TEMPLATE','CUSTOM');               EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE session_status   AS ENUM ('IN_PROGRESS','COMPLETED','CANCELLED','ABANDONED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE asset_type       AS ENUM ('VIDEO','IMAGE');                        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE exercise_level   AS ENUM ('BEGINNER','INTERMEDIATE','ADVANCE');   EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE notification_kind   AS ENUM ('SESSION_REMINDER','REST_TIMER','SYSTEM'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE notification_status AS ENUM ('SCHEDULED','SENT','CANCELLED','FAILED');    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE subscription_tier    AS ENUM ('FREE','PRO');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE subscription_platform AS ENUM ('WEB','STRIPE','IOS','ANDROID');    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE subscription_status AS ENUM ('ACTIVE','TRIAL','EXPIRED','CANCELLED');     EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE verification_type AS ENUM ('EMAIL_VERIFY','PASSWORD_RESET','LOGIN_OTP');  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE device_platform  AS ENUM ('IOS','ANDROID','WEB');                  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -----------------------------
 -- 2) IDENTITY & SECURITY  --
@@ -51,8 +57,8 @@ CREATE TABLE IF NOT EXISTS users (
                                    email          citext NOT NULL UNIQUE,
                                    phone          varchar(20) UNIQUE,
                                    password_hash  text NOT NULL,
-                                   status         user_status NOT NULL DEFAULT 'active',
-                                   role           user_role   NOT NULL DEFAULT 'member',
+                                   status         user_status NOT NULL DEFAULT 'ACTIVE',
+                                   role           user_role   NOT NULL DEFAULT 'USER',
                                    email_verified boolean NOT NULL DEFAULT false,
                                    created_at     timestamptz NOT NULL DEFAULT now(),
                                    updated_at     timestamptz NOT NULL DEFAULT now(),
@@ -212,7 +218,7 @@ CREATE INDEX IF NOT EXISTS idx_exercises_equipment      ON exercises(equipment);
 CREATE TABLE IF NOT EXISTS exercise_muscles (
                                               exercise_id uuid NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
                                               muscle_code varchar(32) NOT NULL REFERENCES muscles(code) ON DELETE RESTRICT,
-                                              role        varchar(16) NOT NULL CHECK (role IN ('primary','secondary')),
+                                              role        varchar(16) NOT NULL CHECK (role IN ('PRIMARY','SECONDARY')),
                                               PRIMARY KEY (exercise_id, muscle_code, role)
 );
 
@@ -251,9 +257,9 @@ CREATE TABLE IF NOT EXISTS plans (
                                    user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                    goal_id      uuid REFERENCES goals(id) ON DELETE SET NULL,
                                    title        varchar(120),
-                                   source       plan_source_type NOT NULL DEFAULT 'ai',
+                                   source       plan_source_type NOT NULL DEFAULT 'AI',
                                    cycle_weeks  int NOT NULL DEFAULT 4 CHECK (cycle_weeks BETWEEN 1 AND 16),
-                                   status       plan_status_type NOT NULL DEFAULT 'active',
+                                   status       plan_status_type NOT NULL DEFAULT 'ACTIVE',
                                    created_at   timestamptz NOT NULL DEFAULT now(),
                                    updated_at   timestamptz NOT NULL DEFAULT now(),
                                    version      int NOT NULL DEFAULT 0
@@ -302,7 +308,7 @@ CREATE TABLE IF NOT EXISTS sessions (
                                       plan_day_id   uuid REFERENCES plan_days(id) ON DELETE SET NULL,
                                       started_at    timestamptz NOT NULL DEFAULT now(),
                                       ended_at      timestamptz,
-                                      status        session_status NOT NULL DEFAULT 'in_progress',
+                                      status        session_status NOT NULL DEFAULT 'IN_PROGRESS',
                                       session_rpe   numeric(3,1) CHECK (session_rpe IS NULL OR (session_rpe BETWEEN 0 AND 10)),
                                       notes         text,
                                       created_at    timestamptz NOT NULL DEFAULT now(),
@@ -349,7 +355,7 @@ CREATE TABLE IF NOT EXISTS notifications (
                                            user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                            kind          notification_kind NOT NULL,
                                            scheduled_at  timestamptz NOT NULL,
-                                           status        notification_status NOT NULL DEFAULT 'scheduled',
+                                           status        notification_status NOT NULL DEFAULT 'SCHEDULED',
                                            payload       jsonb,
                                            created_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -371,7 +377,7 @@ CREATE TABLE IF NOT EXISTS chatbot_messages (
                                               id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                               thread_id   uuid NOT NULL REFERENCES chatbot_threads(id) ON DELETE CASCADE,
                                               user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                              role        varchar(16) NOT NULL CHECK (role IN ('user','assistant','system')),
+                                              role        varchar(16) NOT NULL CHECK (role IN ('USER','ASSISTANT','SYSTEM')),
                                               content     text NOT NULL,
                                               created_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -396,9 +402,9 @@ CREATE TABLE IF NOT EXISTS reports_cache (
 CREATE TABLE IF NOT EXISTS subscriptions (
                                            id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                            user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                           tier         subscription_tier NOT NULL DEFAULT 'free',
+                                           tier         subscription_tier NOT NULL DEFAULT 'FREE',
                                            platform     subscription_platform NOT NULL,
-                                           status       subscription_status NOT NULL DEFAULT 'active',
+                                           status       subscription_status NOT NULL DEFAULT 'ACTIVE',
                                            started_at   timestamptz NOT NULL DEFAULT now(),
                                            expires_at   timestamptz,
                                            cancelled_at timestamptz,
@@ -411,22 +417,22 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- at most 1 active/trial per user
 CREATE UNIQUE INDEX IF NOT EXISTS uq_subscription_active_per_user
-  ON subscriptions(user_id) WHERE status IN ('active','trial');
+  ON subscriptions(user_id) WHERE status IN ('ACTIVE','TRIAL');
 
-CREATE TABLE IF NOT EXISTS payments (
-                                      id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                                      user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                      provider         varchar(16) NOT NULL CHECK (provider IN ('stripe','apple','google')),
-                                      provider_txn_id  varchar(128) NOT NULL,
-                                      amount_cents     int NOT NULL CHECK (amount_cents >= 0),
-                                      currency         varchar(8) NOT NULL DEFAULT 'USD',
-                                      status           varchar(16) NOT NULL CHECK (status IN ('pending','succeeded','failed','refunded')),
-                                      meta             jsonb,
-                                      created_at       timestamptz NOT NULL DEFAULT now(),
-                                      updated_at       timestamptz NOT NULL DEFAULT now(),
-                                      UNIQUE (provider, provider_txn_id)
-);
 DO $$ BEGIN
+  CREATE TABLE IF NOT EXISTS payments (
+                                        id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                                        user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                        provider         varchar(16) NOT NULL CHECK (provider IN ('stripe','apple','google')),
+                                        provider_txn_id  varchar(128) NOT NULL,
+                                        amount_cents     int NOT NULL CHECK (amount_cents >= 0),
+                                        currency         varchar(8) NOT NULL DEFAULT 'USD',
+                                        status           varchar(16) NOT NULL CHECK (status IN ('PENDING','SUCCEEDED','FAILED','REFUNDED')),
+                                        meta             jsonb,
+                                        created_at       timestamptz NOT NULL DEFAULT now(),
+                                        updated_at       timestamptz NOT NULL DEFAULT now(),
+                                        UNIQUE (provider, provider_txn_id)
+  );
   CREATE TRIGGER trg_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_payments_user_time ON payments(user_id, created_at DESC);

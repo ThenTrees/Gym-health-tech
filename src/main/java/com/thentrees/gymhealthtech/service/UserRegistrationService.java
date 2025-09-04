@@ -2,7 +2,7 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.RegisterRequest;
 import com.thentrees.gymhealthtech.dto.response.RegisterResponse;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface UserRegistrationService {
   @Transactional

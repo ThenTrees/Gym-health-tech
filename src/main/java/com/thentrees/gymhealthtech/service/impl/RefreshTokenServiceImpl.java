@@ -4,7 +4,6 @@ import com.thentrees.gymhealthtech.model.RefreshToken;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.RefreshTokenRepository;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
-import jakarta.transaction.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -16,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

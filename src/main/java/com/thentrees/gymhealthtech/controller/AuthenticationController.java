@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "Authentication", description = "Endpoints for user authentication and authorization")
 public class AuthenticationController {
-
   private final ExtractValidationErrors extractValidationErrors;
   private final UserRegistrationService userRegistrationService;
   private final AuthenticationService authenticationService;
