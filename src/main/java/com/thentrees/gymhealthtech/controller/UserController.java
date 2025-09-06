@@ -3,13 +3,11 @@ package com.thentrees.gymhealthtech.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
-import com.thentrees.gymhealthtech.dto.response.APIResponse;
-import com.thentrees.gymhealthtech.dto.response.ApiError;
-import com.thentrees.gymhealthtech.dto.response.FieldError;
-import com.thentrees.gymhealthtech.dto.response.UserProfileResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.UserProfileService;
 import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
+import com.thentrees.gymhealthtech.util.S3Util;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,17 +17,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("${app.prefix}/users")
@@ -41,6 +42,7 @@ public class UserController {
   private final UserProfileService userProfileService;
   private final ExtractValidationErrors extractValidationErrors;
   private final ObjectMapper objectMapper;
+  private final S3Util s3Util;
 
   @Operation(
       method = "GET",
@@ -183,6 +185,36 @@ public class UserController {
     }
   }
 
+  @Operation(
+      method = "DELETE",
+      summary = "Delete user profile",
+      description = "User can delete their own profile")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successfully deleted user profile",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+          {
+            "message": "Profile deleted successfully"
+          }
+          """))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Authentication is required",
+            content = @Content),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - Access denied",
+            content = @Content),
+      })
   @DeleteMapping("/delete-profile")
   public ResponseEntity<APIResponse<Void>> deleteProfile() {
     try {
@@ -206,6 +238,40 @@ public class UserController {
     }
   }
 
+  @Operation(
+      method = "DELETE",
+      summary = "Admin delete user profile",
+      description = "Admin can delete any user profile by user ID")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successfully deleted user profile",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+          {
+            "message": "Profile deleted successfully"
+          }
+          """))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Authentication is required",
+            content = @Content),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - Access denied",
+            content = @Content),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Not Found - User profile not found",
+            content = @Content),
+      })
   @DeleteMapping("/admin/delete-profile")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<Void>> deleteProfile(@RequestParam("userId") UUID userId) {
@@ -221,6 +287,87 @@ public class UserController {
       log.error("Error deleting user profile: {}", ex.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(APIResponse.error("Failed to delete profile"));
+    }
+  }
+
+  /** Upload user avatar */
+  @Operation(
+      method = "POST",
+      summary = "Upload user avatar",
+      description = "Upload an avatar image for the authenticated user")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successfully uploaded avatar",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+            {
+              "url": "https://s3.amazonaws.com/bucketname/filename.jpg",
+              "filename": "filename.jpg",
+              "size": 204800,
+              "message": "File uploaded successfully"
+            }
+            """))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Validation errors",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+            {
+              "code": "VALIDATION_ERROR",
+              "message": "Only image files are allowed"
+            }
+            """)))
+      })
+  @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<APIResponse<UploadResponse>> uploadAvatar(
+      @RequestParam("file") MultipartFile file) throws IOException {
+    try {
+      // Validate file
+      if (file.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(APIResponse.error("File is empty"));
+      }
+
+      // Validate file type
+      if (!s3Util.isValidImageFile(file)) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(APIResponse.error("Only image files are allowed"));
+      }
+
+      // Validate file size (max 5MB)
+      if (file.getSize() > 5 * 1024 * 1024) {
+        return ResponseEntity.badRequest()
+            .body(APIResponse.error("File size must be less than 5MB"));
+      }
+
+      String fileUrl = userProfileService.uploadProfileImage(file);
+
+      UploadResponse uploadResponse =
+          UploadResponse.builder()
+              .url(fileUrl)
+              .filename(file.getOriginalFilename())
+              .size(file.getSize())
+              .message("File uploaded successfully")
+              .build();
+
+      return ResponseEntity.ok(APIResponse.success(uploadResponse, "File uploaded successfully"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(APIResponse.error("Failed to upload file: " + e.getMessage()));
     }
   }
 }
