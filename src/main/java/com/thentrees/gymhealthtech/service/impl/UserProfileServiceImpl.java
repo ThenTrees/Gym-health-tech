@@ -10,23 +10,34 @@ import com.thentrees.gymhealthtech.model.UserProfile;
 import com.thentrees.gymhealthtech.repository.UserProfileRepository;
 import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.service.UserProfileService;
+import com.thentrees.gymhealthtech.util.S3Util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class UserProfileServiceImpl implements UserProfileService {
 
+  @Value("${aws.s3.bucket}")
+  private String bucketName;
+
   private final UserRepository userRepository;
   private final UserProfileRepository userProfileRepository;
+  private final S3Util s3Util;
+  private final S3Client s3Client;
 
   @Override
   public UserProfileResponse getUserProfile(String email) {
@@ -154,6 +165,49 @@ public class UserProfileServiceImpl implements UserProfileService {
     UserProfile savedProfile = userProfileRepository.save(profile);
 
     return mapToResponse(savedProfile);
+  }
+
+  @Override
+  public String uploadProfileImage(MultipartFile file) {
+    // Tạo key unique cho file
+    String s3Key = s3Util.generateFileName(file.getOriginalFilename());
+    try {
+      // Upload file lên S3
+      PutObjectRequest putObjectRequest =
+          PutObjectRequest.builder()
+              .bucket(bucketName)
+              .key(s3Key)
+              .contentType(file.getContentType())
+              .contentLength(file.getSize())
+              .build();
+
+      s3Client.putObject(
+          putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      User userExist =
+          userRepository
+              .findByEmailOrPhone(authentication.getName())
+              .orElseThrow(
+                  () ->
+                      new BusinessException(
+                          "User not found with email or phone: " + authentication.getName()));
+
+      UserProfile profile =
+          userProfileRepository
+              .findByUserId(userExist.getId())
+              .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+
+      profile.setAvatarUrl(s3Key);
+      userProfileRepository.save(profile);
+
+      // Trả về URL của file
+      return s3Util.getFileUrl(s3Key);
+
+    } catch (Exception e) {
+      log.error("Error uploading file to S3: {}", e.getMessage());
+      throw new RuntimeException("Failed to upload file", e);
+    }
   }
 
   private BigDecimal calculateBMI(BigDecimal heightCm, BigDecimal weightKg) {

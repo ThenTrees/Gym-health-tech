@@ -140,6 +140,22 @@
         <scope>runtime</scope>
       </dependency>
 
+      <!--   S3   -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+        <version>2.33.1</version>
+        <scope>compile</scope>
+      </dependency>
+
+      <!--For file upload-->
+      <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.20.0</version>
+      </dependency>
+
       <!-- Testing -->
       <dependency>
         <groupId>org.springframework.boot</groupId>
