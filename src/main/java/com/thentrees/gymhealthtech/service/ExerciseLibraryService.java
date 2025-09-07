@@ -10,5 +10,6 @@ import org.springframework.security.core.Authentication;
 public interface ExerciseLibraryService {
   PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request);
 
-  ExerciseDetailResponse createExercise(CreateExerciseRequest request, Authentication authentication);
+  ExerciseDetailResponse createExercise(
+      CreateExerciseRequest request, Authentication authentication);
 }

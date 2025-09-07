@@ -60,8 +60,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
     // Validate slug uniqueness
     if (exerciseRepository.existsBySlug(slug)) {
-      throw new IllegalArgumentException(
-          "Exercise with slug '" + slug + "' already exists");
+      throw new IllegalArgumentException("Exercise with slug '" + slug + "' already exists");
     }
 
     // Validate primary muscle
@@ -88,12 +87,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     ExerciseType exerciseType = null;
     if (request.getExerciseType() != null) {
       exerciseType =
-        exerciseTypeRepository
-          .findById(request.getExerciseType())
-          .orElseThrow(
-            () ->
-              new ResourceNotFoundException(
-                "Exercise type not found: " + request.getExerciseType()));
+          exerciseTypeRepository
+              .findById(request.getExerciseType())
+              .orElseThrow(
+                  () ->
+                      new ResourceNotFoundException(
+                          "Exercise type not found: " + request.getExerciseType()));
     }
 
     // Create exercise

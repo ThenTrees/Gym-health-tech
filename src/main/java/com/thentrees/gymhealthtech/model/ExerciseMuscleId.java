@@ -3,7 +3,6 @@ package com.thentrees.gymhealthtech.model;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.UUID;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;

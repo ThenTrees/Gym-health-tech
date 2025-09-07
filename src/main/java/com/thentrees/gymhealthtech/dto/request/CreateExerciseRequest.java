@@ -21,9 +21,9 @@ public class CreateExerciseRequest {
   @Size(max = 120, message = "Name must not exceed 120 characters")
   private String name;
 
-//  @NotBlank(message = "Slug is required")
-//  @Size(max = 80, message = "Slug must not exceed 80 characters")
-//  private String slug;
+  //  @NotBlank(message = "Slug is required")
+  //  @Size(max = 80, message = "Slug must not exceed 80 characters")
+  //  private String slug;
 
   @NotNull(message = "Level is required")
   private ExerciseLevel level;

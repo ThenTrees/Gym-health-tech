@@ -24,8 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,10 +90,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Authentication attempt for identifier: {}", request.getIdentifier());
     try {
       // Authenticate user
-//      Authentication authentication =
-//          authenticationManager.authenticate(
-//              new UsernamePasswordAuthenticationToken(
-//                  request.getIdentifier(), request.getPassword()));
+      //      Authentication authentication =
+      //          authenticationManager.authenticate(
+      //              new UsernamePasswordAuthenticationToken(
+      //                  request.getIdentifier(), request.getPassword()));
 
       // Get user details
       User user =

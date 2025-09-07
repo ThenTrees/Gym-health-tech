@@ -3,8 +3,6 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.common.UserRole;
 import com.thentrees.gymhealthtech.common.UserStatus;
 import jakarta.persistence.*;
-
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

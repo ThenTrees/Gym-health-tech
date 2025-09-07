@@ -10,7 +10,6 @@ import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,6 +28,7 @@ public class ExerciseController {
   private final ExerciseLibraryService exerciseLibraryService;
   private final ExtractValidationErrors extractValidationErrors;
   private final ObjectMapper objectMapper;
+
   @GetMapping
   public ResponseEntity<APIResponse<PagedResponse<ExerciseListResponse>>> getExercises(
       @RequestParam(required = false) String keyword,
@@ -62,29 +62,30 @@ public class ExerciseController {
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<ExerciseDetailResponse>> createExercise(
-    @Valid @RequestBody CreateExerciseRequest request,
-    BindingResult bindingResult, Authentication auth) {
-      if (bindingResult.hasErrors()) {
-        Map<String, String> errors = extractValidationErrors.extract(bindingResult);
-        ApiError apiError =
+      @Valid @RequestBody CreateExerciseRequest request,
+      BindingResult bindingResult,
+      Authentication auth) {
+    if (bindingResult.hasErrors()) {
+      Map<String, String> errors = extractValidationErrors.extract(bindingResult);
+      ApiError apiError =
           ApiError.builder()
-            .code("VALIDATION_ERROR")
-            .fieldErrors(
-              errors.entrySet().stream()
-                .map(
-                  entry ->
-                    FieldError.builder()
-                      .field(entry.getKey())
-                      .message(entry.getValue())
-                      .build())
-                .toList())
-            .build();
-        return ResponseEntity.badRequest()
+              .code("VALIDATION_ERROR")
+              .fieldErrors(
+                  errors.entrySet().stream()
+                      .map(
+                          entry ->
+                              FieldError.builder()
+                                  .field(entry.getKey())
+                                  .message(entry.getValue())
+                                  .build())
+                      .toList())
+              .build();
+      return ResponseEntity.badRequest()
           .body(
-            APIResponse.error(
-              "Validation failed", objectMapper.convertValue(apiError, ApiError.class)));
-      }
-      ExerciseDetailResponse exercise = exerciseLibraryService.createExercise(request, auth);
-      return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(exercise));
+              APIResponse.error(
+                  "Validation failed", objectMapper.convertValue(apiError, ApiError.class)));
+    }
+    ExerciseDetailResponse exercise = exerciseLibraryService.createExercise(request, auth);
+    return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(exercise));
   }
 }

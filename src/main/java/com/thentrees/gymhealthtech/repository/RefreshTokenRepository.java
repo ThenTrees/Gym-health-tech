@@ -1,7 +1,6 @@
 package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.model.RefreshToken;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
