@@ -17,6 +17,7 @@ import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import com.thentrees.gymhealthtech.service.JwtService;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -69,12 +70,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       throw new BusinessException("Verification token already used");
     }
 
-    if (verificationToken.getExpiresAt().isBefore(OffsetDateTime.now())) {
+    if (verificationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
       throw new BusinessException("Verification token expired");
     }
 
     // Mark token as consumed
-    verificationToken.setConsumedAt(OffsetDateTime.now());
+    verificationToken.setConsumedAt(LocalDateTime.now());
     verificationTokenRepository.save(verificationToken);
 
     // Mark user email as verified
@@ -91,10 +92,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     log.info("Authentication attempt for identifier: {}", request.getIdentifier());
     try {
       // Authenticate user
-      Authentication authentication =
-          authenticationManager.authenticate(
-              new UsernamePasswordAuthenticationToken(
-                  request.getIdentifier(), request.getPassword()));
+//      Authentication authentication =
+//          authenticationManager.authenticate(
+//              new UsernamePasswordAuthenticationToken(
+//                  request.getIdentifier(), request.getPassword()));
 
       // Get user details
       User user =
@@ -272,7 +273,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     verificationToken.setUser(user);
     verificationToken.setType(VerificationType.EMAIL);
     verificationToken.setTokenHash(tokenHash);
-    verificationToken.setExpiresAt(OffsetDateTime.now().plusHours(24)); // 24 hours expiry
+    verificationToken.setExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours expiry
 
     verificationTokenRepository.save(verificationToken);
 

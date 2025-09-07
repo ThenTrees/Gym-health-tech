@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,5 +30,5 @@ public class OAuthAccount {
   private String email;
 
   @Column(name = "created_at", nullable = false)
-  private OffsetDateTime createdAt = OffsetDateTime.now();
+  private LocalDateTime createdAt = LocalDateTime.now();
 }

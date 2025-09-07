@@ -2,7 +2,7 @@ package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.common.VerificationType;
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,11 +29,11 @@ public class VerificationToken {
   private String tokenHash;
 
   @Column(name = "expires_at", nullable = false)
-  private OffsetDateTime expiresAt;
+  private LocalDateTime expiresAt;
 
   @Column(name = "consumed_at")
-  private OffsetDateTime consumedAt;
+  private LocalDateTime consumedAt;
 
   @Column(name = "created_at", nullable = false)
-  private OffsetDateTime createdAt = OffsetDateTime.now();
+  private LocalDateTime createdAt = LocalDateTime.now();
 }

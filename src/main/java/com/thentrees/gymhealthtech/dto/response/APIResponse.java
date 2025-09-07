@@ -5,7 +5,7 @@ import static com.thentrees.gymhealthtech.constant.AppConstants.STATUS_SUCCESS;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,14 +32,14 @@ public class APIResponse<T> {
 
   private ApiMeta meta;
 
-  private OffsetDateTime timestamp;
+  private LocalDateTime timestamp;
 
   // Success response builders
   public static <T> APIResponse<T> success(T data) {
     return APIResponse.<T>builder()
         .status(STATUS_SUCCESS)
         .data(data)
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 
@@ -48,7 +48,7 @@ public class APIResponse<T> {
         .status(STATUS_SUCCESS)
         .message(message)
         .data(data)
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 
@@ -58,7 +58,7 @@ public class APIResponse<T> {
         .message(message)
         .data(data)
         .meta(meta)
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 
@@ -67,7 +67,7 @@ public class APIResponse<T> {
     return APIResponse.<T>builder()
         .status(STATUS_ERROR)
         .message(message)
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 
@@ -76,7 +76,7 @@ public class APIResponse<T> {
         .status(STATUS_ERROR)
         .message(message)
         .error(error)
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 
@@ -85,7 +85,7 @@ public class APIResponse<T> {
         .status(STATUS_ERROR)
         .message(message)
         .error(ApiError.builder().code(errorCode).build())
-        .timestamp(OffsetDateTime.now())
+        .timestamp(LocalDateTime.now())
         .build();
   }
 }

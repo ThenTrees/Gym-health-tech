@@ -3,7 +3,7 @@ package com.thentrees.gymhealthtech.dto.response;
 import com.thentrees.gymhealthtech.common.GenderType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
@@ -36,7 +36,7 @@ public class UserProfileResponse {
 
   @Builder.Default private String unitLength = "cm";
 
-  private OffsetDateTime createdAt;
+  private LocalDateTime createdAt;
 
-  private OffsetDateTime updatedAt;
+  private LocalDateTime updatedAt;
 }

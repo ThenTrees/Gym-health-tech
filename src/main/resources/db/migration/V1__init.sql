@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS users (
                                    status         user_status NOT NULL DEFAULT 'ACTIVE',
                                    role           user_role   NOT NULL DEFAULT 'USER',
                                    email_verified boolean NOT NULL DEFAULT false,
-                                   created_at     timestamptz NOT NULL DEFAULT now(),
-                                   updated_at     timestamptz NOT NULL DEFAULT now(),
+                                   created_at     timestamp NOT NULL DEFAULT now(),
+                                   updated_at     timestamp NOT NULL DEFAULT now(),
                                    version        int NOT NULL DEFAULT 0
 );
 DO $$ BEGIN
@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
                                            timezone     varchar(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
                                            unit_weight  varchar(8) NOT NULL DEFAULT 'kg' CHECK (unit_weight IN ('kg','lb')),
                                            unit_length  varchar(8) NOT NULL DEFAULT 'cm' CHECK (unit_length IN ('cm','in')),
-                                           created_at   timestamptz NOT NULL DEFAULT now(),
-                                           updated_at   timestamptz NOT NULL DEFAULT now(),
+                                           created_at   timestamp NOT NULL DEFAULT now(),
+                                           updated_at   timestamp NOT NULL DEFAULT now(),
                                            version      int NOT NULL DEFAULT 0
 );
 DO $$ BEGIN
@@ -112,9 +112,9 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
                                             id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                             user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                             token_hash   text NOT NULL,
-                                            issued_at    timestamptz NOT NULL DEFAULT now(),
-                                            expires_at   timestamptz NOT NULL,
-                                            revoked_at   timestamptz,
+                                            issued_at    timestamp NOT NULL DEFAULT now(),
+                                            expires_at   timestamp NOT NULL,
+                                            revoked_at   timestamp,
                                             user_agent   text,
                                             ip           inet,
                                             UNIQUE (user_id, token_hash)
@@ -127,9 +127,9 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
                                                  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                                  type         verification_type NOT NULL,
                                                  token_hash   text NOT NULL,
-                                                 expires_at   timestamptz NOT NULL,
-                                                 consumed_at  timestamptz,
-                                                 created_at   timestamptz NOT NULL DEFAULT now(),
+                                                 expires_at   timestamp NOT NULL,
+                                                 consumed_at  timestamp,
+                                                 created_at   timestamp NOT NULL DEFAULT now(),
                                                  UNIQUE (type, token_hash)
 );
 CREATE INDEX IF NOT EXISTS idx_vt_user_type ON verification_tokens(user_id, type);
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS oauth_accounts (
                                             provider          varchar(32) NOT NULL,
                                             provider_user_id  varchar(128) NOT NULL,
                                             email             citext,
-                                            created_at        timestamptz NOT NULL DEFAULT now(),
+                                            created_at        timestamp NOT NULL DEFAULT now(),
                                             UNIQUE (provider, provider_user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_accounts(user_id);
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
                                             success      boolean NOT NULL,
                                             ip           inet,
                                             user_agent   text,
-                                            occurred_at  timestamptz NOT NULL DEFAULT now()
+                                            occurred_at  timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_login_email_time ON login_attempts(email, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_login_user_time  ON login_attempts(user_id, occurred_at DESC);
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS goals (
                                    preferences        jsonb,
                                    started_at         date NOT NULL DEFAULT current_date,
                                    ended_at           date,
-                                   created_at         timestamptz NOT NULL DEFAULT now(),
+                                   created_at         timestamp NOT NULL DEFAULT now(),
                                    CONSTRAINT goals_end_ge_start CHECK (ended_at IS NULL OR ended_at >= started_at)
 );
 CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS exercises (
                                        instructions     text,
                                        safety_notes     text,
                                        thumbnail_url    text,
-                                       created_at       timestamptz NOT NULL DEFAULT now()
+                                       created_at       timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_exercises_primary_muscle ON exercises(primary_muscle);
 CREATE INDEX IF NOT EXISTS idx_exercises_equipment      ON exercises(equipment);
@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS content_assets (
                                             width        int,
                                             height       int,
                                             size_bytes   bigint,
-                                            created_at   timestamptz NOT NULL DEFAULT now(),
+                                            created_at   timestamp NOT NULL DEFAULT now(),
                                             UNIQUE (url)
 );
 -- dedupe theo hash khi có
@@ -260,8 +260,8 @@ CREATE TABLE IF NOT EXISTS plans (
                                    source       plan_source_type NOT NULL DEFAULT 'AI',
                                    cycle_weeks  int NOT NULL DEFAULT 4 CHECK (cycle_weeks BETWEEN 1 AND 16),
                                    status       plan_status_type NOT NULL DEFAULT 'ACTIVE',
-                                   created_at   timestamptz NOT NULL DEFAULT now(),
-                                   updated_at   timestamptz NOT NULL DEFAULT now(),
+                                   created_at   timestamp NOT NULL DEFAULT now(),
+                                   updated_at   timestamp NOT NULL DEFAULT now(),
                                    version      int NOT NULL DEFAULT 0
 );
 DO $$ BEGIN
@@ -278,7 +278,7 @@ CREATE TABLE IF NOT EXISTS plan_days (
                                        day_index      int NOT NULL CHECK (day_index >= 1),
                                        split_name     varchar(50),
                                        scheduled_date date,
-                                       created_at     timestamptz NOT NULL DEFAULT now(),
+                                       created_at     timestamp NOT NULL DEFAULT now(),
                                        UNIQUE (plan_id, day_index)
 );
 CREATE INDEX IF NOT EXISTS idx_plan_days_plan_date ON plan_days(plan_id, scheduled_date);
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS plan_items (
                                         item_index   int  NOT NULL CHECK (item_index >= 1),
                                         prescription jsonb NOT NULL,
                                         notes        text,
-                                        created_at   timestamptz NOT NULL DEFAULT now(),
+                                        created_at   timestamp NOT NULL DEFAULT now(),
                                         UNIQUE (plan_day_id, item_index),
                                         CONSTRAINT prescription_is_object CHECK (jsonb_typeof(prescription) = 'object'),
                                         CONSTRAINT prescription_sets_chk CHECK ((prescription ? 'sets') AND ((prescription->>'sets')::int >= 1))
@@ -306,12 +306,12 @@ CREATE TABLE IF NOT EXISTS sessions (
                                       id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                       user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                       plan_day_id   uuid REFERENCES plan_days(id) ON DELETE SET NULL,
-                                      started_at    timestamptz NOT NULL DEFAULT now(),
-                                      ended_at      timestamptz,
+                                      started_at    timestamp NOT NULL DEFAULT now(),
+                                      ended_at      timestamp,
                                       status        session_status NOT NULL DEFAULT 'IN_PROGRESS',
                                       session_rpe   numeric(3,1) CHECK (session_rpe IS NULL OR (session_rpe BETWEEN 0 AND 10)),
                                       notes         text,
-                                      created_at    timestamptz NOT NULL DEFAULT now(),
+                                      created_at    timestamp NOT NULL DEFAULT now(),
                                       CONSTRAINT sessions_end_ge_start CHECK (ended_at IS NULL OR ended_at >= started_at)
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user_time ON sessions(user_id, started_at DESC);
@@ -325,7 +325,7 @@ CREATE TABLE IF NOT EXISTS session_sets (
                                           set_index    int NOT NULL CHECK (set_index >= 1),
                                           planned      jsonb,
                                           actual       jsonb,
-                                          created_at   timestamptz NOT NULL DEFAULT now(),
+                                          created_at   timestamp NOT NULL DEFAULT now(),
                                           UNIQUE (session_id, exercise_id, set_index),
                                           CONSTRAINT actual_obj_chk CHECK (actual IS NULL OR jsonb_typeof(actual)='object'),
                                           CONSTRAINT actual_rpe_chk CHECK (actual IS NULL OR ((actual ? 'rpe') = false OR ((actual->>'rpe')::numeric BETWEEN 0 AND 10)))
@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS device_tokens (
                                            platform     device_platform NOT NULL,   -- ios/android/web
                                            push_token   text NOT NULL,
                                            enabled      boolean NOT NULL DEFAULT true,
-                                           created_at   timestamptz NOT NULL DEFAULT now(),
+                                           created_at   timestamp NOT NULL DEFAULT now(),
                                            UNIQUE (user_id, platform, push_token)
 );
 
@@ -354,10 +354,10 @@ CREATE TABLE IF NOT EXISTS notifications (
                                            id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                            user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                            kind          notification_kind NOT NULL,
-                                           scheduled_at  timestamptz NOT NULL,
+                                           scheduled_at  timestamp NOT NULL,
                                            status        notification_status NOT NULL DEFAULT 'SCHEDULED',
                                            payload       jsonb,
-                                           created_at    timestamptz NOT NULL DEFAULT now()
+                                           created_at    timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user_time        ON notifications(user_id, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_status           ON notifications(status);
@@ -369,7 +369,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_status_time ON notifications(u
 CREATE TABLE IF NOT EXISTS chatbot_threads (
                                              id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                              user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                             created_at  timestamptz NOT NULL DEFAULT now()
+                                             created_at  timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_chat_threads_user ON chatbot_threads(user_id, created_at DESC);
 
@@ -379,7 +379,7 @@ CREATE TABLE IF NOT EXISTS chatbot_messages (
                                               user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                               role        varchar(16) NOT NULL CHECK (role IN ('USER','ASSISTANT','SYSTEM')),
                                               content     text NOT NULL,
-                                              created_at  timestamptz NOT NULL DEFAULT now()
+                                              created_at  timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_chatbot_user_time ON chatbot_messages(user_id, created_at);
 
@@ -392,7 +392,7 @@ CREATE TABLE IF NOT EXISTS reports_cache (
                                            scope         varchar(16) NOT NULL CHECK (scope IN ('week','month')),
                                            period_start  date NOT NULL,
                                            payload       jsonb NOT NULL,
-                                           generated_at  timestamptz NOT NULL DEFAULT now(),
+                                           generated_at  timestamp NOT NULL DEFAULT now(),
                                            UNIQUE (user_id, scope, period_start)
 );
 
@@ -405,11 +405,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                                            tier         subscription_tier NOT NULL DEFAULT 'FREE',
                                            platform     subscription_platform NOT NULL,
                                            status       subscription_status NOT NULL DEFAULT 'ACTIVE',
-                                           started_at   timestamptz NOT NULL DEFAULT now(),
-                                           expires_at   timestamptz,
-                                           cancelled_at timestamptz,
-                                           created_at   timestamptz NOT NULL DEFAULT now(),
-                                           updated_at   timestamptz NOT NULL DEFAULT now()
+                                           started_at   timestamp NOT NULL DEFAULT now(),
+                                           expires_at   timestamp,
+                                           cancelled_at timestamp,
+                                           created_at   timestamp NOT NULL DEFAULT now(),
+                                           updated_at   timestamp NOT NULL DEFAULT now()
 );
 DO $$ BEGIN
   CREATE TRIGGER trg_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -429,8 +429,8 @@ DO $$ BEGIN
                                         currency         varchar(8) NOT NULL DEFAULT 'USD',
                                         status           varchar(16) NOT NULL CHECK (status IN ('PENDING','SUCCEEDED','FAILED','REFUNDED')),
                                         meta             jsonb,
-                                        created_at       timestamptz NOT NULL DEFAULT now(),
-                                        updated_at       timestamptz NOT NULL DEFAULT now(),
+                                        created_at       timestamp NOT NULL DEFAULT now(),
+                                        updated_at       timestamp NOT NULL DEFAULT now(),
                                         UNIQUE (provider, provider_txn_id)
   );
   CREATE TRIGGER trg_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -456,9 +456,9 @@ CREATE TABLE IF NOT EXISTS entitlements (
                                           feature_key  varchar(64) NOT NULL REFERENCES features(key) ON DELETE RESTRICT,
                                           limits       jsonb,
                                           source       varchar(16) NOT NULL DEFAULT 'subscription' CHECK (source IN ('subscription','promo','gift','admin')),
-                                          starts_at    timestamptz NOT NULL DEFAULT now(),
-                                          expires_at   timestamptz,
-                                          created_at   timestamptz NOT NULL DEFAULT now()
+                                          starts_at    timestamp NOT NULL DEFAULT now(),
+                                          expires_at   timestamp,
+                                          created_at   timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_entitlements_user_feature ON entitlements(user_id, feature_key);
 CREATE INDEX IF NOT EXISTS idx_entitlements_expires_at   ON entitlements(user_id, expires_at);
@@ -497,7 +497,7 @@ CREATE TABLE IF NOT EXISTS nutrition_targets (
                                                protein_g     int NOT NULL CHECK (protein_g BETWEEN 30 AND 400),
                                                fat_g         int NOT NULL CHECK (fat_g BETWEEN 20 AND 200),
                                                carbs_g       int NOT NULL CHECK (carbs_g BETWEEN 0 AND 800),
-                                               created_at    timestamptz NOT NULL DEFAULT now(),
+                                               created_at    timestamp NOT NULL DEFAULT now(),
                                                UNIQUE (user_id, goal_id)
 );
 
@@ -506,7 +506,7 @@ CREATE TABLE IF NOT EXISTS meal_plans (
                                         user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                         plan_date   date NOT NULL,
                                         meta        jsonb,
-                                        created_at  timestamptz NOT NULL DEFAULT now(),
+                                        created_at  timestamp NOT NULL DEFAULT now(),
                                         UNIQUE (user_id, plan_date)
 );
 CREATE INDEX IF NOT EXISTS idx_meal_plans_user_date ON meal_plans(user_id, plan_date);
@@ -520,14 +520,14 @@ CREATE TABLE IF NOT EXISTS challenges (
                                         start_date  date NOT NULL,
                                         end_date    date NOT NULL,
                                         rules       jsonb,
-                                        created_at  timestamptz NOT NULL DEFAULT now(),
+                                        created_at  timestamp NOT NULL DEFAULT now(),
                                         CONSTRAINT challenges_end_ge_start CHECK (end_date >= start_date)
 );
 
 CREATE TABLE IF NOT EXISTS challenge_participants (
                                                     challenge_id uuid NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
                                                     user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                                    joined_at    timestamptz NOT NULL DEFAULT now(),
+                                                    joined_at    timestamp NOT NULL DEFAULT now(),
                                                     progress     jsonb,
                                                     PRIMARY KEY (challenge_id, user_id)
 );
@@ -541,7 +541,7 @@ CREATE TABLE IF NOT EXISTS badges (
 CREATE TABLE IF NOT EXISTS user_badges (
                                          user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                          badge_key  varchar(64) NOT NULL REFERENCES badges(key) ON DELETE RESTRICT,
-                                         awarded_at timestamptz NOT NULL DEFAULT now(),
+                                         awarded_at timestamp NOT NULL DEFAULT now(),
                                          PRIMARY KEY (user_id, badge_key)
 );
 

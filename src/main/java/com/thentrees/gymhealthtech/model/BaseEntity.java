@@ -1,7 +1,8 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.thentrees.gymhealthtech.repository.UserRepository;
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.Getter;
@@ -10,6 +11,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.Where;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Getter
 @Setter
@@ -27,14 +31,14 @@ public abstract class BaseEntity {
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
-  private OffsetDateTime createdAt;
+  private LocalDateTime createdAt;
 
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
-  private OffsetDateTime updatedAt;
+  private LocalDateTime updatedAt;
 
   @Column(name = "deleted_at")
-  private OffsetDateTime deletedAt;
+  private LocalDateTime deletedAt;
 
   @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
   private Boolean isDeleted = false;
@@ -44,10 +48,10 @@ public abstract class BaseEntity {
   private Long version = 0L;
 
   @Column(name = "created_by")
-  private UUID createdBy;
+  private String createdBy;
 
   @Column(name = "updated_by")
-  private UUID updatedBy;
+  private String updatedBy;
 
   @PrePersist
   protected void onCreate() {
@@ -57,11 +61,22 @@ public abstract class BaseEntity {
     if (version == null) {
       version = 0L;
     }
+    if (createdBy == null) {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null && authentication.isAuthenticated()) {
+        this.createdBy = authentication.getName();
+      }
+    }
   }
 
   @PreUpdate
   protected void onUpdate() {
-    // Có thể thêm logic validation hoặc audit ở đây
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.isAuthenticated()) {
+      // Giả sử principal là UUID của người dùng
+      Object principal = authentication.getPrincipal();
+      this.updatedBy = principal.toString();
+    }
   }
 
   // Utility methods
@@ -71,7 +86,7 @@ public abstract class BaseEntity {
 
   public void markAsDeleted() {
     this.isDeleted = true;
-    this.deletedAt = OffsetDateTime.now();
+    this.deletedAt = LocalDateTime.now();
   }
 
   public void restore() {

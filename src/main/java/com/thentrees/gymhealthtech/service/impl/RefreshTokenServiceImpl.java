@@ -7,7 +7,7 @@ import com.thentrees.gymhealthtech.service.RefreshTokenService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
   private final PasswordEncoder passwordEncoder;
   private final SecureRandom secureRandom = new SecureRandom();
 
-  @Value("${app.jwt.refresh-expiration:604800000}") // 7 days
+  @Value("${app.jwt.expiration:604800000}") // 7 days
   private long refreshTokenExpiration;
 
   @Transactional
@@ -46,7 +46,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
       RefreshToken refreshToken = new RefreshToken();
       refreshToken.setUser(user);
       refreshToken.setTokenHash(tokenHash);
-      refreshToken.setExpiresAt(OffsetDateTime.now().plusSeconds(refreshTokenExpiration / 1000));
+      log.info("Generated new refresh token hash for user: {}", LocalDateTime.now());
+      refreshToken.setExpiresAt(LocalDateTime.now());
       refreshToken.setUserAgent(userAgent);
       refreshToken.setIp(ipAddress);
 
@@ -76,7 +77,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     Optional<RefreshToken> refreshToken = findByToken(token);
     refreshToken.ifPresent(
         rt -> {
-          rt.setRevokedAt(OffsetDateTime.now());
+          rt.setRevokedAt(LocalDateTime.now());
           refreshTokenRepository.save(rt);
           log.info("Revoked refresh token for user: {}", rt.getUser().getEmail());
         });
@@ -91,7 +92,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
   @Override
   public boolean isTokenExpired(RefreshToken token) {
-    return token.getExpiresAt().isBefore(OffsetDateTime.now());
+    return token.getExpiresAt().isBefore(LocalDateTime.now());
   }
 
   @Override
