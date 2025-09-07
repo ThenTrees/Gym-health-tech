@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,13 +24,13 @@ public class RefreshToken {
   private String tokenHash;
 
   @Column(name = "issued_at", nullable = false)
-  private OffsetDateTime issuedAt = OffsetDateTime.now();
+  private LocalDateTime issuedAt = LocalDateTime.now();
 
   @Column(name = "expires_at", nullable = false)
-  private OffsetDateTime expiresAt;
+  private LocalDateTime expiresAt;
 
   @Column(name = "revoked_at")
-  private OffsetDateTime revokedAt;
+  private LocalDateTime revokedAt;
 
   @Column(name = "user_agent", columnDefinition = "TEXT")
   private String userAgent;

@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
@@ -51,6 +51,6 @@ public class AuthResponse {
     private Boolean emailVerified;
 
     @Schema(description = "Account creation time")
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
   }
 }

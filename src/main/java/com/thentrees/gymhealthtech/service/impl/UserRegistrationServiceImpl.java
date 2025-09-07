@@ -19,7 +19,7 @@ import com.thentrees.gymhealthtech.util.ResourceAlreadyExists;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.SecureRandom;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -126,7 +126,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     verificationToken.setUser(user);
     verificationToken.setType(VerificationType.EMAIL);
     verificationToken.setTokenHash(tokenHash);
-    verificationToken.setExpiresAt(OffsetDateTime.now().plusHours(24)); // 24 hours expiry
+    verificationToken.setExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours expiry
 
     verificationTokenRepository.save(verificationToken);
 

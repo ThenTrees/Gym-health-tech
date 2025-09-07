@@ -49,6 +49,7 @@ logging:
     root: INFO
     com.thentrees.gymhealthtech: DEBUG
     org.springframework: WARN # giảm noise từ Spring
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
 
 app:
   prefix: ${APP_PREFIX:/api/v1}

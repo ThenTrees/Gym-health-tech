@@ -40,6 +40,7 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
                 auth
@@ -54,6 +55,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()
+                    .requestMatchers("/api/v1/exercises/**")
+                    .permitAll()
                     // user-zone: USER hoặc ADMIN đều được
                     .requestMatchers("/api/v1/users/**")
                     .hasAnyRole("USER", "ADMIN")
@@ -66,9 +69,7 @@ public class SecurityConfig {
                     // Protected endpoints
                     .anyRequest()
                     .authenticated())
-        .authenticationProvider(authenticationProvider())
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+        .authenticationProvider(authenticationProvider());
     return http.build();
   }
 
