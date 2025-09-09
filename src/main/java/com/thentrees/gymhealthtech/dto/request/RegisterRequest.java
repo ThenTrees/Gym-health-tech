@@ -76,5 +76,4 @@ public class RegisterRequest {
 
   @Schema(description = "")
   private FitnessLevel fitnessLevel;
-
 }

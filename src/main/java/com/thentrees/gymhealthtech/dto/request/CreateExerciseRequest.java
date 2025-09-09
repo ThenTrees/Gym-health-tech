@@ -1,10 +1,8 @@
 package com.thentrees.gymhealthtech.dto.request;
 
 import com.thentrees.gymhealthtech.common.ExerciseLevel;
-import com.thentrees.gymhealthtech.common.ExerciseType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -22,7 +20,7 @@ public class CreateExerciseRequest {
   @Size(max = 120, message = "Name must not exceed 120 characters")
   private String name;
 
-//  @NotNull(message = "Level is required")
+  //  @NotNull(message = "Level is required")
   private ExerciseLevel exerciseLevel;
 
   private String equipmentTypeCode;

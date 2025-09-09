@@ -5,15 +5,15 @@ import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
 import com.thentrees.gymhealthtech.dto.response.ExerciseDetailResponse;
 import com.thentrees.gymhealthtech.dto.response.ExerciseListResponse;
 import com.thentrees.gymhealthtech.dto.response.PagedResponse;
+import java.io.IOException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 public interface ExerciseLibraryService {
   PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request);
 
   ExerciseDetailResponse createExercise(
       CreateExerciseRequest request, Authentication authentication);
+
   int importExercisesFromJson(MultipartFile file) throws IOException;
 }

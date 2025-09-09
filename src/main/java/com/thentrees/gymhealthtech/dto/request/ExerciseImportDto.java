@@ -3,13 +3,11 @@ package com.thentrees.gymhealthtech.dto.request;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
-
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.URL;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -47,5 +45,4 @@ public class ExerciseImportDto {
 
   @JsonProperty("type")
   private String type;
-
 }

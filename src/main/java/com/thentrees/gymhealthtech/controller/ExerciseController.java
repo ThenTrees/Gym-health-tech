@@ -90,7 +90,7 @@ public class ExerciseController {
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(exercise));
   }
 
-//   import exercise from file json
+  //   import exercise from file json
   @PostMapping("/import-exercise")
   @PreAuthorize("hasRole('ADMIN')")
   public String importJson(@RequestParam("file") MultipartFile file) throws Exception {

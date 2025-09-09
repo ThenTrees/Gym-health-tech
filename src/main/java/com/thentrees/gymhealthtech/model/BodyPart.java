@@ -4,12 +4,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -18,8 +17,7 @@ import java.util.List;
 @Entity
 @Table(name = "body_parts")
 public class BodyPart {
-  @Id
-  private String code;  // CHEST, BACK, ...
+  @Id private String code; // CHEST, BACK, ...
   private String name;
 
   @OneToMany(mappedBy = "bodyPart")

@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.HashSet;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -24,5 +23,4 @@ public class ExerciseCategory {
 
   @OneToMany(mappedBy = "exerciseCategory", cascade = CascadeType.ALL, orphanRemoval = false)
   private Set<Exercise> exercises = new HashSet<>();
-
 }

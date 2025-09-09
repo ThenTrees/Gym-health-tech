@@ -2,12 +2,11 @@ package com.thentrees.gymhealthtech.dto.response;
 
 import com.thentrees.gymhealthtech.dto.helper.ImportError;
 import com.thentrees.gymhealthtech.dto.helper.ImportSummary;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -28,7 +27,8 @@ public class ExerciseImportResponse {
     return response;
   }
 
-  public static ExerciseImportResponse partialSuccess(ImportSummary summary, List<ImportError> errors) {
+  public static ExerciseImportResponse partialSuccess(
+      ImportSummary summary, List<ImportError> errors) {
     ExerciseImportResponse response = new ExerciseImportResponse();
     response.status = "PARTIAL_SUCCESS";
     response.message = "Some exercises imported with errors";
