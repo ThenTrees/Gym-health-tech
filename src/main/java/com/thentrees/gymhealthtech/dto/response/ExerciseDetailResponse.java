@@ -1,7 +1,6 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import com.thentrees.gymhealthtech.common.ExerciseLevel;
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -31,5 +30,4 @@ public class ExerciseDetailResponse {
 
   // Relations
   private List<ExerciseMuscleResponse> muscles;
-  private List<ExerciseAssetResponse> assets;
 }

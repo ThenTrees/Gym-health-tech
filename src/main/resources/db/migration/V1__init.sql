@@ -36,11 +36,10 @@ DO $$ BEGIN CREATE TYPE user_status AS ENUM (
 DO $$ BEGIN CREATE TYPE user_role        AS ENUM ('USER','ADMIN','GUEST');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE gender_type      AS ENUM ('MALE','FEMALE','OTHER');                EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE objective_type   AS ENUM ('LOSE_FAT','GAIN_MUSCLE','ENDURANCE','MAINTAIN'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE plan_status_type AS ENUM ('DRAP','ACTIVE','COMPLETED','ARCHIVED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE plan_status_type AS ENUM ('DRAFT','ACTIVE','COMPLETED','ARCHIVED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE plan_source_type AS ENUM ('AI','TEMPLATE','CUSTOM');               EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE session_status   AS ENUM ('IN_PROGRESS','COMPLETED','CANCELLED','ABANDONED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE asset_type       AS ENUM ('VIDEO','IMAGE');                        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE exercise_level   AS ENUM ('BEGINNER','INTERMEDIATE','ADVANCE');   EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE exercise_level   AS ENUM ('BEGINNER','INTERMEDIATE','ADVANCED');   EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE notification_kind   AS ENUM ('SESSION_REMINDER','REST_TIMER','SYSTEM'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE notification_status AS ENUM ('SCHEDULED','SENT','CANCELLED','FAILED');    EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE subscription_tier    AS ENUM ('FREE','PRO');                       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -48,7 +47,10 @@ DO $$ BEGIN CREATE TYPE subscription_platform AS ENUM ('WEB','STRIPE','IOS','AND
 DO $$ BEGIN CREATE TYPE subscription_status AS ENUM ('ACTIVE','TRIAL','EXPIRED','CANCELLED');     EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE verification_type AS ENUM ('EMAIL_VERIFY','PASSWORD_RESET','LOGIN_OTP');  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE device_platform  AS ENUM ('IOS','ANDROID','WEB');                  EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
+DO $$ BEGIN CREATE TYPE muscle_role     AS ENUM ('PRIMARY','SECONDARY','STABILIZER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE user_status    AS ENUM ('ACTIVE','INACTIVE','SUSPENDED','PENDING_VERIFICATION','DELETED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- DO $$ BEGIN CREATE TYPE fitness_level    AS ENUM ('BEGINNER','INTERMEDIATE','ADVANCED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- DO $$ BEGIN CREATE TYPE target_goal    AS ENUM ('WEIGHT_LOSS', 'MAINTAIN', 'MUSCLE_GAIN'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -----------------------------
 -- 2) IDENTITY & SECURITY  --
 -----------------------------
@@ -80,6 +82,9 @@ CREATE TABLE IF NOT EXISTS user_profiles (
                                            weight_kg    numeric(5,2) CHECK (weight_kg IS NULL OR weight_kg BETWEEN 20 AND 400),
                                            bmi          numeric(5,2),
                                            health_notes text,
+                                          fitness_level varchar(16) CHECK (fitness_level IS NULL OR fitness_level IN ('BEGINNER','INTERMEDIATE','ADVANCED')),
+                                          target_goal   varchar(16) CHECK (target_goal IS NULL OR target_goal IN ('WEIGHT_LOSS', 'MAINTAIN', 'MUSCLE_GAIN')),
+                                          avatar_url    text,
                                            timezone     varchar(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
                                            unit_weight  varchar(8) NOT NULL DEFAULT 'kg' CHECK (unit_weight IN ('kg','lb')),
                                            unit_length  varchar(8) NOT NULL DEFAULT 'cm' CHECK (unit_length IN ('cm','in')),
@@ -179,9 +184,40 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_goal_active_per_user ON goals(user_id) WHER
 --------------------------------------
 -- 4) EXERCISE LIBRARY & TAXONOMIES --
 --------------------------------------
+
+CREATE TABLE IF NOT EXISTS exercise_categories (
+                                              code varchar(32) PRIMARY KEY,
+                                              name varchar(64) NOT NULL,
+                                              image_url TEXT);
+
+CREATE TABLE IF NOT EXISTS body_parts (
+                                        code        VARCHAR(32) PRIMARY KEY,
+                                        name        VARCHAR(64) NOT NULL,
+                                        image_url   TEXT,
+                                        created_at  TIMESTAMP NOT NULL DEFAULT now(),
+                                        updated_at  TIMESTAMP NOT NULL DEFAULT now()
+);
+
+INSERT INTO body_parts (code, name) VALUES
+                                      ('neck',        'Neck'),
+                                      ('lower_arms',         'Lower Arms'),
+                                      ('shoulders',    'Shoulders'),
+                                      ('cardio',         'Cardio'),
+                                      ('upper_arms',     'Upper Arms'),
+                                      ('chest',         'Chest'),
+                                      ('lower_legs',       'Lower Legs'),
+                                      ('back',        'Back'),
+                                      ('upper_legs',   'Upper Legs'),
+                                      ('waist',       'Waist'),
+                                      ('calves',       'Calves'),
+                                      ('glutes',       'Glutes')
+
+ON CONFLICT (code) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS muscles (
                                      code varchar(32) PRIMARY KEY,
-                                     name varchar(64) NOT NULL
+                                     name varchar(64) NOT NULL,
+                                     body_part VARCHAR(32) REFERENCES body_parts(code) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS equipment_types (
@@ -189,27 +225,103 @@ CREATE TABLE IF NOT EXISTS equipment_types (
                                              name varchar(64) NOT NULL
 );
 
--- seed minimal taxonomy
 INSERT INTO muscles(code,name) VALUES
-                                 ('quads','Quadriceps'),('hamstrings','Hamstrings'),('glutes','Glutes'),('chest','Chest'),
-                                 ('back','Back'),('shoulders','Shoulders'),('biceps','Biceps'),('triceps','Triceps'),('core','Core')
+                                 ('shins', 'Shins'),
+                                 ('hands', 'Hands'),
+                                 ('sternocleidomastoid', 'Sternocleidomastoid'),
+                                 ('soleus', 'Soleus'),
+                                 ('inner_thighs', 'Inner Thighs'),
+                                 ('lower_abs', 'Lower Abs'),
+                                 ('grip_muscles', 'Grip Muscles'),
+                                 ('abdominals', 'Abdominals'),
+                                 ('wrist_extensors', 'Wrist Extensors'),
+                                 ('wrist_flexors', 'Wrist Flexors'),
+                                 ('latissimus_dorsi', 'Latissimus Dorsi'),
+                                 ('upper_chest', 'Upper Chest'),
+                                 ('rotator_cuff', 'Rotator Cuff'),
+                                 ('wrists', 'Wrists'),
+                                 ('groin', 'Groin'),
+                                 ('brachialis', 'Brachialis'),
+                                 ('deltoids', 'Deltoids'),
+                                 ('feet', 'Feet'),
+                                 ('ankles', 'Ankles'),
+                                 ('trapezius', 'Trapezius'),
+                                 ('rear_deltoids', 'Rear Deltoids'),
+                                 ('chest', 'Chest'),
+                                 ('quadriceps', 'Quadriceps'),
+                                 ('back', 'Back'),
+                                 ('core', 'Core'),
+                                 ('shoulders', 'Shoulders'),
+                                 ('ankle_stabilizers', 'Ankle Stabilizers'),
+                                 ('rhomboids', 'Rhomboids'),
+                                 ('obliques', 'Obliques'),
+                                 ('lower_back', 'Lower Back'),
+                                 ('hip_flexors', 'Hip Flexors'),
+                                 ('levator_scapulae', 'Levator Scapulae'),
+                                 ('abductors', 'Abductors'),
+                                 ('serratus_anterior', 'Serratus Anterior'),
+                                 ('traps', 'Traps'),
+                                 ('forearms', 'Forearms'),
+                                 ('delts', 'Delts'),
+                                 ('biceps', 'Biceps'),
+                                 ('upper_back', 'Upper Back'),
+                                 ('spine', 'Spine'),
+                                 ('cardiovascular_system', 'Cardiovascular System'),
+                                 ('triceps', 'Triceps'),
+                                 ('adductors', 'Adductors'),
+                                 ('hamstrings', 'Hamstrings'),
+                                 ('glutes', 'Glutes'),
+                                 ('pectorals', 'Pectorals'),
+                                 ('calves', 'Calves'),
+                                 ('lats', 'Lats'),
+                                 ('quads', 'Quads'),
+                                 ('abs', 'Abs')
+
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO equipment_types(code,name) VALUES
-                                         ('bodyweight','Bodyweight'),('dumbbell','Dumbbell'),('barbell','Barbell'),
-                                         ('band','Resistance Band'),('machine','Machine'),('kettlebell','Kettlebell')
+
+  ('stepmill_machine', 'Stepmill Machine'),
+('elliptical_machine', 'Elliptical Machine'),
+('trap_bar', 'Trap Bar'),
+('tire', 'Tire'),
+('stationary_bike', 'Stationary Bike'),
+('wheel_roller', 'Wheel Roller'),
+('smith_machine', 'Smith Machine'),
+('hammer', 'Hammer'),
+('skierg_machine', 'Skierg Machine'),
+('roller', 'Roller'),
+('resistance_band', 'Resistance Band'),
+('bosu_ball', 'Bosu Ball'),
+('weighted', 'Weighted'),
+('olympic_barbell', 'Olympic Barbell'),
+('kettlebell', 'Kettlebell'),
+('upper_body_ergometer', 'Upper Body Ergometer'),
+('sled_machine', 'Sled Machine'),
+('ez_barbell', 'Ez Barbell'),
+('dumbbell', 'Dumbbell'),
+('rope', 'Rope'),
+('barbell', 'Barbell'),
+('band', 'Band'),
+('stability_ball', 'Stability Ball'),
+('medicine_ball', 'Medicine Ball'),
+('assisted', 'Assisted'),
+('leverage_machine', 'Leverage Machine'),
+('cable', 'Cable'),
+('body_weight', 'Body Weight')
 ON CONFLICT (code) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS exercises (
                                        id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                                        slug             varchar(80) NOT NULL UNIQUE,
                                        name             varchar(120) NOT NULL,
-                                       level            exercise_level NOT NULL,
+--                                        level            exercise_level NOT NULL,
                                        primary_muscle   varchar(32) REFERENCES muscles(code) ON DELETE RESTRICT,
                                        equipment        varchar(32) REFERENCES equipment_types(code) ON DELETE RESTRICT,
                                        instructions     text,
                                        safety_notes     text,
                                        thumbnail_url    text,
+                                      body_part varchar(32),
                                        created_at       timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_exercises_primary_muscle ON exercises(primary_muscle);
@@ -218,36 +330,21 @@ CREATE INDEX IF NOT EXISTS idx_exercises_equipment      ON exercises(equipment);
 CREATE TABLE IF NOT EXISTS exercise_muscles (
                                               exercise_id uuid NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
                                               muscle_code varchar(32) NOT NULL REFERENCES muscles(code) ON DELETE RESTRICT,
-                                              role        varchar(16) NOT NULL CHECK (role IN ('PRIMARY','SECONDARY')),
-                                              PRIMARY KEY (exercise_id, muscle_code, role)
+                                              role        muscle_role NOT NULL DEFAULT 'SECONDARY',
+                                              PRIMARY KEY (exercise_id, muscle_code)
+);
+CREATE INDEX IF NOT EXISTS idx_exmu_muscle ON exercise_muscles(muscle_code);
+CREATE INDEX IF NOT EXISTS idx_exmu_role   ON exercise_muscles(role);
+
+CREATE TABLE IF NOT EXISTS exercise_equipment (
+                                                exercise_id   uuid NOT NULL REFERENCES exercises(id)        ON DELETE CASCADE,
+                                                equipment_code  VARCHAR(32) NOT NULL REFERENCES equipment_types(code)  ON DELETE RESTRICT,
+                                                quantity        SMALLINT,                  -- ví dụ: 2 quả dumbbell
+                                                PRIMARY KEY (exercise_id, equipment_code)
 );
 
-CREATE TABLE IF NOT EXISTS content_assets (
-                                            id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                                            asset_type   asset_type NOT NULL,
-                                            url          text NOT NULL,
-                                            mime_type    varchar(64),
-                                            sha256_hex   char(64),
-                                            duration_s   int,
-                                            width        int,
-                                            height       int,
-                                            size_bytes   bigint,
-                                            created_at   timestamp NOT NULL DEFAULT now(),
-                                            UNIQUE (url)
-);
--- dedupe theo hash khi có
-DO $$ BEGIN
-  CREATE UNIQUE INDEX uq_assets_sha256_notnull
-    ON content_assets(sha256_hex)
-    WHERE sha256_hex IS NOT NULL;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE INDEX IF NOT EXISTS idx_exeq_equipment ON exercise_equipment(equipment_code);
 
-CREATE TABLE IF NOT EXISTS exercise_assets (
-                                             exercise_id uuid NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
-                                             asset_id    uuid NOT NULL REFERENCES content_assets(id) ON DELETE CASCADE,
-                                             sort_order  int NOT NULL DEFAULT 1,
-                                             PRIMARY KEY (exercise_id, asset_id)
-);
 
 ------------------------------
 -- 5) PLANS (PRESCRIPTIONS) --
@@ -531,20 +628,6 @@ CREATE TABLE IF NOT EXISTS challenge_participants (
                                                     progress     jsonb,
                                                     PRIMARY KEY (challenge_id, user_id)
 );
-
-CREATE TABLE IF NOT EXISTS badges (
-                                    key        varchar(64) PRIMARY KEY,
-                                    name       varchar(120) NOT NULL,
-                                    icon_url   text
-);
-
-CREATE TABLE IF NOT EXISTS user_badges (
-                                         user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                         badge_key  varchar(64) NOT NULL REFERENCES badges(key) ON DELETE RESTRICT,
-                                         awarded_at timestamp NOT NULL DEFAULT now(),
-                                         PRIMARY KEY (user_id, badge_key)
-);
-
 ------------------
 -- 13) COMMENTS  --
 ------------------
@@ -556,8 +639,6 @@ COMMENT ON TABLE muscles          IS 'Muscle taxonomy.';
 COMMENT ON TABLE equipment_types  IS 'Equipment taxonomy.';
 COMMENT ON TABLE exercises        IS 'Exercise dictionary, normalized to muscles/equipment.';
 COMMENT ON TABLE exercise_muscles IS 'n:n mapping (primary/secondary).';
-COMMENT ON TABLE content_assets   IS 'CDN assets; sha256 for dedupe.';
-COMMENT ON TABLE exercise_assets  IS 'Junction: exercises <-> assets.';
 COMMENT ON TABLE plans            IS 'Training plan (AI/template/custom).';
 COMMENT ON TABLE plan_days        IS 'Days inside a plan; unique order.';
 COMMENT ON TABLE plan_items       IS 'Prescription per exercise (JSONB with checks).';
@@ -576,5 +657,3 @@ COMMENT ON TABLE nutrition_targets IS 'Macro/calorie targets.';
 COMMENT ON TABLE meal_plans       IS 'Day-level meal plans as JSON.';
 COMMENT ON TABLE challenges       IS 'Challenge definitions.';
 COMMENT ON TABLE challenge_participants IS 'User participation & progress.';
-COMMENT ON TABLE badges           IS 'Badges catalog.';
-COMMENT ON TABLE user_badges      IS 'Awards per user.';

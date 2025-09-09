@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("${app.prefix}/exercises")
@@ -87,5 +88,13 @@ public class ExerciseController {
     }
     ExerciseDetailResponse exercise = exerciseLibraryService.createExercise(request, auth);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(exercise));
+  }
+
+//   import exercise from file json
+  @PostMapping("/import-exercise")
+  @PreAuthorize("hasRole('ADMIN')")
+  public String importJson(@RequestParam("file") MultipartFile file) throws Exception {
+    int count = exerciseLibraryService.importExercisesFromJson(file);
+    return "Imported/Updated " + count + " exercises.";
   }
 }

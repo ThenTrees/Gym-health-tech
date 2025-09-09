@@ -1,6 +1,8 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.thentrees.gymhealthtech.common.DifficultyLevel;
 import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.common.ExerciseType;
 import jakarta.persistence.*;
 import java.util.List;
 import lombok.Getter;
@@ -18,9 +20,9 @@ public class Exercise extends BaseEntity {
   @Column(name = "name", nullable = false, length = 120)
   private String name;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "level", nullable = false)
-  private ExerciseLevel level;
+//  @Enumerated(EnumType.STRING)
+//  @Column(name = "level")
+//  private ExerciseLevel level;
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "primary_muscle")
@@ -43,6 +45,13 @@ public class Exercise extends BaseEntity {
   private List<ExerciseMuscle> exerciseMuscles;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "exercise_type", referencedColumnName = "code", nullable = false)
+  @JoinColumn(name = "exercise_category", referencedColumnName = "code", nullable = false)
+  private ExerciseCategory exerciseCategory;
+
+  @Column(name = "body_part", length = 100)
+  private String bodyPart;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "exercise_type")
   private ExerciseType exerciseType;
 }

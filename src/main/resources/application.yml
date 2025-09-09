@@ -1,6 +1,8 @@
 server:
   port: ${PORT:8080}
 spring:
+  main:
+    register-shutdown-hook: true
   servlet:
     multipart:
       max-file-size: 10MB

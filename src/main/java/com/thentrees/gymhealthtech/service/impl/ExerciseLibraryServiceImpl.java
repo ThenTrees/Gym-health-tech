@@ -1,8 +1,9 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
-import com.thentrees.gymhealthtech.dto.request.ExerciseMuscleRequest;
-import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thentrees.gymhealthtech.common.ExerciseType;
+import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.ExerciseMapper;
@@ -10,8 +11,12 @@ import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecifications;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,6 +27,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
@@ -33,8 +40,9 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final ExerciseMapper exerciseMapper;
   private final MuscleRepository muscleRepository;
   private final EquipmentTypeRepository equipmentTypeRepository;
-  private final ExerciseTypeRepository exerciseTypeRepository;
-
+  private final ExerciseCategoryRepository exerciseCategoryRepository;
+  private final Validator validator;
+  private final ObjectMapper objectMapper;
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
     Specification<Exercise> spec = buildSearchSpecification(request);
@@ -55,22 +63,13 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   @Transactional
   public ExerciseDetailResponse createExercise(CreateExerciseRequest request, Authentication auth) {
-
+    log.info("Starting create exercise process");
     String slug = request.getName().trim().toLowerCase().replace(" ", "-");
 
     // Validate slug uniqueness
     if (exerciseRepository.existsBySlug(slug)) {
       throw new IllegalArgumentException("Exercise with slug '" + slug + "' already exists");
     }
-
-    // Validate primary muscle
-    Muscle primaryMuscle =
-        muscleRepository
-            .findById(request.getPrimaryMuscleCode())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Primary muscle not found: " + request.getPrimaryMuscleCode()));
 
     // Validate equipment (optional)
     EquipmentType equipment = null;
@@ -84,29 +83,27 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
                           "Equipment type not found: " + request.getEquipmentTypeCode()));
     }
 
-    ExerciseType exerciseType = null;
-    if (request.getExerciseType() != null) {
-      exerciseType =
-          exerciseTypeRepository
-              .findById(request.getExerciseType())
+    ExerciseCategory exerciseCategory = null;
+    if (request.getExerciseCategory() != null) {
+      exerciseCategory =
+          exerciseCategoryRepository
+              .findById(request.getExerciseCategory())
               .orElseThrow(
                   () ->
                       new ResourceNotFoundException(
-                          "Exercise type not found: " + request.getExerciseType()));
+                          "Exercise type not found: " + request.getExerciseCategory()));
     }
 
     // Create exercise
     Exercise exercise = new Exercise();
     exercise.setSlug(slug);
     exercise.setName(request.getName());
-    exercise.setLevel(request.getLevel());
-    exercise.setPrimaryMuscle(primaryMuscle);
-    exercise.setExerciseType(exerciseType);
+//    exercise.setLevel(request.getExerciseLevel());
+    exercise.setExerciseCategory(exerciseCategory);
     exercise.setEquipment(equipment);
-    exercise.setInstructions(request.getInstructions());
+    exercise.setInstructions(request.getInstructions().toString());
     exercise.setSafetyNotes(request.getSafetyNotes());
     exercise.setThumbnailUrl(request.getThumbnailUrl());
-
     Exercise savedExercise = exerciseRepository.save(exercise);
 
     // Add muscles
@@ -117,10 +114,65 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     return mapToDetailResponse(savedExercise);
   }
 
+  @Override
+  @Transactional
+  public int importExercisesFromJson(MultipartFile file) throws IOException{
+    // đọc mảng ExerciseDTO từ JSON upload
+    List<CreateExerciseRequest> dtos = objectMapper.readValue(
+      file.getInputStream(),
+      new TypeReference<List<CreateExerciseRequest>>() {}
+    );
+
+    int imported = 0;
+    for (CreateExerciseRequest dto : dtos) {
+      if (dto.getName() == null || dto.getName().isBlank()) continue;
+      log.info("name exercise: {}", dto.getName());
+      String slug = generateSlug(dto.getName());
+
+      Exercise ex = exerciseRepository.findBySlug(slug)
+        .orElseGet(Exercise::new);
+      ex.setSlug(slug);
+      ex.setName(dto.getName().trim());
+
+      EquipmentType equipmentType = null;
+
+      if(dto.getEquipmentTypeCode() != null) {
+      equipmentType = equipmentTypeRepository.findById(dto.getEquipmentTypeCode()).orElseThrow(
+          ()-> new ResourceNotFoundException("Equipment type not found: " + dto.getEquipmentTypeCode())
+        );
+      }
+
+      ex.setEquipment(equipmentType);
+
+      ExerciseCategory exerciseCategory =
+        dto.getExerciseCategory() == null ? null : exerciseCategoryRepository.findById(dto.getExerciseCategory()).orElseThrow(
+        ()-> new ResourceNotFoundException("Exercise category not found with code: {}", dto.getExerciseCategory())
+      );
+
+      ex.setExerciseCategory(exerciseCategory);
+      ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType()));
+
+//      ex.setLevel(dto.getExerciseLevel());
+      ex.setInstructions(dto.getInstructions().toString());
+      ex.setSafetyNotes(dto.getSafetyNotes());
+      ex.setThumbnailUrl(dto.getThumbnailUrl());
+      Exercise savedExercise = exerciseRepository.save(ex);
+      // Add muscles
+      if (dto.getMuscles() != null && !dto.getMuscles().isEmpty()) {
+        saveMusclesForExercise(savedExercise, dto.getMuscles());
+      }
+      log.info("imported: {}", imported);
+
+      imported++;
+    }
+    return imported;
+  }
+
   private ExerciseListResponse mapToListResponse(Exercise exercise) {
     // Get secondary muscles
     List<ExerciseMuscle> muscles =
         exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
+
     List<String> secondaryMuscles =
         muscles.stream()
             .filter(em -> "SECONDARY".equals(em.getRole()))
@@ -131,7 +183,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         .id(exercise.getId())
         .slug(exercise.getSlug())
         .name(exercise.getName())
-        .level(exercise.getLevel())
+//        .level(exercise.getLevel())
         .primaryMuscle(
             exercise.getPrimaryMuscle() != null
                 ? exerciseMapper.toMuscleResponse(exercise.getPrimaryMuscle())
@@ -166,11 +218,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         .id(exercise.getId())
         .slug(exercise.getSlug())
         .name(exercise.getName())
-        .level(exercise.getLevel())
-        .primaryMuscle(
-            exercise.getPrimaryMuscle() != null
-                ? exerciseMapper.toMuscleResponse(exercise.getPrimaryMuscle())
-                : null)
+//        .level(exercise.getLevel())
         .equipment(
             exercise.getEquipment() != null
                 ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment())
@@ -229,4 +277,68 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       exerciseMuscleRepository.save(exerciseMuscle);
     }
   }
+
+  private ExerciseCategory getOrCreateCategory(String categoryCode) {
+    if (!StringUtils.hasText(categoryCode)) {
+      categoryCode = "General";
+    }
+
+    String finalCategoryCode = categoryCode;
+    return exerciseCategoryRepository.findByCodeWithExercises(categoryCode)
+      .orElseGet(() -> {
+        ExerciseCategory newCategory = new ExerciseCategory();
+        newCategory.setCode(finalCategoryCode);
+        newCategory.setName(StringUtils.capitalize(finalCategoryCode.toLowerCase()));
+        return exerciseCategoryRepository.save(newCategory);
+      });
+  }
+
+  private Exercise mapToEntity(CreateExerciseRequest dto, ExerciseCategory category) {
+    Exercise exercise = new Exercise();
+
+    exercise.setName(dto.getName());
+    exercise.setExerciseCategory(category);
+    exercise.setBodyPart(dto.getBodyParts().toString());
+
+    EquipmentType equipmentType = equipmentTypeRepository.findById(dto.getEquipmentTypeCode()).orElseThrow(
+      () -> new ResourceNotFoundException("Equipment type not found")
+    );
+
+    exercise.setEquipment(equipmentType);
+
+
+
+    ExerciseMuscleRequest exerciseMusclePrimaryRequest = dto.getMuscles().stream()
+      .filter(muscle ->
+        muscle.getRole().equalsIgnoreCase("PRIMARY")).findFirst().get();
+
+      Muscle primaryMuscle = muscleRepository.findByCode(exerciseMusclePrimaryRequest.getMuscleCode());
+    exercise.setPrimaryMuscle(primaryMuscle);
+
+    // Handle instructions
+    if (dto.getInstructions() != null) {
+      exercise.setInstructions(dto.getInstructions().toString());
+    }
+
+    exercise.setThumbnailUrl(dto.getThumbnailUrl());
+
+    // Parse exercise type
+    if (StringUtils.hasText(dto.getExerciseType().toString())) {
+      try {
+        exercise.setExerciseType(
+          ExerciseType.valueOf(dto.getExerciseType().toString().toUpperCase())
+        );
+      } catch (IllegalArgumentException e) {
+        exercise.setExerciseType(ExerciseType.COMPOUND);
+      }
+    }
+
+    return exercise;
+  }
+
+  private String generateSlug(String name){
+    return name.trim().toLowerCase().replace(" ", "-");
+
+  }
+
 }

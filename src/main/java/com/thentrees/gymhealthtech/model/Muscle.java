@@ -16,4 +16,8 @@ public class Muscle {
 
   @Column(name = "name", nullable = false, length = 64)
   private String name;
+
+  @ManyToOne
+  @JoinColumn(name = "body_part_code")
+  private BodyPart bodyPart;
 }
