@@ -103,23 +103,6 @@ DO $$ BEGIN
 CREATE TRIGGER trg_session_sets_version BEFORE UPDATE ON session_sets FOR EACH ROW EXECUTE FUNCTION bump_version();
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Content assets
-ALTER TABLE content_assets
-  ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
-  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
-  ADD COLUMN IF NOT EXISTS version int NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS created_by uuid,
-  ADD COLUMN IF NOT EXISTS updated_by uuid;
-
--- Add triggers for content_assets
-DO $$ BEGIN
-CREATE TRIGGER trg_content_assets_updated_at BEFORE UPDATE ON content_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN
-CREATE TRIGGER trg_content_assets_version BEFORE UPDATE ON content_assets FOR EACH ROW EXECUTE FUNCTION bump_version();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- Subscriptions (already has some fields)
 ALTER TABLE subscriptions
   ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false,
@@ -146,19 +129,6 @@ CREATE INDEX IF NOT EXISTS idx_goals_not_deleted ON goals(id) WHERE is_deleted =
 -- Composite indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_users_email_not_deleted ON users(email) WHERE is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_exercises_slug_not_deleted ON exercises(slug) WHERE is_deleted = false;
-
------------------------------
--- 4) UPDATE FOREIGN KEY CONSTRAINTS (Optional)
------------------------------
-
--- You might want to update some FK constraints to handle soft deletes
--- For example, instead of ON DELETE CASCADE, use ON DELETE SET NULL
--- and handle cleanup in application logic
-
--- Example for sessions -> users (keep sessions when user is soft deleted)
--- ALTER TABLE sessions DROP CONSTRAINT sessions_user_id_fkey;
--- ALTER TABLE sessions ADD CONSTRAINT sessions_user_id_fkey
---   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
 
 -----------------------------
 -- 5) CREATE CLEANUP FUNCTIONS

@@ -40,7 +40,7 @@ public class UserProfile extends BaseEntity {
   @Column(name = "bmi", precision = 5, scale = 2)
   private BigDecimal bmi;
 
-  @Column(name = "object_key", length = 512)
+  @Column(name = "avatar_url", length = 512)
   private String avatarUrl;
 
   @Column(name = "health_notes", columnDefinition = "TEXT")

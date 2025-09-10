@@ -11,4 +11,6 @@ public interface MuscleRepository extends JpaRepository<Muscle, String> {
 
   @Query("SELECT m FROM Muscle m WHERE m.code IN :codes")
   List<Muscle> findByCodes(@Param("codes") List<String> codes);
+
+  Muscle findByCode(String code);
 }

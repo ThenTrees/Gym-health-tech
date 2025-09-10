@@ -11,5 +11,7 @@ public interface ExerciseMapper {
 
   MuscleResponse toMuscleResponse(Muscle muscle);
 
+  Muscle toMuscle(MuscleResponse muscleResponse);
+
   EquipmentTypeResponse toEquipmentTypeResponse(EquipmentType equipmentType);
 }
