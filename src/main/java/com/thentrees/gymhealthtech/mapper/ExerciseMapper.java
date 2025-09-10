@@ -2,7 +2,7 @@ package com.thentrees.gymhealthtech.mapper;
 
 import com.thentrees.gymhealthtech.dto.response.EquipmentTypeResponse;
 import com.thentrees.gymhealthtech.dto.response.MuscleResponse;
-import com.thentrees.gymhealthtech.model.EquipmentType;
+import com.thentrees.gymhealthtech.model.Equipment;
 import com.thentrees.gymhealthtech.model.Muscle;
 import org.mapstruct.Mapper;
 
@@ -13,5 +13,5 @@ public interface ExerciseMapper {
 
   Muscle toMuscle(MuscleResponse muscleResponse);
 
-  EquipmentTypeResponse toEquipmentTypeResponse(EquipmentType equipmentType);
+  EquipmentTypeResponse toEquipmentTypeResponse(Equipment equipment);
 }

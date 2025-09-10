@@ -28,7 +28,7 @@ public class Exercise extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "equipment")
-  private EquipmentType equipment;
+  private Equipment equipment;
 
   @Column(name = "instructions", columnDefinition = "TEXT")
   private String instructions;
@@ -42,7 +42,7 @@ public class Exercise extends BaseEntity {
   @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL)
   private List<ExerciseMuscle> exerciseMuscles;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "exercise_category", referencedColumnName = "code", nullable = false)
   private ExerciseCategory exerciseCategory;
 

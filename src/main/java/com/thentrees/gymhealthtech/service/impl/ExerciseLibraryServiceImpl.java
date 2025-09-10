@@ -11,9 +11,10 @@ import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecifications;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
-import jakarta.validation.Validator;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +38,8 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final ExerciseMuscleRepository exerciseMuscleRepository;
   private final ExerciseMapper exerciseMapper;
   private final MuscleRepository muscleRepository;
-  private final EquipmentTypeRepository equipmentTypeRepository;
+  private final EquipmentRepository equipmentRepository;
   private final ExerciseCategoryRepository exerciseCategoryRepository;
-  private final Validator validator;
   private final ObjectMapper objectMapper;
 
   @Override
@@ -60,6 +60,14 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   }
 
   @Override
+  public ExerciseDetailResponse getExerciseById(UUID id) {
+    return exerciseRepository
+        .findById(id)
+        .map(this::mapToDetailResponse)
+        .orElseThrow(() -> new ResourceNotFoundException("Exercise not found with id: " + id));
+  }
+
+  @Override
   @Transactional
   public ExerciseDetailResponse createExercise(CreateExerciseRequest request, Authentication auth) {
     log.info("Starting create exercise process");
@@ -71,33 +79,17 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     }
 
     // Validate equipment (optional)
-    EquipmentType equipment = null;
-    if (request.getEquipmentTypeCode() != null) {
-      equipment =
-          equipmentTypeRepository
-              .findById(request.getEquipmentTypeCode())
-              .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException(
-                          "Equipment type not found: " + request.getEquipmentTypeCode()));
+    Equipment equipment = null;
+    if (!StringUtils.hasText(request.getEquipmentTypeCode())) {
+      equipment = getOrCreateEquipment(request.getEquipmentTypeCode());
     }
 
-    ExerciseCategory exerciseCategory = null;
-    if (request.getExerciseCategory() != null) {
-      exerciseCategory =
-          exerciseCategoryRepository
-              .findById(request.getExerciseCategory())
-              .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException(
-                          "Exercise type not found: " + request.getExerciseCategory()));
-    }
+    ExerciseCategory exerciseCategory = getOrCreateCategory(request.getExerciseCategory());
 
     // Create exercise
     Exercise exercise = new Exercise();
     exercise.setSlug(slug);
     exercise.setName(request.getName());
-    //    exercise.setLevel(request.getExerciseLevel());
     exercise.setExerciseCategory(exerciseCategory);
     exercise.setEquipment(equipment);
     exercise.setInstructions(request.getInstructions().toString());
@@ -130,36 +122,18 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       Exercise ex = exerciseRepository.findBySlug(slug).orElseGet(Exercise::new);
       ex.setSlug(slug);
       ex.setName(dto.getName().trim());
-
-      EquipmentType equipmentType = null;
-
-      if (dto.getEquipmentTypeCode() != null) {
-        equipmentType =
-            equipmentTypeRepository
-                .findById(dto.getEquipmentTypeCode())
-                .orElseThrow(
-                    () ->
-                        new ResourceNotFoundException(
-                            "Equipment type not found: " + dto.getEquipmentTypeCode()));
+      ex.setBodyPart(dto.getBodyParts().toString());
+      Equipment equipment = null;
+      if (StringUtils.hasText(dto.getEquipmentTypeCode())) {
+        equipment = getOrCreateEquipment(dto.getEquipmentTypeCode());
       }
 
-      ex.setEquipment(equipmentType);
+      ex.setEquipment(equipment);
 
-      ExerciseCategory exerciseCategory =
-          dto.getExerciseCategory() == null
-              ? null
-              : exerciseCategoryRepository
-                  .findById(dto.getExerciseCategory())
-                  .orElseThrow(
-                      () ->
-                          new ResourceNotFoundException(
-                              "Exercise category not found with code: {}",
-                              dto.getExerciseCategory()));
+      ExerciseCategory exerciseCategory = getOrCreateCategory(dto.getExerciseCategory());
 
       ex.setExerciseCategory(exerciseCategory);
       ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType()));
-
-      //      ex.setLevel(dto.getExerciseLevel());
       ex.setInstructions(dto.getInstructions().toString());
       ex.setSafetyNotes(dto.getSafetyNotes());
       ex.setThumbnailUrl(dto.getThumbnailUrl());
@@ -169,7 +143,6 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         saveMusclesForExercise(savedExercise, dto.getMuscles());
       }
       log.info("imported: {}", imported);
-
       imported++;
     }
     return imported;
@@ -179,6 +152,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     // Get secondary muscles
     List<ExerciseMuscle> muscles =
         exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
+
+    List<String> primaryMuscles =
+        muscles.stream()
+            .filter(em -> "PRIMARY".equals(em.getRole()))
+            .map(em -> em.getMuscle().getName())
+            .collect(Collectors.toList());
 
     List<String> secondaryMuscles =
         muscles.stream()
@@ -190,19 +169,21 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         .id(exercise.getId())
         .slug(exercise.getSlug())
         .name(exercise.getName())
-        //        .level(exercise.getLevel())
-        .primaryMuscle(
-            exercise.getPrimaryMuscle() != null
-                ? exerciseMapper.toMuscleResponse(exercise.getPrimaryMuscle())
-                : null)
+        .level(null)
+        .primaryMuscle(primaryMuscles)
         .equipment(
             exercise.getEquipment() != null
-                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment())
+                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
                 : null)
+        .instructions(Arrays.stream(exercise.getInstructions().split(",")).toList())
+        .safetyNotes(exercise.getSafetyNotes())
         .thumbnailUrl(exercise.getThumbnailUrl())
+        .exerciseCategory(exercise.getExerciseCategory().getName())
+        .exerciseType(exercise.getExerciseType().toString())
+        .bodyPart(exercise.getBodyPart())
+        .secondaryMuscles(secondaryMuscles)
         .createdAt(exercise.getCreatedAt())
         .updatedAt(exercise.getUpdatedAt())
-        .secondaryMuscles(secondaryMuscles)
         .build();
   }
 
@@ -225,19 +206,32 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         .id(exercise.getId())
         .slug(exercise.getSlug())
         .name(exercise.getName())
-        //        .level(exercise.getLevel())
+        .level(null)
+        .primaryMuscle(
+            muscleResponses.stream()
+                .filter(e -> e.getRole().equalsIgnoreCase("primary"))
+                .map(em -> em.getMuscleName())
+                .toList())
         .equipment(
             exercise.getEquipment() != null
-                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment())
+                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
                 : null)
-        .instructions(exercise.getInstructions())
+        .instructions(Arrays.stream(exercise.getInstructions().split(",")).toList())
         .safetyNotes(exercise.getSafetyNotes())
         .thumbnailUrl(exercise.getThumbnailUrl())
+        .exerciseCategory(exercise.getExerciseCategory().getName())
+        .exerciseType(exercise.getExerciseType().toString())
+        .bodyPart(exercise.getBodyPart())
+        .secondaryMuscles(
+            muscleResponses.stream()
+                .filter(e -> e.getRole().equalsIgnoreCase("secondary"))
+                .map(em -> em.getMuscleName())
+                .toList())
+        .bodyPart(exercise.getBodyPart())
         .createdAt(exercise.getCreatedAt())
         .updatedAt(exercise.getUpdatedAt())
         .createdBy(exercise.getCreatedBy())
         .updatedBy(exercise.getUpdatedBy())
-        .muscles(muscleResponses)
         .build();
   }
 
@@ -289,7 +283,6 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     if (!StringUtils.hasText(categoryCode)) {
       categoryCode = "General";
     }
-
     String finalCategoryCode = categoryCode;
     return exerciseCategoryRepository
         .findByCodeWithExercises(categoryCode)
@@ -302,48 +295,16 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
             });
   }
 
-  private Exercise mapToEntity(CreateExerciseRequest dto, ExerciseCategory category) {
-    Exercise exercise = new Exercise();
-
-    exercise.setName(dto.getName());
-    exercise.setExerciseCategory(category);
-    exercise.setBodyPart(dto.getBodyParts().toString());
-
-    EquipmentType equipmentType =
-        equipmentTypeRepository
-            .findById(dto.getEquipmentTypeCode())
-            .orElseThrow(() -> new ResourceNotFoundException("Equipment type not found"));
-
-    exercise.setEquipment(equipmentType);
-
-    ExerciseMuscleRequest exerciseMusclePrimaryRequest =
-        dto.getMuscles().stream()
-            .filter(muscle -> muscle.getRole().equalsIgnoreCase("PRIMARY"))
-            .findFirst()
-            .get();
-
-    Muscle primaryMuscle =
-        muscleRepository.findByCode(exerciseMusclePrimaryRequest.getMuscleCode());
-    exercise.setPrimaryMuscle(primaryMuscle);
-
-    // Handle instructions
-    if (dto.getInstructions() != null) {
-      exercise.setInstructions(dto.getInstructions().toString());
-    }
-
-    exercise.setThumbnailUrl(dto.getThumbnailUrl());
-
-    // Parse exercise type
-    if (StringUtils.hasText(dto.getExerciseType().toString())) {
-      try {
-        exercise.setExerciseType(
-            ExerciseType.valueOf(dto.getExerciseType().toString().toUpperCase()));
-      } catch (IllegalArgumentException e) {
-        exercise.setExerciseType(ExerciseType.COMPOUND);
-      }
-    }
-
-    return exercise;
+  private Equipment getOrCreateEquipment(String equipmentCode) {
+    return equipmentRepository
+        .findById(equipmentCode)
+        .orElseGet(
+            () -> {
+              Equipment newEquipment = new Equipment();
+              newEquipment.setCode(equipmentCode.toLowerCase());
+              newEquipment.setName(StringUtils.capitalize(equipmentCode.toLowerCase()));
+              return equipmentRepository.save(newEquipment);
+            });
   }
 
   private String generateSlug(String name) {

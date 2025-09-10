@@ -66,7 +66,7 @@ public class ExerciseSpecifications {
       if (exerciseTypeCode == null || exerciseTypeCode.trim().isEmpty()) {
         return criteriaBuilder.conjunction();
       }
-      return criteriaBuilder.equal(root.get("exerciseType").get("code"), exerciseTypeCode);
+      return criteriaBuilder.equal(root.get("exerciseType"), exerciseTypeCode);
     };
   }
 }

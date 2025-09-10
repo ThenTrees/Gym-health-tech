@@ -18,12 +18,16 @@ public class ExerciseListResponse {
   private String slug;
   private String name;
   private ExerciseLevel level;
-  private MuscleResponse primaryMuscle;
-  private EquipmentTypeResponse equipment;
+  private List<String> primaryMuscle;
+  private String equipment;
   private String thumbnailUrl;
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
-
+  private List<String> instructions;
+  private String safetyNotes;
+  private String exerciseCategory;
+  private String exerciseType;
+  private String bodyPart;
   // Additional info
   private List<String> secondaryMuscles;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 }
