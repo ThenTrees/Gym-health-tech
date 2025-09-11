@@ -91,7 +91,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     profile.setUser(user);
     profile.setFullName(request.getFullName());
     profile.setGender(request.getGender());
-    profile.setDateOfBirth(request.getDateOfBirth());
+    profile.setAge(request.getAge());
     profile.setHeightCm(request.getHeightCm());
     profile.setWeightKg(request.getWeightKg());
     profile.setHealthNotes(request.getHealthNotes());
