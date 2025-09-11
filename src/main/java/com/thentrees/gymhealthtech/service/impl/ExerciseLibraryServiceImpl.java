@@ -7,14 +7,13 @@ import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.ExerciseMapper;
+import com.thentrees.gymhealthtech.mapper.MuscleMapper;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecifications;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +40,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final EquipmentRepository equipmentRepository;
   private final ExerciseCategoryRepository exerciseCategoryRepository;
   private final ObjectMapper objectMapper;
+  private final MuscleMapper muscleMapper;
 
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
@@ -146,6 +146,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       imported++;
     }
     return imported;
+  }
+
+  @Override
+  public List<MuscleResponse> getMuscles() {
+    List<Muscle> muscles = muscleRepository.findAll();
+    return muscles.stream().map(muscleMapper::mapToResponse).toList();
   }
 
   private ExerciseListResponse mapToListResponse(Exercise exercise) {

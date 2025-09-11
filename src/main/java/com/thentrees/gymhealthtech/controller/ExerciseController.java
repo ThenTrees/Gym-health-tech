@@ -194,10 +194,51 @@ public class ExerciseController {
       method = "POST",
       description = "import file json include exercises",
       summary = "endpoint for ADMIN import list exercise into database")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "201", description = "import exercises from file json"),
+        @ApiResponse(responseCode = "403", description = "Unauthorize - AccessDenied"),
+        @ApiResponse(responseCode = "500", description = "internal server error")
+      })
   @PostMapping("/import-exercise")
-  //  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   public String importJson(@RequestParam("file") MultipartFile file) throws Exception {
     int count = exerciseLibraryService.importExercisesFromJson(file);
     return "Imported/Updated " + count + " exercises.";
+  }
+
+  @Operation(method = "GET", description = "Get all muscle", summary = "get muscles")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "response collection muscle",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = MuscleResponse.class),
+                    examples =
+                        @ExampleObject(
+                            """
+              {
+                  "status": "success",
+                  "data": [
+                      {
+                          "code": "shins",
+                          "name": "Shins"
+                      },
+                      {
+                          "code": "hands",
+                          "name": "Hands"
+                      },
+                  ],
+                  "timestamp": "2025-09-11T12:29:20.7812718"
+              }
+              """))),
+        @ApiResponse(responseCode = "500", description = "internal server error")
+      })
+  @GetMapping("/muscles")
+  public ResponseEntity<APIResponse<List<MuscleResponse>>> getMuscles() {
+    return ResponseEntity.ok(APIResponse.success(exerciseLibraryService.getMuscles()));
   }
 }
