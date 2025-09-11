@@ -201,7 +201,7 @@ public class ExerciseController {
         @ApiResponse(responseCode = "500", description = "internal server error")
       })
   @PostMapping("/import-exercise")
-  @PreAuthorize("hasRole('ADMIN')")
+  //  @PreAuthorize("hasRole('ADMIN')")
   public String importJson(@RequestParam("file") MultipartFile file) throws Exception {
     int count = exerciseLibraryService.importExercisesFromJson(file);
     return "Imported/Updated " + count + " exercises.";

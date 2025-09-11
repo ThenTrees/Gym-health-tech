@@ -23,6 +23,7 @@ END;
 $BODY$ LANGUAGE plpgsql;
 
 -- Enums
+CREATE TYPE goal_status AS ENUM ('ACTIVE','COMPLETED','PAUSED');
 CREATE TYPE user_status AS ENUM ('ACTIVE','INACTIVE','PENDING_VERIFICATION','DELETED','SUSPENDED');
 CREATE TYPE user_role AS ENUM ('USER','ADMIN','GUEST');
 CREATE TYPE gender_type AS ENUM ('MALE','FEMALE','OTHER');
@@ -159,6 +160,7 @@ CREATE TABLE goals (
                      sessions_per_week  int NOT NULL CHECK (sessions_per_week BETWEEN 1 AND 14),
                      session_minutes    int NOT NULL CHECK (session_minutes BETWEEN 10 AND 180),
                      preferences        jsonb,
+                     status             goal_status,
                      started_at         date NOT NULL DEFAULT current_date,
                      ended_at           date,
                      created_at         timestamp NOT NULL DEFAULT now(),

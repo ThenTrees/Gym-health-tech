@@ -58,6 +58,13 @@ public class UserProfileServiceImpl implements UserProfileService {
   }
 
   @Override
+  public UserProfile getUserProfileById(UUID userId) {
+    return userProfileRepository
+        .findByUserId(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+  }
+
+  @Override
   @Transactional
   public void deleteProfile(UUID userId) {
 
@@ -133,8 +140,8 @@ public class UserProfileServiceImpl implements UserProfileService {
       profile.setGender(request.getGender());
     }
 
-    if (request.getDob() != null) {
-      profile.setDateOfBirth(request.getDob());
+    if (request.getAge() != null) {
+      profile.setAge(request.getAge());
     }
 
     if (request.getHeightCm() != null) {
@@ -220,7 +227,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         .userId(profile.getUser().getId())
         .fullName(profile.getFullName())
         .gender(profile.getGender())
-        .dateOfBirth(profile.getDateOfBirth())
+        .age(profile.getAge())
         .heightCm(profile.getHeightCm())
         .weightKg(profile.getWeightKg())
         .bmi(profile.getBmi())

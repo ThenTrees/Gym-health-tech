@@ -8,7 +8,6 @@ import com.thentrees.gymhealthtech.custom.StrongPassword;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import lombok.Data;
 
 /** DTO for user registration requests. follow the `Fitbod` app registration */
@@ -42,9 +41,13 @@ public class RegisterRequest {
   @Schema(description = "User gender", example = "MALE")
   private GenderType gender;
 
-  @Past(message = FUTURE_DATE_NOT_ALLOWED)
-  @Schema(description = "User date of birth", example = "1990-01-01")
-  private LocalDate dateOfBirth;
+  //  @Past(message = FUTURE_DATE_NOT_ALLOWED)
+  //  @Schema(description = "User date of birth", example = "1990-01-01")
+  //  private LocalDate dateOfBirth;
+
+  @Schema(description = "Age of user", example = "20")
+  @NotNull(message = "age is required")
+  private Integer age;
 
   @NotNull(message = HEIGHT_REQUIRED)
   @DecimalMin(value = "50.0", message = HEIGHT_OUT_OF_RANGE)

@@ -3,7 +3,6 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Objects;
 import lombok.*;
 
@@ -28,8 +27,8 @@ public class UserProfile extends BaseEntity {
   @Column(name = "gender")
   private GenderType gender;
 
-  @Column(name = "dob")
-  private LocalDate dateOfBirth;
+  @Column(name = "age")
+  private Integer age;
 
   @Column(name = "height_cm", precision = 5, scale = 2)
   private BigDecimal heightCm;
@@ -70,7 +69,7 @@ public class UserProfile extends BaseEntity {
     return Objects.equals(user, that.user)
         && Objects.equals(fullName, that.fullName)
         && gender == that.gender
-        && Objects.equals(dateOfBirth, that.dateOfBirth)
+        && Objects.equals(age, that.age)
         && Objects.equals(heightCm, that.heightCm)
         && Objects.equals(weightKg, that.weightKg)
         && Objects.equals(bmi, that.bmi)
@@ -87,7 +86,7 @@ public class UserProfile extends BaseEntity {
         user,
         fullName,
         gender,
-        dateOfBirth,
+        age,
         heightCm,
         weightKg,
         bmi,

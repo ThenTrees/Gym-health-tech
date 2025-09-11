@@ -2,7 +2,6 @@ package com.thentrees.gymhealthtech.dto.response;
 
 import com.thentrees.gymhealthtech.common.GenderType;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Builder;
@@ -18,7 +17,7 @@ public class UserProfileResponse {
 
   private GenderType gender;
 
-  private LocalDate dateOfBirth;
+  private Integer age;
 
   private BigDecimal heightCm;
 
