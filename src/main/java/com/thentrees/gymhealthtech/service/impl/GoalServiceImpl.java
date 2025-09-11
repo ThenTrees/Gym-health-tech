@@ -66,8 +66,6 @@ public class GoalServiceImpl implements GoalService {
 
     // 7. Build and return response
     GoalResponse response = GoalResponse.from(savedGoal);
-    enhanceResponse(response, request, profile);
-
     log.info("Goal created successfully: {}", savedGoal.getId());
     return response;
   }
@@ -168,6 +166,14 @@ public class GoalServiceImpl implements GoalService {
     goal.setObjective(request.getObjective());
     goal.setSessionsPerWeek(request.getSessionsPerWeek());
     goal.setSessionMinutes(request.getSessionMinutes());
+    goal.setEstimatedCaloriesPerSession(calculateEstimatedCalories(request, profile));
+    goal.setDifficultyAssessment(assessDifficulty(request, profile));
+
+    // Recommend equipment
+    goal.setRecommendedEquipment(recommendEquipment(request.getObjective()));
+
+    // Add health and safety notes
+    goal.setHealthSafetyNotes(generateSafetyNotes(request, profile));
     goal.setStartedAt(
         request.getStartDate() != null ? request.getStartDate() : LocalDateTime.now());
     goal.setStatus(GoalStatus.ACTIVE);
@@ -180,23 +186,7 @@ public class GoalServiceImpl implements GoalService {
         throw new DataProcessingException("Failed to process goal preferences", e);
       }
     }
-
     return goal;
-  }
-
-  private void enhanceResponse(
-      GoalResponse response, CreateGoalRequest request, UserProfile profile) {
-    // Calculate estimated calories per session
-    response.setEstimatedCaloriesPerSession(calculateEstimatedCalories(request, profile));
-
-    // Assess difficulty
-    response.setDifficultyAssessment(assessDifficulty(request, profile));
-
-    // Recommend equipment
-    response.setRecommendedEquipment(recommendEquipment(request.getObjective()));
-
-    // Add health and safety notes
-    response.setHealthSafetyNotes(generateSafetyNotes(request, profile));
   }
 
   private Integer calculateEstimatedCalories(CreateGoalRequest request, UserProfile profile) {

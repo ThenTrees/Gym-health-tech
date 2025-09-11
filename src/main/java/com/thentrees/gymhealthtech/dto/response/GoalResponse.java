@@ -42,6 +42,10 @@ public class GoalResponse {
         .endedAt(goal.getEndedAt())
         .createdAt(goal.getCreatedAt())
         .status(goal.getEndedAt() == null ? GoalStatus.ACTIVE : GoalStatus.COMPLETED)
+        .estimatedCaloriesPerSession(goal.getEstimatedCaloriesPerSession())
+        .difficultyAssessment(goal.getDifficultyAssessment())
+        .recommendedEquipment(goal.getRecommendedEquipment())
+        .healthSafetyNotes(goal.getHealthSafetyNotes())
         .build();
   }
 }

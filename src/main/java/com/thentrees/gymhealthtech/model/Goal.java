@@ -6,6 +6,7 @@ import com.thentrees.gymhealthtech.common.ObjectiveType;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -44,4 +45,10 @@ public class Goal extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
   private GoalStatus status;
+
+  // Additional computed fields
+  private Integer estimatedCaloriesPerSession;
+  private String difficultyAssessment;
+  private List<String> recommendedEquipment;
+  private String healthSafetyNotes;
 }
