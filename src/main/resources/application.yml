@@ -74,6 +74,7 @@ aws:
 
 management:
   metrics:
-    binders:
-      processor:
-        enabled: false
+    enable:
+      system: false
+      process: false
+      jvm: false
