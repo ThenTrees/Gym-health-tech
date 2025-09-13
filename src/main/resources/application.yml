@@ -12,9 +12,10 @@ spring:
   profiles:
     active: ${APP_PROFILE:dev}
   datasource:
-    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:gymhealthtech}
-    username: ${APP_DB_USER:postgres}
-    password: ${APP_DB_PASSWORD:root}
+    url: ${POSTGRES_URL}
+#    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:gymhealthtech}
+    username: ${APP_DB_USER}
+    password: ${APP_DB_PASSWORD}
     hikari:
       pool-name: HikariPool
       maximum-pool-size: 15
@@ -35,10 +36,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:thientri.trank17@gmail.com}
-    password: ${MAIL_PASSWORD:spgs mysu ghqy clqv}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -66,7 +67,7 @@ app:
 
 aws:
   s3:
-    bucket: ${S3_BUCKET_NAME:gym-health-tech-app}
-    s3AccessKey: ${S3_ACCESS_KEY_ID:AKIAXW35EKKSJUUZ5N3Q}
-    s3SecretKey: ${S3_SECRET_ACCESS_KEY:7WlDoVfFggjZHx3f4UHvq0dXZld5P38ZUptV}
-    region: ${S3_REGION:ap-southeast-1}
+    bucket: ${S3_BUCKET_NAME}
+    s3AccessKey: ${S3_ACCESS_KEY_ID}
+    s3SecretKey: ${S3_SECRET_ACCESS_KEY}
+    region: ${S3_REGION}
