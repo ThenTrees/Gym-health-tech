@@ -11,15 +11,10 @@
     <module name="NeedBraces"/>
     <module name="LeftCurly"/>
     <module name="RightCurly"/>
-    <module name="AvoidStarImport"/>
     <module name="RedundantImport"/>
     <module name="UnusedImports"/>
-    <module name="FinalLocalVariable"/>
     <module name="EqualsHashCode"/>
-    <module name="AvoidInlineConditionals"/>
     <module name="DeclarationOrder"/>
-    <module name="VariableDeclarationUsageDistance"/>
     <module name="MethodParamPad"/>
-    <module name="EmptyLineSeparator"/>
   </module>
 </module>

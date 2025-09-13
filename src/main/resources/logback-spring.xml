@@ -1,0 +1,60 @@
+<configuration>
+
+  <!-- ===== DEV PROFILE: Text log, dễ đọc ===== -->
+  <springProfile name="dev">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <!-- Pattern: [2025-08-23 12:00:01] INFO  [thread] com.gymai.AuthService - Login success -->
+        <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
+      </encoder>
+    </appender>
+    <root level="DEBUG">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>logs/app.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <fileNamePattern>logs/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+        <maxHistory>7</maxHistory> <!-- giữ log 7 ngày -->
+      </rollingPolicy>
+      <encoder>
+        <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
+      </encoder>
+    </appender>
+
+    <root level="DEBUG">
+      <appender-ref ref="CONSOLE" />
+      <appender-ref ref="FILE" />
+    </root>
+  </springProfile>
+
+
+  <!-- ===== PROD PROFILE: JSON log, structured + MDC ===== -->
+  <springProfile name="prod">
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+          <!-- timestamp, level, thread, logger, message -->
+          <timestamp />
+          <level />
+          <threadName />
+          <loggerName />
+          <message />
+
+          <!-- Thêm MDC vào log -->
+          <mdc />
+
+          <!-- optional: exception stacktrace -->
+          <stackTrace />
+        </providers>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="JSON_CONSOLE" />
+    </root>
+  </springProfile>
+
+
+</configuration>

@@ -1,42 +1,46 @@
 package com.thentrees.gymhealthtech.config;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
-import org.springdoc.core.models.GroupedOpenApi;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@OpenAPIDefinition(
+    info =
+        @Info(
+            title = "GymHealthTech API",
+            description =
+                "REST API for GymHealthTech application - A comprehensive fitness and health tracking platform",
+            version = "v1.0.0",
+            contact =
+                @Contact(
+                    name = "GymHealthTech Team",
+                    email = "support@gymhealthtech.com",
+                    url = "https://gymhealthtech.com"),
+            license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")),
+    servers = {
+      @Server(description = "Development Server", url = "http://localhost:8080"),
+      @Server(description = "Staging Server", url = "https://api-staging.gymhealthtech.com"),
+      @Server(description = "Production Server", url = "https://api.gymhealthtech.com")
+    })
 public class OpenApiConfig {
   @Bean
-  OpenAPI api() {
-    return new OpenAPI().info(new Info()
-      .title("API for Gym Health Tech System")
-      .description("API mô tả các chức năng của hệ thống")
-      .version("1.0.0")
-      .license(new License().name("Apache 2.0").url("http://springdoc.org"))
-      .termsOfService("https://example.com/terms")
-      .contact(new Contact()
-        .name("Support Team")
-        .email("thentrees@gmail.com")));
+  public OpenAPI customOpenAPI() {
+    return new OpenAPI()
+        .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
+        .components(
+            new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));
   }
 
-  @Bean
-  GroupedOpenApi publicApis() {
-    return GroupedOpenApi.builder()
-      .group("public")
-      .pathsToMatch("/api/**")
-      .pathsToExclude("/api/internal/**")
-      .build();
-  }
-
-  @Bean
-  GroupedOpenApi adminApis() {
-    return GroupedOpenApi.builder()
-      .group("admin")
-      .pathsToMatch("/admin/**")
-      .build();
+  private SecurityScheme createAPIKeyScheme() {
+    return new SecurityScheme().type(SecurityScheme.Type.HTTP).bearerFormat("JWT").scheme("bearer");
   }
 }
