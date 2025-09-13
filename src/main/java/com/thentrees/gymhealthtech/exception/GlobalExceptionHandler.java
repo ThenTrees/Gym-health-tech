@@ -36,6 +36,7 @@ import org.springframework.web.context.request.async.AsyncRequestTimeoutExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 @Slf4j
@@ -766,6 +767,35 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
         .header(TRACE_ID_HEADER, traceId)
         .body(APIResponse.error("Request timeout", error));
+  }
+
+  // ========================================
+  // NO STATIC RESOURCE EXCEPTIONS
+  // ========================================
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<APIResponse<Object>> handleNoResourceFoundException(
+      NoResourceFoundException ex, HttpServletRequest request) {
+
+    String traceId = generateTraceId.generate();
+    log.warn(
+        "Static resource not found [{}]: {} - Request: {} {}",
+        traceId,
+        ex.getMessage(),
+        request.getMethod(),
+        request.getRequestURI());
+
+    ApiError error =
+        ApiError.builder()
+            .code(ErrorCodes.RESOURCE_NOT_FOUND)
+            .message("Static resource not found")
+            .details(
+                String.format("The requested resource %s was not found", request.getRequestURI()))
+            .traceId(traceId)
+            .build();
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .header(TRACE_ID_HEADER, traceId)
+        .body(APIResponse.error("Resource not found", error));
   }
 
   // ========================================
