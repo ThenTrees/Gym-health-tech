@@ -71,3 +71,9 @@ aws:
     s3AccessKey: ${S3_ACCESS_KEY_ID}
     s3SecretKey: ${S3_SECRET_ACCESS_KEY}
     region: ${S3_REGION}
+
+management:
+  metrics:
+    binders:
+      processor:
+        enabled: false
