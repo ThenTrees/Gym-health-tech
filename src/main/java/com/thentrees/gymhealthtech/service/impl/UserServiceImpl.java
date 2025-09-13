@@ -21,4 +21,13 @@ public class UserServiceImpl implements UserService {
         .findById(id)
         .orElseThrow(() -> new BusinessException(String.format("User with id %s not found", id)));
   }
+
+  @Override
+  public User getUserByUsername(String username) {
+    return userRepository
+        .findByEmail(username)
+        .orElseThrow(
+            () ->
+                new BusinessException(String.format("User with username %s not found", username)));
+  }
 }

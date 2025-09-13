@@ -12,12 +12,12 @@ public class ExerciseMuscle {
 
   @EmbeddedId private ExerciseMuscleId id;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   @MapsId("exerciseId")
   @JoinColumn(name = "exercise_id")
   private Exercise exercise;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   @MapsId("muscleCode")
   @JoinColumn(name = "muscle_code")
   private Muscle muscle;
