@@ -43,5 +43,4 @@ jobs:
             docker pull tnydevdocs/gymhealthtech:latest
             docker stop app || true
             docker rm app || true
-            docker run -d --name app -p 80:8080 tnydevdocs/gymhealthtech:latest
-        # SSH vào EC2 và pull + restart container từ image mới
+            docker run -d --name gym-mate -p --env-file .env 8080:8080 tnydevdocs/gymhealthtech:latest
