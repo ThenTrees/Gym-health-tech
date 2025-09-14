@@ -14,30 +14,30 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-    info =
-        @Info(
-            title = "GymHealthTech API",
-            description =
-                "REST API for GymHealthTech application - A comprehensive fitness and health tracking platform",
-            version = "v1.0.0",
-            contact =
-                @Contact(
-                    name = "GymHealthTech Team",
-                    email = "support@gymhealthtech.com",
-                    url = "https://gymhealthtech.com"),
-            license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")),
-    servers = {
-      @Server(description = "Development Server", url = "http://localhost:8080"),
-      @Server(description = "Staging Server", url = "https://api-staging.gymhealthtech.com"),
-      @Server(description = "Production Server", url = "https://api.gymhealthtech.com")
-    })
+  info =
+  @Info(
+    title = "GymHealthTech API",
+    description =
+      "REST API for GymHealthTech application - A comprehensive fitness and health tracking platform",
+    version = "v1.0.0",
+    contact =
+    @Contact(
+      name = "GymHealthTech Team",
+      email = "support@gymhealthtech.com",
+      url = "https://gymhealthtech.com"),
+    license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")),
+  servers = {
+    @Server(description = "Development Server", url = "http://localhost:8080"),
+    @Server(description = "Staging Server", url = "https://api-staging.gymhealthtech.com"),
+    @Server(description = "Production Server", url = "https://api.gymhealthtech.com")
+  })
 public class OpenApiConfig {
   @Bean
   public OpenAPI customOpenAPI() {
     return new OpenAPI()
-        .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
-        .components(
-            new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));
+      .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
+      .components(
+        new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));
   }
 
   private SecurityScheme createAPIKeyScheme() {
