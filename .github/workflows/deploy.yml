@@ -43,4 +43,4 @@ jobs:
             docker pull tnydevdocs/gymhealthtech:latest
             docker stop app || true
             docker rm app || true
-            docker run -d --name gym-mate -p --env-file .env 8080:8080 tnydevdocs/gymhealthtech:latest
+            docker run --name gym-mate --env-file .env -dp 8080:8080 tnydevdocs/gymhealthtech:latest
