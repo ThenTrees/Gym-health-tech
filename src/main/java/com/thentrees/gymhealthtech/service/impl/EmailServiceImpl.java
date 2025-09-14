@@ -16,7 +16,7 @@ public class EmailServiceImpl implements EmailService {
 
   private final JavaMailSender mailSender;
 
-  @Value("${app.frontend.url:http://localhost:3000}")
+  @Value("${app.frontend.url}")
   private String frontendUrl;
 
   @Value("${spring.mail.username}")
@@ -47,7 +47,7 @@ public class EmailServiceImpl implements EmailService {
         """
             Hello %s,
 
-            Welcome to GymHealthTech! Please verify your email address by clicking the link below:
+            Welcome to Gym-Mate! Please verify your email address by clicking the link below:
 
             %s
 
@@ -56,7 +56,7 @@ public class EmailServiceImpl implements EmailService {
             If you didn't create an account with us, please ignore this email.
 
             Best regards,
-            GymHealthTech Team
+            Gym-Mate Team
             """,
         fullName, verificationUrl);
   }
