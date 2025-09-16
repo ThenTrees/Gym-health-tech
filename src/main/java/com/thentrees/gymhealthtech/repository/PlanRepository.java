@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.dto.request.PlanSearchRequest;
 import com.thentrees.gymhealthtech.model.Plan;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -25,4 +26,6 @@ public interface PlanRepository extends JpaRepository<Plan, UUID> {
       @Param("userId") UUID userId,
       @Param("criteria") PlanSearchRequest criteria,
       Pageable pageable);
+
+  List<Plan> findByUserId(UUID userId);
 }

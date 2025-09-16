@@ -330,10 +330,12 @@ public class AuthenticationController {
   @Operation(
       summary = "Verify email address",
       description = "Verifies user email using verification token")
-  @PostMapping("/verify-email")
+  @GetMapping("/verify-email")
   public ResponseEntity<APIResponse<String>> verifyEmail(
-      @Valid @RequestBody EmailVerificationRequest request) {
+      @Valid @RequestParam("token") String token) {
     try {
+      EmailVerificationRequest request = new EmailVerificationRequest();
+      request.setToken(token);
       authenticationService.verifyEmail(request);
       return ResponseEntity.ok(APIResponse.success("Email verified successfully", null));
     } catch (BusinessException e) {

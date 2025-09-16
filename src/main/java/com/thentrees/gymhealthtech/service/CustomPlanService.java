@@ -2,11 +2,14 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 
 public interface CustomPlanService {
   PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request);
+
+  List<PlanResponse> getUserPlans(String email);
 
   PlanResponse getPlanDetails(UUID userId, UUID planId);
 

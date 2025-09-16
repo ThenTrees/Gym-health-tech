@@ -57,7 +57,7 @@ logging:
 app:
   prefix: ${APP_PREFIX:/api/v1}
   frontend:
-    url: ${FRONTEND_URL:http://localhost:3000}
+    url: ${FRONTEND_URL}
   jwt:
     secret: ${JWT_SECRET:RjU5u3hN1YwqW7sPgRyd8g1qHj2W9U8QqGtxbYnTjFI=}
     expiration: ${JWT_EXPIRATION:3600000} # 1 hour

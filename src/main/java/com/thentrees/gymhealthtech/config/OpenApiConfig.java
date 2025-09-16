@@ -24,12 +24,10 @@ import org.springframework.context.annotation.Configuration;
                 @Contact(
                     name = "GymHealthTech Team",
                     email = "support@gymhealthtech.com",
-                    url = "https://gymhealthtech.com"),
+                    url = "http://18.139.208.5:8080/"),
             license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")),
     servers = {
-      @Server(description = "Development Server", url = "http://localhost:8080"),
-      @Server(description = "Staging Server", url = "https://api-staging.gymhealthtech.com"),
-      @Server(description = "Production Server", url = "https://api.gymhealthtech.com")
+      @Server(description = "Development Server", url = "http://18.139.208.5:8080"),
     })
 public class OpenApiConfig {
   @Bean
