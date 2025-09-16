@@ -171,7 +171,7 @@ public class PlanController {
 
   @Operation(
       method = "GET",
-      summary = "Get User Plans",
+      summary = "Get User Plans, the endpoint is close",
       description = "Get all plans for the authenticated user.")
   @ApiResponses(
       value = {
@@ -198,7 +198,7 @@ public class PlanController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = APIResponse.class)))
       })
-  @GetMapping
+  @GetMapping("/sample")
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<List<PlanResponse>>> getUserPlans(
       Authentication authentication) {
