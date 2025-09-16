@@ -1,10 +1,9 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.common.PlanSourceType;
+import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.dto.request.*;
-import com.thentrees.gymhealthtech.dto.response.APIResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanDayResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanItemResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,9 +12,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,6 +35,84 @@ public class PlanController {
 
   private final CustomPlanService customPlanService;
   private final UserService userService;
+
+  @Operation(
+      method = "GET",
+      summary = "Get All Plans",
+      description =
+          "Retrieve a paginated list of all plans for the authenticated user, with optional filtering.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Plans retrieved successfully",
+            content = {
+              @Content(
+                  mediaType = "application/json",
+                  schema = @Schema(implementation = PagedResponse.class))
+            }),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request parameters",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - User not authenticated",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - User does not have permission",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class)))
+      })
+  @GetMapping
+  @PreAuthorize("hasRole('USER')")
+  public ResponseEntity<APIResponse<PagedResponse<PlanSummaryResponse>>> getAllPlans(
+      @RequestParam(required = false, defaultValue = "") String query,
+      @RequestParam(required = false) List<PlanSourceType> planSourceTypes,
+      @RequestParam(required = false) List<PlanStatusType> statusTypes,
+      @RequestParam(required = false) List<UUID> goalIds,
+      @RequestParam(required = false, defaultValue = "false") String hasActiveGoal,
+      @RequestParam(defaultValue = "0") Integer page,
+      @RequestParam(defaultValue = "10") Integer size,
+      @RequestParam(defaultValue = "createdAt") String sortBy,
+      @RequestParam(defaultValue = "ASC") String sortDirection,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    PlanSearchRequest searchRequest =
+        PlanSearchRequest.builder()
+            .statusTypes(statusTypes)
+            .sourceTypes(planSourceTypes)
+            .goalIds(goalIds)
+            .query(query)
+            .hasActiveGoal(Boolean.parseBoolean(hasActiveGoal))
+            .sortBy(sortBy)
+            .sortDirection(sortDirection)
+            .build();
+
+    Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    log.info("GET /users/plans - User {} fetching all plans", userId);
+    PagedResponse<PlanSummaryResponse> plans =
+        customPlanService.getAllPlansForUser(userId, searchRequest, pageable);
+    return ResponseEntity.ok(APIResponse.success(plans));
+  }
 
   @Operation(
       method = "POST",

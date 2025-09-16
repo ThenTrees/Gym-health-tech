@@ -7,10 +7,7 @@ import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.dto.request.*;
-import com.thentrees.gymhealthtech.dto.response.ExerciseDetailResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanDayResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanItemResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
@@ -20,6 +17,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +33,18 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   private final UserRepository userRepository;
   private final SessionRepository sessionRepository;
   private final ObjectMapper objectMapper;
+
+  @Override
+  public PagedResponse<PlanSummaryResponse> getAllPlansForUser(
+      UUID userId, PlanSearchRequest searchCriteria, Pageable pageable) {
+    // This method can be implemented to fetch all plans for a user if needed
+    log.info("Searching plans for user {} with criteria: {}", userId, searchCriteria);
+
+    // This would use a custom repository method with dynamic query building
+    Page<Plan> plans = planRepository.findPlansWithCriteria(userId, searchCriteria, pageable);
+    Page<PlanSummaryResponse> planResponses = plans.map(this::convertPlanToSummaryResponse);
+    return PagedResponse.of(planResponses);
+  }
 
   @Transactional
   @Override
@@ -570,5 +581,33 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     } catch (Exception e) {
       return 5; // Default 5 minutes per exercise
     }
+  }
+
+  private PlanSummaryResponse convertPlanToSummaryResponse(Plan plan) {
+    PlanSummaryResponse dto = new PlanSummaryResponse();
+    dto.setId(plan.getId());
+    dto.setTitle(plan.getTitle());
+    dto.setSource(plan.getSource());
+    dto.setCycleWeeks(plan.getCycleWeeks());
+    dto.setStatus(plan.getStatus());
+
+    // Calculate computed fields
+    if (plan.getPlanDays() != null) {
+      dto.setTotalDays(plan.getPlanDays().size());
+      dto.setTotalExercises(
+          plan.getPlanDays().stream()
+              .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
+              .sum());
+    }
+
+    // Calculate progress
+    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
+    dto.setCompletedSessions(completedSessions);
+
+    if (dto.getTotalDays() != null && dto.getTotalDays() > 0) {
+      dto.setProgressPercentage((double) completedSessions / dto.getTotalDays() * 100);
+    }
+
+    return dto;
   }
 }
