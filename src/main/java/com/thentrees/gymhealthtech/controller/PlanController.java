@@ -124,8 +124,7 @@ public class PlanController {
     String email = authentication.getName();
     log.info("GET /users/plans - User {} fetching plans", email);
 
-    UUID userId = userService.findUserByEmail(email).getId();
-    List<PlanResponse> plans = customPlanService.getUserPlans(userId);
+    List<PlanResponse> plans = customPlanService.getUserPlans(email);
 
     return ResponseEntity.ok(APIResponse.success(plans, "User plans retrieved successfully"));
   }

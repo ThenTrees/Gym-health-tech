@@ -109,10 +109,14 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<PlanResponse> getUserPlans(UUID userId) {
-    log.info("Fetching all plans for user: {}", userId);
+  public List<PlanResponse> getUserPlans(String email) {
+    log.info("Fetching all plans for user: {}", email);
 
-    List<Plan> plans = planRepository.findByUserId(userId);
+    User user = userRepository
+        .findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    List<Plan> plans = planRepository.findByUserId(user.getId());
     
     return plans.stream()
         .map(plan -> convertPlanToResponse(plan, true))
