@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +87,47 @@ public class PlanController {
     PlanResponse plan = customPlanService.createCustomPlan(email, request);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(plan));
+  }
+
+  @Operation(
+      method = "GET",
+      summary = "Get User Plans",
+      description = "Get all plans for the authenticated user.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User plans retrieved successfully",
+            content = {
+              @Content(
+                  mediaType = "application/json",
+                  schema = @Schema(implementation = APIResponse.class))
+            }),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - User not authenticated",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class)))
+      })
+  @GetMapping
+  @PreAuthorize("hasRole('USER')")
+  public ResponseEntity<APIResponse<List<PlanResponse>>> getUserPlans(Authentication authentication) {
+    String email = authentication.getName();
+    log.info("GET /users/plans - User {} fetching plans", email);
+
+    UUID userId = userService.findUserByEmail(email).getId();
+    List<PlanResponse> plans = customPlanService.getUserPlans(userId);
+
+    return ResponseEntity.ok(APIResponse.success(plans, "User plans retrieved successfully"));
   }
 
   @Operation(

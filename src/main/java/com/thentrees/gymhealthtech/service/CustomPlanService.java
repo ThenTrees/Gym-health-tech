@@ -4,10 +4,13 @@ import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.PlanDayResponse;
 import com.thentrees.gymhealthtech.dto.response.PlanItemResponse;
 import com.thentrees.gymhealthtech.dto.response.PlanResponse;
+import java.util.List;
 import java.util.UUID;
 
 public interface CustomPlanService {
   PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request);
+
+  List<PlanResponse> getUserPlans(UUID userId);
 
   PlanResponse getPlanDetails(UUID userId, UUID planId);
 
