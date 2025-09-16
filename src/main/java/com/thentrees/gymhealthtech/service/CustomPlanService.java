@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.*;
-import com.thentrees.gymhealthtech.dto.response.PlanDayResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanItemResponse;
-import com.thentrees.gymhealthtech.dto.response.PlanResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 public interface CustomPlanService {
   PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request);
@@ -37,4 +36,7 @@ public interface CustomPlanService {
 
   void addMultipleItemsToPlanDay(
       UUID userId, UUID planId, UUID planDayId, AddMultipleItemsRequest request);
+
+  PagedResponse<PlanSummaryResponse> getAllPlansForUser(
+      UUID userId, PlanSearchRequest searchCriteria, Pageable pageable);
 }
