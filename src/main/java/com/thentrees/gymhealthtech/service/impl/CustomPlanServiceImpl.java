@@ -109,6 +109,18 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Override
   @Transactional(readOnly = true)
+  public List<PlanResponse> getUserPlans(UUID userId) {
+    log.info("Fetching all plans for user: {}", userId);
+
+    List<Plan> plans = planRepository.findByUserId(userId);
+    
+    return plans.stream()
+        .map(plan -> convertPlanToResponse(plan, true))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public PlanResponse getPlanDetails(UUID userId, UUID planId) {
     log.info("Fetching plan details for user: {}, plan: {}", userId, planId);
 
