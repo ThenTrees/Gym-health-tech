@@ -10,7 +10,7 @@ import java.util.UUID;
 public interface CustomPlanService {
   PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request);
 
-  List<PlanResponse> getUserPlans(UUID userId);
+  List<PlanResponse> getUserPlans(String email);
 
   PlanResponse getPlanDetails(UUID userId, UUID planId);
 
