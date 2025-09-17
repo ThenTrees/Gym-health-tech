@@ -2,6 +2,8 @@ package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.model.Session;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +24,11 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
   boolean existsByPlanDayPlanIdAndStatus(UUID planId, SessionStatus status);
 
   boolean existsBySessionSets_PlanItem_IdAndStatus(UUID planItemId, SessionStatus status);
+
+  Optional<Session> findActiveSessionByUserId(UUID userId);
+
+  boolean existsByPlanDayIdAndStatusAndEndedAtGreaterThanEqualAndEndedAtLessThan(
+      UUID planDayId, SessionStatus status, LocalDateTime from, LocalDateTime to);
+
+  Optional<Session> findByIdAndUserId(UUID sessionId, UUID userId);
 }

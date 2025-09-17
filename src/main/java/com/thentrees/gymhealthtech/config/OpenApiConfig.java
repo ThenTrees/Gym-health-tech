@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Configuration;
                 @Contact(
                     name = "GymHealthTech Team",
                     email = "support@gymhealthtech.com",
-                    url = "http://18.139.208.5:8080/"),
+                    url = "http://18.139.208.5:8080"),
             license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")),
     servers = {
       @Server(description = "Development Server", url = "http://18.139.208.5:8080"),
