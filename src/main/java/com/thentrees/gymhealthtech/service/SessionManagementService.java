@@ -16,4 +16,10 @@ public interface SessionManagementService {
 
   SessionSetResponse updateSessionSet(
       UUID userId, UUID sessionSetId, UpdateSessionSetRequest request);
+
+  void cancelSession(UUID userId, UUID sessionId, String reason);
+
+  void pauseSession(UUID userId, UUID sessionId, String reason);
+
+  SessionResponse getSessionDetails(UUID userId, UUID sessionId);
 }
