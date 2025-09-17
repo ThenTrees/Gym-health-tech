@@ -12,8 +12,7 @@ spring:
   profiles:
     active: ${APP_PROFILE:dev}
   datasource:
-#    url: ${POSTGRES_URL}
-    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:gymhealthtech}
+    url: ${POSTGRES_URL}
     username: ${APP_DB_USER}
     password: ${APP_DB_PASSWORD}
     hikari:
