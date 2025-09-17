@@ -41,6 +41,17 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionSetRepository sessionSetRepository;
   private final ObjectMapper objectMapper;
 
+  public SessionResponse getSessionDetails(UUID userId, UUID sessionId) {
+    log.info("Getting session details for user: {} and session: {}", userId, sessionId);
+
+    Session session =
+        sessionRepository
+            .findByIdAndUserIdWithSets(sessionId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+    return convertSessionToResponse(session, true);
+  }
+
   /**
    * Starts a new workout session for the user based on the specified plan day. business logic: -
    * Check if user has an active session - Check if plan day exists and is associated with user -
@@ -137,7 +148,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     Session session =
         sessionRepository
-            .findActiveSessionByUserId(userId)
+            .findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS)
             .orElseThrow(() -> new ResourceNotFoundException("No active workout session found"));
 
     return convertSessionToResponse(session, true);
@@ -239,6 +250,65 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     log.info("Successfully updated session set: {}", sessionSetId);
     return convertSessionSetToResponse(sessionSet);
+  }
+
+  @Override
+  @Transactional
+  public void cancelSession(UUID userId, UUID sessionId, String reason) {
+    log.info("Cancelling session {} for user {} - reason: {}", sessionId, userId, reason);
+
+    Session session =
+        sessionRepository
+            .findByIdAndUserId(sessionId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+    if (session.getStatus() == SessionStatus.COMPLETED) {
+      throw new ValidationException("Cannot cancel a completed session");
+    }
+
+    session.setStatus(SessionStatus.CANCELLED);
+    session.setEndedAt(LocalDateTime.now());
+
+    String cancelNote = "Session cancelled at " + LocalDateTime.now();
+    if (reason != null) {
+      cancelNote += " - Reason: " + reason;
+    }
+
+    String currentNotes = session.getNotes() != null ? session.getNotes() : "";
+    session.setNotes(currentNotes + (currentNotes.isEmpty() ? "" : "\n") + cancelNote);
+
+    sessionRepository.save(session);
+
+    log.info("Successfully cancelled session: {}", sessionId);
+  }
+
+  @Override
+  @Transactional
+  public void pauseSession(UUID userId, UUID sessionId, String reason) {
+    log.info("Pausing session {} for user {} - reason: {}", sessionId, userId, reason);
+
+    Session session =
+        sessionRepository
+            .findByIdAndUserId(sessionId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+    if (session.getStatus() != SessionStatus.IN_PROGRESS) {
+      throw new ValidationException("Can only pause an active session");
+    }
+
+    session.setStatus(SessionStatus.PAUSED);
+
+    String pauseNote = "Session paused at " + LocalDateTime.now();
+    if (reason != null) {
+      pauseNote += " - Reason: " + reason;
+    }
+
+    String currentNotes = session.getNotes() != null ? session.getNotes() : "";
+    session.setNotes(currentNotes + (currentNotes.isEmpty() ? "" : "\n") + pauseNote);
+
+    sessionRepository.save(session);
+
+    log.info("Successfully paused session: {}", sessionId);
   }
 
   private Session createSessionEntity(

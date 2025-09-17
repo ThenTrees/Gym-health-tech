@@ -277,4 +277,47 @@ public class SessionController {
 
     return ResponseEntity.ok(APIResponse.success(sessionSet));
   }
+
+  @PostMapping("/{sessionId}/cancel")
+  @PreAuthorize("hasRole('USER')")
+  public ResponseEntity<APIResponse<Void>> cancelSession(
+      @PathVariable UUID sessionId,
+      @RequestParam(required = false) String reason,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    log.info("POST /users/sessions/{}/cancel - User {} cancelling session", sessionId, userId);
+
+    sessionService.cancelSession(userId, sessionId, reason);
+
+    return ResponseEntity.ok(APIResponse.success(null, "Session cancelled successfully"));
+  }
+
+  @PostMapping("/{sessionId}/pause")
+  @PreAuthorize("hasRole('USER')")
+  public ResponseEntity<APIResponse<Void>> pauseSession(
+      @PathVariable UUID sessionId,
+      @RequestParam(required = false) String reason,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    log.info("POST /users/sessions/{}/pause - User {} pausing session", sessionId, userId);
+
+    sessionService.pauseSession(userId, sessionId, reason);
+
+    return ResponseEntity.ok(APIResponse.success(null, "Session paused successfully"));
+  }
+
+  @GetMapping("/{sessionId}")
+  @PreAuthorize("hasRole('USER')")
+  public ResponseEntity<APIResponse<SessionResponse>> getSessionDetails(
+      @PathVariable UUID sessionId, @AuthenticationPrincipal UserDetails userDetails) {
+
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    log.info("GET /users/sessions/{} - User {} getting session details", sessionId, userId);
+
+    SessionResponse session = sessionService.getSessionDetails(userId, sessionId);
+
+    return ResponseEntity.ok(APIResponse.success(session));
+  }
 }

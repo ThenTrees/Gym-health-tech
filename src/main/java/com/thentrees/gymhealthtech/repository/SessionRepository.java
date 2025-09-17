@@ -25,10 +25,20 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
 
   boolean existsBySessionSets_PlanItem_IdAndStatus(UUID planItemId, SessionStatus status);
 
+  Optional<Session> findByUserIdAndStatus(UUID userId, SessionStatus status);
+
   Optional<Session> findActiveSessionByUserId(UUID userId);
 
   boolean existsByPlanDayIdAndStatusAndEndedAtGreaterThanEqualAndEndedAtLessThan(
       UUID planDayId, SessionStatus status, LocalDateTime from, LocalDateTime to);
 
   Optional<Session> findByIdAndUserId(UUID sessionId, UUID userId);
+
+  @Query(
+      "SELECT s FROM Session s "
+          + "LEFT JOIN FETCH s.sessionSets ss "
+          + "LEFT JOIN FETCH ss.exercise "
+          + "WHERE s.id = :sessionId AND s.user.id = :userId")
+  Optional<Session> findByIdAndUserIdWithSets(
+      @Param("sessionId") UUID sessionId, @Param("userId") UUID userId);
 }
