@@ -27,7 +27,7 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
 
   Optional<Session> findByUserIdAndStatus(UUID userId, SessionStatus status);
 
-    Optional<Session> findActiveSessionByUserId(UUID userId);
+  Optional<Session> findActiveSessionByUserId(UUID userId);
 
   boolean existsByPlanDayIdAndStatusAndEndedAtGreaterThanEqualAndEndedAtLessThan(
       UUID planDayId, SessionStatus status, LocalDateTime from, LocalDateTime to);
