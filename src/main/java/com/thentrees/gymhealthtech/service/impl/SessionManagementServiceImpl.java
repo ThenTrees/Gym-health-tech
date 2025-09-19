@@ -77,7 +77,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
                         "Plan day not found or not associated with user"));
 
     // Check if there is already an active session for the user
-    Optional<Session> activeSession = sessionRepository.findActiveSessionByUserId(userId);
+    Optional<Session> activeSession = sessionRepository.findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS);
     if (activeSession.isPresent()) {
       log.error("Session already active for user {} with plan day {}", userId, planDay.getId());
       throw new ValidationException(
