@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.thentrees.gymhealthtech.common.UserStatus;
 import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.ChangePasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
@@ -81,6 +82,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // Mark user email as verified
     User user = verificationToken.getUser();
     user.setEmailVerified(true);
+    user.setStatus(UserStatus.ACTIVE);
     userRepository.save(user);
 
     log.info("Email verification successful for user: {}", user.getEmail());

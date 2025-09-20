@@ -1,11 +1,15 @@
 package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.service.EmailService;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +26,11 @@ public class EmailServiceImpl implements EmailService {
   @Value("${spring.mail.username}")
   private String fromEmail;
 
-  @Async
+  @Async("mailExecutor")
+  @Retryable(
+    maxAttempts = 3,
+    backoff = @Backoff(delay = 2000, multiplier = 2.0),
+    include = { MailSendException.class, MessagingException.class })
   public void sendEmailVerification(String to, String fullName, String token) {
     try {
       String verificationUrl = frontendUrl + "/verify-email?token=" + token;

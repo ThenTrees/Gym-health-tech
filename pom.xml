@@ -34,6 +34,16 @@
     </properties>
     <dependencies>
 
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-aop</artifactId> <!-- cần cho @Async -->
+      </dependency>
+
+      <dependency>
+        <groupId>org.springframework.retry</groupId>
+        <artifactId>spring-retry</artifactId>
+      </dependency>
+
       <!-- Spring Boot Starters -->
       <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -44,7 +54,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-data-jpa</artifactId>
       </dependency>
-<!-- 
+<!--
       <dependency>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-actuator</artifactId>
