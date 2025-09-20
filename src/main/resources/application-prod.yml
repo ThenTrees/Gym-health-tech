@@ -1,5 +1,5 @@
 spring:
   datasource:
-    url: ${POSTGRES_URL}
-    username: ${APP_DB_USER}
-    password: ${APP_DB_PASSWORD}
+    url: ${POSTGRES_URL_PROD}
+    username: ${APP_DB_USER_PROD}
+    password: ${APP_DB_PASSWORD_PROD}
