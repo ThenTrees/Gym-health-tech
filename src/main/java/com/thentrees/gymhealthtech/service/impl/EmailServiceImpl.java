@@ -28,9 +28,9 @@ public class EmailServiceImpl implements EmailService {
 
   @Async("mailExecutor")
   @Retryable(
-    maxAttempts = 3,
-    backoff = @Backoff(delay = 2000, multiplier = 2.0),
-    include = { MailSendException.class, MessagingException.class })
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 2000, multiplier = 2.0),
+      include = {MailSendException.class, MessagingException.class})
   public void sendEmailVerification(String to, String fullName, String token) {
     try {
       String verificationUrl = frontendUrl + "/verify-email?token=" + token;
