@@ -2,7 +2,9 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
+import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
+import com.thentrees.gymhealthtech.dto.response.PagedResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
 import java.util.UUID;
@@ -22,4 +24,8 @@ public interface SessionManagementService {
   void pauseSession(UUID userId, UUID sessionId, String reason);
 
   SessionResponse getSessionDetails(UUID userId, UUID sessionId);
+
+  SessionResponse resumeSession(UUID userId, UUID sessionId);
+
+  PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request);
 }

@@ -10,7 +10,7 @@ import com.thentrees.gymhealthtech.mapper.ExerciseMapper;
 import com.thentrees.gymhealthtech.mapper.MuscleMapper;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
-import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecifications;
+import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecification;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
 import java.io.IOException;
 import java.util.*;
@@ -242,12 +242,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   }
 
   private Specification<Exercise> buildSearchSpecification(ExerciseSearchRequest request) {
-    return ExerciseSpecifications.hasKeyword(request.getKeyword())
-        .and(ExerciseSpecifications.hasLevel(request.getLevel()))
-        .and(ExerciseSpecifications.hasPrimaryMuscle(request.getPrimaryMuscle()))
-        .and(ExerciseSpecifications.hasEquipment(request.getEquipmentType()))
-        .and(ExerciseSpecifications.hasMuscles(request.getMusclesCodes()))
-        .and(ExerciseSpecifications.hasExerciseType(request.getExerciseType()));
+    return ExerciseSpecification.hasKeyword(request.getKeyword())
+        .and(ExerciseSpecification.hasLevel(request.getLevel()))
+        .and(ExerciseSpecification.hasPrimaryMuscle(request.getPrimaryMuscle()))
+        .and(ExerciseSpecification.hasEquipment(request.getEquipmentType()))
+        .and(ExerciseSpecification.hasMuscles(request.getMusclesCodes()))
+        .and(ExerciseSpecification.hasExerciseType(request.getExerciseType()));
   }
 
   // Private helper methods

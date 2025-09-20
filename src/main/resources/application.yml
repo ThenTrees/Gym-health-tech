@@ -9,12 +9,7 @@ spring:
       max-request-size: 10MB
   application:
     name: gym-health-tech
-  profiles:
-    active: ${APP_PROFILE:dev}
   datasource:
-    url: ${POSTGRES_URL}
-    username: ${APP_DB_USER}
-    password: ${APP_DB_PASSWORD}
     hikari:
       pool-name: HikariPool
       maximum-pool-size: 15
