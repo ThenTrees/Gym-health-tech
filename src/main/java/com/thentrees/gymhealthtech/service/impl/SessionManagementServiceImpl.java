@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
+import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
+import com.thentrees.gymhealthtech.dto.response.PagedResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
@@ -16,6 +18,7 @@ import com.thentrees.gymhealthtech.repository.PlanDayRepository;
 import com.thentrees.gymhealthtech.repository.PlanItemRepository;
 import com.thentrees.gymhealthtech.repository.SessionRepository;
 import com.thentrees.gymhealthtech.repository.SessionSetRepository;
+import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
 import java.time.LocalDateTime;
@@ -26,6 +29,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -310,6 +318,65 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     sessionRepository.save(session);
 
     log.info("Successfully paused session: {}", sessionId);
+  }
+
+  @Transactional
+  @Override
+  public SessionResponse resumeSession(UUID userId, UUID sessionId) {
+    log.info("Resuming session {} for user {}", sessionId, userId);
+    Session session =
+        sessionRepository
+            .findByIdAndUserId(sessionId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+    if (session.getStatus() != SessionStatus.PAUSED) {
+      throw new ValidationException("Can only resume a paused session");
+    }
+    session.setStatus(SessionStatus.IN_PROGRESS);
+    String resumeNote = "Session resumed at " + LocalDateTime.now();
+    String currentNotes = session.getNotes() != null ? session.getNotes() : "";
+    session.setNotes(currentNotes + (currentNotes.isEmpty() ? "" : "\n") + resumeNote);
+    session = sessionRepository.save(session);
+    log.info("Successfully resumed session: {}", sessionId);
+    return convertSessionToResponse(session, true);
+  }
+
+  @Override
+  public PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request) {
+    log.info("Getting all sessions for user: {}", userId);
+
+    Specification<Session> spec = buildSessionSpecification(userId, request);
+
+    Pageable pageable =
+        PageRequest.of(
+            request.getPage(),
+            request.getSize(),
+            Sort.Direction.fromString(request.getSortOrder()),
+            request.getSortBy());
+
+    Page<Session> sessionPage = sessionRepository.findAll(spec, pageable);
+    Page<SessionResponse> response =
+        sessionPage.map(session -> convertSessionToResponse(session, false));
+    return PagedResponse.of(response);
+  }
+
+  private Specification<Session> buildSessionSpecification(
+      UUID userId, SessionSearchRequest sessionSearchRequest) {
+    Specification<Session> spec =
+        ((root, query, criteriaBuilder) ->
+            criteriaBuilder.equal(root.get("user").get("id"), userId));
+
+    if (sessionSearchRequest.getStatus() != null) {
+      spec = spec.and(SessionSpecification.hasStatus(sessionSearchRequest.getStatus()));
+    }
+
+    if (sessionSearchRequest.getKeyword() != null
+        && !sessionSearchRequest.getKeyword().trim().isEmpty()) {
+      String likeKeyword = "%" + sessionSearchRequest.getKeyword().toLowerCase() + "%";
+      spec = spec.and(SessionSpecification.hasKeyword(likeKeyword));
+    }
+
+    return spec;
   }
 
   private Session createSessionEntity(

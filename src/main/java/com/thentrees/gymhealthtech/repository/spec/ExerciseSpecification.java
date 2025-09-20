@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 
 /** Specifications for filtering Exercise entities based on various criteria. */
-public class ExerciseSpecifications {
+public class ExerciseSpecification {
   public static Specification<Exercise> hasKeyword(String keyword) {
     return (root, query, criteriaBuilder) -> {
       if (keyword == null || keyword.trim().isEmpty()) {
