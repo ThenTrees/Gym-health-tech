@@ -43,4 +43,4 @@ jobs:
             docker pull tnydevdocs/gymhealthtech:latest
             docker stop gym-mate || true
             docker rm gym-mate || true
-            docker run --name gym-mate --env-file .env -dp 8080:8080 tnydevdocs/gymhealthtech:latest
+            docker run --name gym-mate --env-file .env -e SPRING_PROFILES_ACTIVE=prod -dp 8080:8080 tnydevdocs/gymhealthtech:latest
