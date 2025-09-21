@@ -22,21 +22,27 @@ services:
     networks:
       - gym-health-tech
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_MAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
     ports:
-      - "5050:80"
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "PING" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
       - gym-health-tech
 
 volumes:
   pg_data:
-
+  redis-data:
 networks:
   gym-health-tech:
     driver: bridge

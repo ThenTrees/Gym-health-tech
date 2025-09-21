@@ -3,3 +3,16 @@ spring:
     url: ${POSTGRES_URL_PROD}
     username: ${APP_DB_USER_PROD}
     password: ${APP_DB_PASSWORD_PROD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: default
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms

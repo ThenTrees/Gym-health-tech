@@ -2,10 +2,14 @@ package com.thentrees.gymhealthtech.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
+import com.thentrees.gymhealthtech.dto.request.ForgotPasswordRequest;
+import com.thentrees.gymhealthtech.dto.request.ResetPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
+import com.thentrees.gymhealthtech.dto.request.VerifyOtpRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.UserProfileService;
+import com.thentrees.gymhealthtech.service.UserService;
 import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
 import com.thentrees.gymhealthtech.util.S3Util;
 import io.jsonwebtoken.JwtException;
@@ -43,6 +47,7 @@ public class UserController {
   private final ExtractValidationErrors extractValidationErrors;
   private final ObjectMapper objectMapper;
   private final S3Util s3Util;
+  private final UserService userService;
 
   @Operation(
       method = "GET",
@@ -369,5 +374,72 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(APIResponse.error("Failed to upload file: " + e.getMessage()));
     }
+  }
+
+  @Operation(
+      method = "POST",
+      summary = "Forgot password",
+      description = "Sends otp request reset password to email for user")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "OTP code sent to email",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+          {
+            "message": "OTP code sent to email"
+          }
+          """))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Validation errors or business exceptions",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class),
+                    examples =
+                        @ExampleObject(
+                            value =
+                                """
+          {
+            "code": "VALIDATION_ERROR",
+            "message": "Email is required"
+          }
+          """))),
+        @ApiResponse(responseCode = "500", description = "Internal Server Error")
+      })
+  @PostMapping("/forgot-password")
+  public ResponseEntity<APIResponse<String>> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request) {
+    try {
+      userService.forgotPassword(request);
+      return ResponseEntity.ok(APIResponse.success("OTP code sent to email"));
+    } catch (BusinessException e) {
+      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
+    }
+  }
+
+  @PostMapping("/verify-otp")
+  public ResponseEntity<APIResponse<String>> verifyOtp(
+      @Valid @RequestBody VerifyOtpRequest request) {
+    log.info("Verify OTP request for email: {}", request.getEmail());
+    String response = userService.verifyOtp(request);
+    return ResponseEntity.ok(APIResponse.success(response));
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<APIResponse<String>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request) {
+    log.info("Reset password request for email: {}", request.getEmail());
+    userService.resetPassword(request);
+    return ResponseEntity.status(HttpStatus.NO_CONTENT)
+        .body(APIResponse.success("Password reset successfully"));
   }
 }
