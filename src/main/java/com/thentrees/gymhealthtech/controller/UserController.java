@@ -439,7 +439,7 @@ public class UserController {
       @Valid @RequestBody ResetPasswordRequest request) {
     log.info("Reset password request for email: {}", request.getEmail());
     userService.resetPassword(request);
-    return ResponseEntity.status(HttpStatus.NO_CONTENT)
+    return ResponseEntity.status(HttpStatus.OK)
         .body(APIResponse.success("Password reset successfully"));
   }
 }
