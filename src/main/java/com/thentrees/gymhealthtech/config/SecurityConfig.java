@@ -57,16 +57,11 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/exercises/**")
                     .permitAll()
-                    // user-zone: USER hoặc ADMIN đều được
-                    .requestMatchers("/api/v1/users/**")
-                    .hasAnyRole("USER", "ADMIN")
-                    // admin-zone: chỉ ADMIN
-                    //                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    /**
-                     * * Note: With endpoints required ROLE_ADMIN, we'll put them above the
-                     * anyRequest()
-                     */
-                    // Protected endpoints
+                    .requestMatchers(
+                        "/api/v1/users/forgot-password",
+                        "/api/v1/users/reset-password",
+                        "/api/v1/users/verify-otp")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .authenticationProvider(authenticationProvider());

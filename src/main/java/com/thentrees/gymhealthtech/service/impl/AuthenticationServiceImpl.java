@@ -1,12 +1,8 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.thentrees.gymhealthtech.common.UserStatus;
 import com.thentrees.gymhealthtech.common.VerificationType;
-import com.thentrees.gymhealthtech.dto.request.ChangePasswordRequest;
-import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
-import com.thentrees.gymhealthtech.dto.request.LoginRequest;
-import com.thentrees.gymhealthtech.dto.request.LogoutRequest;
-import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
-import com.thentrees.gymhealthtech.dto.request.ResendVerificationRequest;
+import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.RefreshToken;
@@ -46,6 +42,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   @Value("${app.jwt.expiration}")
   private long jwtExpiration;
 
+  @Value("${app.verification.forgot-password.expiration:30}")
+  private int expiryMinutes;
+
+  private long forgotPasswordTokenExpiryMinutes;
+
   @Transactional
   @Override
   public void verifyEmail(EmailVerificationRequest request) {
@@ -81,6 +82,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // Mark user email as verified
     User user = verificationToken.getUser();
     user.setEmailVerified(true);
+    user.setStatus(UserStatus.ACTIVE);
     userRepository.save(user);
 
     log.info("Email verification successful for user: {}", user.getEmail());

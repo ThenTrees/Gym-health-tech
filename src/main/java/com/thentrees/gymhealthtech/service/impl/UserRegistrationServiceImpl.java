@@ -79,7 +79,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     user.setEmail(request.getEmail());
     user.setPhone(request.getPhone());
     user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-    user.setStatus(UserStatus.ACTIVE);
+    user.setStatus(UserStatus.PENDING_VERIFICATION);
     user.setRole(UserRole.USER);
     user.setEmailVerified(false);
 
