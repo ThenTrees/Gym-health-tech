@@ -237,6 +237,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         .unitLength(profile.getUnitLength())
         .createdAt(profile.getCreatedAt())
         .updatedAt(profile.getUpdatedAt())
+        .profileImageUrl(profile.getAvatarUrl())
         .build();
   }
 }

@@ -35,6 +35,8 @@ public class UserProfileResponse {
 
   @Builder.Default private String unitLength = "cm";
 
+  private String profileImageUrl;
+
   private LocalDateTime createdAt;
 
   private LocalDateTime updatedAt;
