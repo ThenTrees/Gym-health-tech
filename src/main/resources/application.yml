@@ -58,6 +58,12 @@ app:
   verification:
     email:
       expiration: ${EMAIL_VERIFICATION_EXPIRATION:86400000} # 24 hours
+    forgot-password:
+      expiration: ${FORGOT_PASSWORD_EXPIRATION:360000} # 5m
+  rate-limit:
+    otp-requests: 3
+    verify-attempts: 5
+    window-minutes: 15
 
 aws:
   s3:

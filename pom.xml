@@ -34,11 +34,26 @@
     </properties>
     <dependencies>
 
+      <!--Redis-->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-redis</artifactId>
+      </dependency>
+
+      <!-- For java 17+ -->
+      <dependency>
+        <groupId>com.bucket4j</groupId>
+        <artifactId>bucket4j_jdk17-core</artifactId>
+        <version>8.15.0</version>
+      </dependency>
+
+      <!--Needed for Async-->
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-aop</artifactId> <!-- cần cho @Async -->
       </dependency>
 
+      <!--  Retry    -->
       <dependency>
         <groupId>org.springframework.retry</groupId>
         <artifactId>spring-retry</artifactId>

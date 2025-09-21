@@ -1,11 +1,6 @@
 package com.thentrees.gymhealthtech.service;
 
-import com.thentrees.gymhealthtech.dto.request.ChangePasswordRequest;
-import com.thentrees.gymhealthtech.dto.request.EmailVerificationRequest;
-import com.thentrees.gymhealthtech.dto.request.LoginRequest;
-import com.thentrees.gymhealthtech.dto.request.LogoutRequest;
-import com.thentrees.gymhealthtech.dto.request.RefreshTokenRequest;
-import com.thentrees.gymhealthtech.dto.request.ResendVerificationRequest;
+import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 
 public interface AuthenticationService {
