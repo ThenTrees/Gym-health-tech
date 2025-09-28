@@ -33,25 +33,7 @@
       <org.mapstruct.version>1.6.3</org.mapstruct.version>
       <spring-ai.version>1.0.2</spring-ai.version>
     </properties>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-bom</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
-
-    <!-- ADD OpenAI Java client -->
-    <dependency>
-      <groupId>com.theokanning.openai-gpt3-java</groupId>
-      <artifactId>service</artifactId>
-      <version>0.18.2</version>
-    </dependency>
 
     <!-- Vector support với pgvector -->
     <dependency>
