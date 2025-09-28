@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:${POSTGRES_VERSION}
+    image: pgvector/pgvector:pg16 #postgres:${POSTGRES_VERSION}
     container_name: postgres
     restart: unless-stopped
     ports:

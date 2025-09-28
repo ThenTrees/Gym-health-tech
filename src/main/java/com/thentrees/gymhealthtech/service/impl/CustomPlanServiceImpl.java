@@ -78,7 +78,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     plan.setTitle(request.getTitle());
     plan.setSource(PlanSourceType.CUSTOM);
     plan.setCycleWeeks(request.getCycleWeeks());
-    plan.setStatus(PlanStatusType.ACTIVE);
+    plan.setStatus(PlanStatusType.ACTIVE); // New plans are DRAFT by default
 
     plan = planRepository.save(plan);
 

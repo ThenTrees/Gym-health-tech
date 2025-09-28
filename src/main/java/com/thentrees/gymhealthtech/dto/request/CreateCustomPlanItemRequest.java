@@ -39,5 +39,9 @@ public class CreateCustomPlanItemRequest {
     @Min(value = 0, message = "Thời gian nghỉ không được âm")
     @Builder.Default
     private Integer restSeconds = 60;
+
+    private Double weightKg; // Optional, có thể null nếu không áp dụng
+
+    private Integer rpe; // Optional, có thể null nếu không áp dụng
   }
 }
