@@ -14,7 +14,7 @@ public class SessionResponse {
   private LocalDateTime startedAt;
   private LocalDateTime endedAt;
   private SessionStatus status;
-  //  private BigDecimal sessionRpe; // Rate of Perceived Exertion (1-10)
+  private Integer sessionRpe; // Rate of Perceived Exertion (1-10)
   private String notes;
   private LocalDateTime createdAt;
   // Computed fields
