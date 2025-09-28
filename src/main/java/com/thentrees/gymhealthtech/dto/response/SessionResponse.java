@@ -1,8 +1,6 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import com.thentrees.gymhealthtech.common.SessionStatus;
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

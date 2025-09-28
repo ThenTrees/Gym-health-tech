@@ -22,7 +22,7 @@ public class ExerciseMuscleRequest {
   @Pattern(regexp = "PRIMARY|SECONDARY", message = "Role must be 'primary' or 'secondary'")
   private String role;
 
-  public static Muscle toMuscle(ExerciseMuscleRequest exerciseMuscleRequest){
+  public static Muscle toMuscle(ExerciseMuscleRequest exerciseMuscleRequest) {
     Muscle muscle = new Muscle();
     muscle.setCode(exerciseMuscleRequest.getMuscleCode());
     muscle.setName(exerciseMuscleRequest.getMuscleCode().replace("_", " "));

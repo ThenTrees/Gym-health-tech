@@ -1,7 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.common.ExperienceLevel;
-import com.thentrees.gymhealthtech.common.FitnessLevel;
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
 import java.math.BigDecimal;

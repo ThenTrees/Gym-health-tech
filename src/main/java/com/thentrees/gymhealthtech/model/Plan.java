@@ -41,7 +41,5 @@ public class Plan extends BaseEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
-  /**
-   * locked (BOOL): khóa khi đã kích hoạt để tránh sửa trực tiếp (buộc tạo revision mới)
-   */
+  /** locked (BOOL): khóa khi đã kích hoạt để tránh sửa trực tiếp (buộc tạo revision mới) */
 }

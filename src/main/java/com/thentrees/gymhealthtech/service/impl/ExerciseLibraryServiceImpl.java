@@ -139,20 +139,19 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       ex.setInstructions(dto.getInstructions().toString());
       ex.setSafetyNotes(dto.getSafetyNotes());
       ex.setThumbnailUrl(dto.getThumbnailUrl());
-      ex.setPrimaryMuscle(dto.getMuscles().stream()
-        .filter(
-        muscle -> muscle.getRole().equals("PRIMARY")).findFirst()
-        .map(
-          ExerciseMuscleRequest::toMuscle
-          ).orElse(null)
-      );
+      ex.setPrimaryMuscle(
+          dto.getMuscles().stream()
+              .filter(muscle -> muscle.getRole().equals("PRIMARY"))
+              .findFirst()
+              .map(ExerciseMuscleRequest::toMuscle)
+              .orElse(null));
       Exercise savedExercise = exerciseRepository.save(ex);
       // Add muscles
       if (dto.getMuscles() != null && !dto.getMuscles().isEmpty()) {
         saveMusclesForExercise(savedExercise, dto.getMuscles());
       }
 
-      if(dto.getEquipmentTypeCode() != null) {
+      if (dto.getEquipmentTypeCode() != null) {
         saveEquipmentForExercise(savedExercise, dto.getEquipmentTypeCode());
       }
       log.info("imported: {}", imported);
@@ -167,17 +166,17 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     return muscles.stream().map(muscleMapper::mapToResponse).toList();
   }
 
-  private Integer difficultyLevelForExercise(String equipmentCode){
+  private Integer difficultyLevelForExercise(String equipmentCode) {
 
     switch (equipmentCode) {
       case "body_weight":
-      case  "assisted":
+      case "assisted":
       case "band":
       case "resistance_band":
         return 1;
 
       case "dumbbell":
-      case  "kettlebell":
+      case "kettlebell":
       case "medicine_ball":
       case "stability_ball":
       case "bosu_ball":
@@ -188,7 +187,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         return 2;
 
       case "barbell":
-      case  "ez_barbell":
+      case "ez_barbell":
       case "cable":
       case "rope":
       case "hammer":
@@ -198,7 +197,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         return 3;
 
       case "olympic_barbell":
-      case  "trap_bar":
+      case "trap_bar":
       case "smith_machine":
       case "leverage_machine":
       case "sled_machine":
@@ -341,19 +340,18 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     }
   }
   // Private helper methods
-  private void saveEquipmentForExercise(
-    Exercise exercise, String exerciseEquipment) {
+  private void saveEquipmentForExercise(Exercise exercise, String exerciseEquipment) {
 
     Equipment equipment =
-      equipmentRepository.findById(exerciseEquipment).orElseThrow(
-        ()-> new ResourceNotFoundException("Equipment not found")
-      );
+        equipmentRepository
+            .findById(exerciseEquipment)
+            .orElseThrow(() -> new ResourceNotFoundException("Equipment not found"));
 
-      ExerciseEquipment exerciseEquipmentEntity = new ExerciseEquipment();
+    ExerciseEquipment exerciseEquipmentEntity = new ExerciseEquipment();
 
-      ExerciseEquipmentId id = new ExerciseEquipmentId();
-      id.setExerciseId(exercise.getId());
-      id.setEquipmentTypeCode(equipment.getCode());
+    ExerciseEquipmentId id = new ExerciseEquipmentId();
+    id.setExerciseId(exercise.getId());
+    id.setEquipmentTypeCode(equipment.getCode());
 
     exerciseEquipmentEntity.setId(id);
     exerciseEquipmentEntity.setExercise(exercise);
