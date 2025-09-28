@@ -1,6 +1,8 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import com.thentrees.gymhealthtech.common.SessionStatus;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +16,7 @@ public class SessionResponse {
   private LocalDateTime startedAt;
   private LocalDateTime endedAt;
   private SessionStatus status;
-  //  private BigDecimal sessionRpe; // Rate of Perceived Exertion (1-10)
+  private Integer sessionRpe; // Rate of Perceived Exertion (1-10)
   private String notes;
   private LocalDateTime createdAt;
   // Computed fields

@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import com.thentrees.gymhealthtech.model.Muscle;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -20,4 +21,11 @@ public class ExerciseMuscleRequest {
   @NotBlank(message = "Role is required")
   @Pattern(regexp = "PRIMARY|SECONDARY", message = "Role must be 'primary' or 'secondary'")
   private String role;
+
+  public static Muscle toMuscle(ExerciseMuscleRequest exerciseMuscleRequest){
+    Muscle muscle = new Muscle();
+    muscle.setCode(exerciseMuscleRequest.getMuscleCode());
+    muscle.setName(exerciseMuscleRequest.getMuscleCode().replace("_", " "));
+    return muscle;
+  }
 }

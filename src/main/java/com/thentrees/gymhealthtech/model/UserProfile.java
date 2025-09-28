@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.thentrees.gymhealthtech.common.ExperienceLevel;
+import com.thentrees.gymhealthtech.common.FitnessLevel;
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -56,6 +58,10 @@ public class UserProfile extends BaseEntity {
   @Column(name = "unit_length", nullable = false, length = 8)
   @Builder.Default
   private String unitLength = "cm";
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "experience_level")
+  private ExperienceLevel experienceLevel;
 
   @Override
   public boolean equals(Object o) {

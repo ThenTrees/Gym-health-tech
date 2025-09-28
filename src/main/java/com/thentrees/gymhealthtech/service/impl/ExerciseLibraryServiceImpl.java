@@ -41,6 +41,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final ExerciseCategoryRepository exerciseCategoryRepository;
   private final ObjectMapper objectMapper;
   private final MuscleMapper muscleMapper;
+  private final ExerciseEquipmentRepository exerciseEquipmentRepository;
 
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
@@ -132,15 +133,27 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
       ExerciseCategory exerciseCategory = getOrCreateCategory(dto.getExerciseCategory());
 
+      ex.setLevel(difficultyLevelForExercise(dto.getEquipmentTypeCode()));
       ex.setExerciseCategory(exerciseCategory);
       ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType()));
       ex.setInstructions(dto.getInstructions().toString());
       ex.setSafetyNotes(dto.getSafetyNotes());
       ex.setThumbnailUrl(dto.getThumbnailUrl());
+      ex.setPrimaryMuscle(dto.getMuscles().stream()
+        .filter(
+        muscle -> muscle.getRole().equals("PRIMARY")).findFirst()
+        .map(
+          ExerciseMuscleRequest::toMuscle
+          ).orElse(null)
+      );
       Exercise savedExercise = exerciseRepository.save(ex);
       // Add muscles
       if (dto.getMuscles() != null && !dto.getMuscles().isEmpty()) {
         saveMusclesForExercise(savedExercise, dto.getMuscles());
+      }
+
+      if(dto.getEquipmentTypeCode() != null) {
+        saveEquipmentForExercise(savedExercise, dto.getEquipmentTypeCode());
       }
       log.info("imported: {}", imported);
       imported++;
@@ -152,6 +165,49 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   public List<MuscleResponse> getMuscles() {
     List<Muscle> muscles = muscleRepository.findAll();
     return muscles.stream().map(muscleMapper::mapToResponse).toList();
+  }
+
+  private Integer difficultyLevelForExercise(String equipmentCode){
+
+    switch (equipmentCode) {
+      case "body_weight":
+      case  "assisted":
+      case "band":
+      case "resistance_band":
+        return 1;
+
+      case "dumbbell":
+      case  "kettlebell":
+      case "medicine_ball":
+      case "stability_ball":
+      case "bosu_ball":
+      case "stationary_bike":
+      case "elliptical_machine":
+      case "roller":
+      case "wheel_roller":
+        return 2;
+
+      case "barbell":
+      case  "ez_barbell":
+      case "cable":
+      case "rope":
+      case "hammer":
+      case "stepmill_machine":
+      case "skierg_machine":
+      case "upper_body_ergometer":
+        return 3;
+
+      case "olympic_barbell":
+      case  "trap_bar":
+      case "smith_machine":
+      case "leverage_machine":
+      case "sled_machine":
+      case "tire":
+      case "weighted":
+        return 4;
+      default:
+        return 2;
+    }
   }
 
   private ExerciseListResponse mapToListResponse(Exercise exercise) {
@@ -283,6 +339,27 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
       exerciseMuscleRepository.save(exerciseMuscle);
     }
+  }
+  // Private helper methods
+  private void saveEquipmentForExercise(
+    Exercise exercise, String exerciseEquipment) {
+
+    Equipment equipment =
+      equipmentRepository.findById(exerciseEquipment).orElseThrow(
+        ()-> new ResourceNotFoundException("Equipment not found")
+      );
+
+      ExerciseEquipment exerciseEquipmentEntity = new ExerciseEquipment();
+
+      ExerciseEquipmentId id = new ExerciseEquipmentId();
+      id.setExerciseId(exercise.getId());
+      id.setEquipmentTypeCode(equipment.getCode());
+
+    exerciseEquipmentEntity.setId(id);
+    exerciseEquipmentEntity.setExercise(exercise);
+    exerciseEquipmentEntity.setEquipment(equipment);
+
+    exerciseEquipmentRepository.save(exerciseEquipmentEntity);
   }
 
   private ExerciseCategory getOrCreateCategory(String categoryCode) {

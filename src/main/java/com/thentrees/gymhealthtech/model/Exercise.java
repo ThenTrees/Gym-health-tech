@@ -18,9 +18,8 @@ public class Exercise extends BaseEntity {
   @Column(name = "name", nullable = false, length = 120)
   private String name;
 
-  //  @Enumerated(EnumType.STRING)
-  //  @Column(name = "level")
-  //  private ExerciseLevel level;
+  @Column(name = "difficulty_level")
+  private Integer level;
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "primary_muscle")

@@ -33,8 +33,15 @@ public class Plan extends BaseEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
-  private PlanStatusType status = PlanStatusType.ACTIVE;
+  private PlanStatusType status = PlanStatusType.DRAFT;
 
   @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   private List<PlanDay> planDays;
+
+  @Column(name = "description", columnDefinition = "TEXT")
+  private String description;
+
+  /**
+   * locked (BOOL): khóa khi đã kích hoạt để tránh sửa trực tiếp (buộc tạo revision mới)
+   */
 }
