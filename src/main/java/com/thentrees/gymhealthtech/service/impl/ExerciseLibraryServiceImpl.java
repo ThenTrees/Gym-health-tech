@@ -12,6 +12,7 @@ import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.ExerciseSpecification;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
+import com.thentrees.gymhealthtech.service.RedisService;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,9 +44,30 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final ObjectMapper objectMapper;
   private final MuscleMapper muscleMapper;
   private final ExerciseEquipmentRepository exerciseEquipmentRepository;
+  private final RedisService redisService;
 
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
+
+    // first step: check data in cache
+    // create cache key based on request dto
+    String cacheKey = buildCacheKey(request);
+
+    // 2. Kiểm tra trong Redis
+    Object cached = redisService.get(cacheKey);
+
+    PagedResponse<ExerciseListResponse> result = null;
+    if (cached != null) {
+      result =
+          objectMapper.convertValue(
+              cached, new TypeReference<PagedResponse<ExerciseListResponse>>() {});
+    }
+
+    if (result != null) {
+      log.info("Cached exercise list response");
+      return result;
+    }
+
     Specification<Exercise> spec = buildSearchSpecification(request);
 
     // Create pageable
@@ -57,7 +80,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
     Page<Exercise> exercises = exerciseRepository.findAll(spec, pageable);
     Page<ExerciseListResponse> exerciseListResponsePage = exercises.map(this::mapToListResponse);
-    return PagedResponse.of(exerciseListResponsePage);
+    PagedResponse<ExerciseListResponse> response = PagedResponse.of(exerciseListResponsePage);
+
+    // 4. Lưu vào Redis với TTL
+    redisService.set(cacheKey, response);
+
+    return response;
   }
 
   @Override
@@ -390,5 +418,18 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
   private String generateSlug(String name) {
     return name.trim().toLowerCase().replace(" ", "-");
+  }
+
+  private String buildCacheKey(ExerciseSearchRequest request) {
+    try {
+      // Convert request to JSON string
+      ObjectMapper mapper = new ObjectMapper();
+      String json = mapper.writeValueAsString(request);
+
+      // Hash để key ngắn gọn
+      return "exercise:search:" + DigestUtils.md5DigestAsHex(json.getBytes());
+    } catch (Exception e) {
+      throw new RuntimeException("Không thể tạo cache key", e);
+    }
   }
 }
