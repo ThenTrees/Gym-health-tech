@@ -26,6 +26,17 @@ public class RedisServiceImpl implements RedisService {
   }
 
   @Override
+  public void set(String key, Object value) {
+    try {
+      redisTemplate.opsForValue().set(key, value);
+      log.info("Stored key: {}", key);
+    } catch (Exception e) {
+      log.error("Error storing key: {} in Redis", key, e);
+      throw new RuntimeException("Lỗi lưu trữ dữ liệu", e);
+    }
+  }
+
+  @Override
   public Object get(String key) {
     try {
       return redisTemplate.opsForValue().get(key);
