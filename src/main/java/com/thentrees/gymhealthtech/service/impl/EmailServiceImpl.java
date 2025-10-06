@@ -35,7 +35,7 @@ public class EmailServiceImpl implements EmailService {
       include = {MailSendException.class, MessagingException.class})
   public void sendEmailVerification(String to, String fullName, String token) {
     try {
-      String verificationUrl = frontendUrl + "/verify-email?token=" + token;
+      String verificationUrl = frontendUrl + "/api/v1/auth/verify-email?token=" + token;
 
       SimpleMailMessage message = new SimpleMailMessage();
       message.setFrom(fromEmail);
