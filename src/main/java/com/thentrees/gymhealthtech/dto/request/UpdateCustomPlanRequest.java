@@ -13,5 +13,5 @@ public class UpdateCustomPlanRequest {
 
   private String notes;
 
-  private String status; // ACTIVE, PAUSED, COMPLETED
+  private String status; // ACTIVE, PAUSED, COMPLETED, PAUSE
 }

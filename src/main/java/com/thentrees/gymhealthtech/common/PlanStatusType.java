@@ -4,5 +4,6 @@ public enum PlanStatusType {
   DRAFT,
   ACTIVE,
   COMPLETED,
-  ARCHIVED
+  ARCHIVED,
+  PAUSE
 }

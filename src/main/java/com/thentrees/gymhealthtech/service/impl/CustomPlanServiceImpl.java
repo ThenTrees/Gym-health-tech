@@ -78,7 +78,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     plan.setTitle(request.getTitle());
     plan.setSource(PlanSourceType.CUSTOM);
     plan.setCycleWeeks(request.getCycleWeeks());
-    plan.setStatus(PlanStatusType.ACTIVE); // New plans are DRAFT by default
+    plan.setStatus(PlanStatusType.DRAFT); // New plans are DRAFT by default
 
     plan = planRepository.save(plan);
 
@@ -168,6 +168,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     }
 
     if (request.getStatus() != null) {
+      if (request.getStatus().equalsIgnoreCase(PlanStatusType.ACTIVE.toString())) {
+        List<Plan> listPlan = planRepository.findByUserId(userId);
+        for (Plan planItem : listPlan) {
+          planItem.setStatus(PlanStatusType.PAUSE);
+          planRepository.save(planItem);
+        }
+      }
       plan.setStatus(PlanStatusType.valueOf(request.getStatus()));
     }
 
