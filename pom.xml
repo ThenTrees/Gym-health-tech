@@ -35,6 +35,13 @@
     </properties>
   <dependencies>
 
+    <!-- Hỗ trợ định dạng Excel mới (.xlsx) -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>5.2.5</version>
+    </dependency>
+
     <!-- Vector support với pgvector -->
     <dependency>
       <groupId>com.pgvector</groupId>
