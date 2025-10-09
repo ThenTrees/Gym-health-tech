@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import com.thentrees.gymhealthtech.common.FitnessLevel;
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -30,4 +31,6 @@ public class UpdateProfileRequest {
 
   @Size(max = 8)
   private String unitLength;
+
+  private FitnessLevel fitnessLevel;
 }

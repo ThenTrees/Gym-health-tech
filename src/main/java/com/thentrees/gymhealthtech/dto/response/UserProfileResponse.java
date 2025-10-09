@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.response;
 
+import com.thentrees.gymhealthtech.common.FitnessLevel;
 import com.thentrees.gymhealthtech.common.GenderType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,6 +35,8 @@ public class UserProfileResponse {
   @Builder.Default private String unitWeight = "kg";
 
   @Builder.Default private String unitLength = "cm";
+
+  private FitnessLevel fitnessLevel;
 
   private String profileImageUrl;
 

@@ -165,8 +165,12 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     // Recalculate BMI if height or weight changed
-    if (profile.getHeightCm() != null && profile.getWeightKg() != null) {
-      profile.setBmi(calculateBMI(profile.getHeightCm(), profile.getWeightKg()));
+    if (request.getHeightCm() != null && request.getWeightKg() != null) {
+      profile.setBmi(calculateBMI(request.getHeightCm(), request.getWeightKg()));
+    }
+
+    if (request.getFitnessLevel() != null) {
+      profile.setFitnessLevel(request.getFitnessLevel());
     }
 
     UserProfile savedProfile = userProfileRepository.save(profile);
@@ -238,6 +242,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         .createdAt(profile.getCreatedAt())
         .updatedAt(profile.getUpdatedAt())
         .profileImageUrl(profile.getAvatarUrl())
+        .fitnessLevel(profile.getFitnessLevel())
         .build();
   }
 }
