@@ -97,6 +97,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     profile.setHealthNotes(request.getHealthNotes());
     profile.setUnitWeight(request.getUnitWeight());
     profile.setUnitLength(request.getUnitLength());
+    profile.setFitnessLevel(request.getFitnessLevel());
 
     // Calculate BMI if height and weight are provided
     if (request.getHeightCm() != null && request.getWeightKg() != null) {

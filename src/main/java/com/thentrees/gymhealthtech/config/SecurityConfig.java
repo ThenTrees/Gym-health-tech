@@ -62,6 +62,8 @@ public class SecurityConfig {
                         "/api/v1/users/reset-password",
                         "/api/v1/users/verify-otp")
                     .permitAll()
+                    .requestMatchers("/api/v1/admin/nutrition/foods/import")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .authenticationProvider(authenticationProvider());
