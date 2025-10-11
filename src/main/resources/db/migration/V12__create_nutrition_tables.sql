@@ -53,16 +53,17 @@ CREATE TABLE meal_times (
                           display_order INT NOT NULL,
                           icon VARCHAR(50),
                           default_calorie_percentage NUMERIC(5,2) NOT NULL DEFAULT 25.00,
-                          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                          version INT DEFAULT 0
 );
 
 INSERT INTO meal_times (code, name, name_vi, display_order, icon, default_calorie_percentage) VALUES
-                                                                                                ('breakfast', 'Breakfast', 'Sáng', 1, '🌅', 25.00),
-                                                                                                ('snack_morning', 'Morning Snack', 'Phụ Sáng', 2, '☕', 10.00),
-                                                                                                ('lunch', 'Lunch', 'Trưa', 3, '🍽️', 35.00),
-                                                                                                ('snack_afternoon', 'Afternoon Snack', 'Phụ Chiều', 4, '🥤', 10.00),
-                                                                                                ('dinner', 'Dinner', 'Tối', 5, '🌙', 25.00),
-                                                                                                ('snack_evening', 'Evening Snack', 'Phụ Tối', 6, '🍪', 5.00);
+                                                                                                ('breakfast', 'Breakfast', 'Sáng', 1, '🌅', 20.00),
+                                                                                                ('pre_workout', 'Pre Workout', 'Trước Khi Tập', 2, '☕', 10.00),
+                                                                                                ('lunch', 'Lunch', 'Trưa', 3, '🍽️', 30.00),
+                                                                                                ('post_workout', 'Post Workout', 'Sau Khi Tập', 4, '🥤', 15.00),
+                                                                                                ('dinner', 'Dinner', 'Tối', 5, '🌙', 25.00);
+
 
 -- 4. Enhance NUTRITION_TARGETS
 ALTER TABLE nutrition_targets
@@ -97,7 +98,7 @@ CREATE TABLE meal_plans (
                           status VARCHAR(32) DEFAULT 'generated',
                           created_at TIMESTAMP DEFAULT NOW(),
                           updated_at TIMESTAMP DEFAULT NOW(),
-
+                          version int DEFAULT 0,
                           UNIQUE (user_id, plan_date)
 );
 
@@ -121,7 +122,8 @@ CREATE TABLE meal_plan_items (
                                completed_at TIMESTAMP,
                                display_order INT DEFAULT 0,
 
-                               created_at TIMESTAMP DEFAULT NOW()
+                               created_at TIMESTAMP DEFAULT NOW(),
+                               version int DEFAULT 0
 );
 
 CREATE INDEX idx_meal_plan_items_plan ON meal_plan_items(meal_plan_id);

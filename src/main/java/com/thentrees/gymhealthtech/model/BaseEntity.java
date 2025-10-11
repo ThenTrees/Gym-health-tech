@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
+
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,7 +34,7 @@ public abstract class BaseEntity {
   private LocalDateTime createdAt;
 
   @UpdateTimestamp
-  @Column(name = "updated_at", nullable = false)
+  @Column(name = "updated_at", nullable = true)
   private LocalDateTime updatedAt;
 
   @Column(name = "deleted_at")
