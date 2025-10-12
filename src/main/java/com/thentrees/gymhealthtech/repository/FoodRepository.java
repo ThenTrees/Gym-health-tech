@@ -3,6 +3,9 @@ package com.thentrees.gymhealthtech.repository;
 import com.thentrees.gymhealthtech.model.Food;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,4 +18,7 @@ public interface FoodRepository extends JpaRepository<Food, UUID> {
   List<Food> findByMealTimeContaining(@Param("mealTime") String mealTime);
 
   List<Food> findByCategoryAndIsActiveTrue(String category);
+
+  @Query("SELECT f FROM Food f WHERE (LOWER(f.foodNameVi) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND f.isActive = true")
+  Page<Food> findAllByFoodNameVi(@Param("keyword") String keyword, Pageable pageable);
 }
