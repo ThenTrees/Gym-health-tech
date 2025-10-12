@@ -1,7 +1,9 @@
 package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.dto.request.FoodImportRequest;
+import com.thentrees.gymhealthtech.dto.response.FoodResponse;
 import com.thentrees.gymhealthtech.dto.response.ImportFoodResponse;
+import com.thentrees.gymhealthtech.dto.response.PagedResponse;
 import com.thentrees.gymhealthtech.model.Food;
 import com.thentrees.gymhealthtech.repository.FoodRepository;
 import com.thentrees.gymhealthtech.service.FoodService;
@@ -17,6 +19,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -81,6 +85,50 @@ public class FoodServiceImpl implements FoodService {
         .successCount(successCount)
         .failCount(failCount)
         .errors(errors)
+        .build();
+  }
+
+  @Override
+  public PagedResponse<FoodResponse> getAllFoods(String keyword, Pageable pageable) {
+
+    if (keyword == null || keyword.isEmpty()) {
+      Page<Food> foodsPage = foodRepository.findAll(pageable);
+      Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
+      return PagedResponse.of(
+          foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+    }
+
+    Page<Food> foodsPage = foodRepository.findAllByFoodNameVi(keyword, pageable);
+
+    Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
+    return PagedResponse.of(
+        foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+  }
+
+  private FoodResponse mapToResponse(Food food) {
+    return FoodResponse.builder()
+        .id(food.getId())
+        .foodName(food.getFoodName())
+        .foodNameVi(food.getFoodNameVi())
+        .description(food.getDescription())
+        .servingWeightGrams(food.getServingWeightGrams())
+        .calories(food.getCalories())
+        .protein(food.getProtein())
+        .carbs(food.getCarbs())
+        .fat(food.getFat())
+        .fiber(food.getFiber())
+        .vitaminA(food.getVitaminA())
+        .vitaminC(food.getVitaminC())
+        .vitaminD(food.getVitaminD())
+        .category(food.getCategory())
+        .mealTime(food.getMealTime())
+        .imageUrl(food.getImageUrl())
+        .tags(food.getTags())
+        .detailedBenefits(food.getDetailedBenefits())
+        .commonCombinations(food.getCommonCombinations())
+        .contraindications(food.getContraindications())
+        .alternativeFoods(food.getAlternativeFoods())
+        .isActive(food.getIsActive())
         .build();
   }
 
@@ -156,19 +204,6 @@ public class FoodServiceImpl implements FoodService {
 
     return food;
   }
-
-  //  private String mapMealTime(String mealTime) {
-  //    if (mealTime == null) return "breakfast";
-  //
-  //    // Map Vietnamese to English codes
-  //    return switch (mealTime.toLowerCase()) {
-  //      case "bữa sáng" -> "breakfast";
-  //      case "bữa trưa" -> "lunch";
-  //      case "bữa tối" -> "dinner";
-  //      case "bữa phụ" -> "snack";
-  //      default -> "snack";
-  //    };
-  //  }
 
   private String buildEnhancedDescription(FoodImportRequest dto) {
     StringBuilder sb = new StringBuilder();
