@@ -1,15 +1,11 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
-import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.FoodResponse;
 import com.thentrees.gymhealthtech.dto.response.ImportFoodResponse;
 import com.thentrees.gymhealthtech.dto.response.PagedResponse;
 import com.thentrees.gymhealthtech.service.FoodService;
 import java.io.IOException;
-import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -73,18 +69,13 @@ public class FoodController {
 
   @GetMapping("/foods")
   public ResponseEntity<APIResponse<PagedResponse<FoodResponse>>> getAllFoods(
-    @RequestParam(required = false) String keyword,
-    @RequestParam(defaultValue = "0") Integer page,
-    @RequestParam(defaultValue = "20") Integer size,
-    @RequestParam(defaultValue = "foodNameVi") String sortBy,
-    @RequestParam(defaultValue = "ASC") String sortDirection
-  ) {
+      @RequestParam(required = false) String keyword,
+      @RequestParam(defaultValue = "0") Integer page,
+      @RequestParam(defaultValue = "20") Integer size,
+      @RequestParam(defaultValue = "foodNameVi") String sortBy,
+      @RequestParam(defaultValue = "ASC") String sortDirection) {
     Pageable pageable =
-      PageRequest.of(
-        page,
-        size,
-        Sort.Direction.fromString(sortDirection),
-        sortBy);
+        PageRequest.of(page, size, Sort.Direction.fromString(sortDirection), sortBy);
 
     PagedResponse<FoodResponse> foods = foodService.getAllFoods(keyword, pageable);
     return ResponseEntity.ok(APIResponse.success(foods));

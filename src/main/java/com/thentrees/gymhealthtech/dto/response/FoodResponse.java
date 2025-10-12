@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
+import lombok.Data;
 
 @Data
 @Builder

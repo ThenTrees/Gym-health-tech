@@ -94,13 +94,15 @@ public class FoodServiceImpl implements FoodService {
     if (keyword == null || keyword.isEmpty()) {
       Page<Food> foodsPage = foodRepository.findAll(pageable);
       Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
-      return PagedResponse.of(foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+      return PagedResponse.of(
+          foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
     }
 
     Page<Food> foodsPage = foodRepository.findAllByFoodNameVi(keyword, pageable);
 
     Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
-    return PagedResponse.of(foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+    return PagedResponse.of(
+        foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
   }
 
   private FoodResponse mapToResponse(Food food) {
