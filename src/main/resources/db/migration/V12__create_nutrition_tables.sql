@@ -58,11 +58,9 @@ CREATE TABLE meal_times (
 );
 
 INSERT INTO meal_times (code, name, name_vi, display_order, icon, default_calorie_percentage) VALUES
-                                                                                                ('breakfast', 'Breakfast', 'Sáng', 1, '🌅', 20.00),
-                                                                                                ('pre_workout', 'Pre Workout', 'Trước Khi Tập', 2, '☕', 10.00),
-                                                                                                ('lunch', 'Lunch', 'Trưa', 3, '🍽️', 30.00),
-                                                                                                ('post_workout', 'Post Workout', 'Sau Khi Tập', 4, '🥤', 15.00),
-                                                                                                ('dinner', 'Dinner', 'Tối', 5, '🌙', 25.00);
+                                                                                                ('breakfast', 'Breakfast', 'Sáng', 1, '🌅', 30.00),
+                                                                                                ('lunch', 'Lunch', 'Trưa', 3, '🍽️', 40.00),
+                                                                                                ('dinner', 'Dinner', 'Tối', 5, '🌙', 30.00);
 
 
 -- 4. Enhance NUTRITION_TARGETS
