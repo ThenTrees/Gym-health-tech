@@ -204,4 +204,18 @@ public class GoalController {
           APIResponse.error("Error retrieving active goal for user: {}", userId));
     }
   }
+
+  @PutMapping("/{goalId}")
+  public ResponseEntity<APIResponse<GoalResponse>> updateGoalStatus(
+      @PathVariable String userId,
+      @PathVariable String goalId,
+      @RequestBody CreateGoalRequest request) {
+    try {
+      GoalResponse updatedGoal = goalService.updateGoal(userId, goalId, request);
+      return ResponseEntity.ok(APIResponse.success(updatedGoal));
+    } catch (Exception e) {
+      log.error("Error updating goal status for user: {}, goal: {}", userId, goalId, e);
+      return ResponseEntity.ok(APIResponse.error("Error updating goal for user: {}", userId));
+    }
+  }
 }

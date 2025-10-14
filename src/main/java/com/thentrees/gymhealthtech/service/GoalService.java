@@ -11,4 +11,6 @@ public interface GoalService {
   List<GoalResponse> getUserGoals(String userId, boolean includeCompleted);
 
   GoalResponse getActiveGoal(String userId);
+
+  GoalResponse updateGoal(String userId, String goalId, CreateGoalRequest request);
 }

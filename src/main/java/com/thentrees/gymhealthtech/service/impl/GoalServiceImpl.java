@@ -9,6 +9,7 @@ import com.thentrees.gymhealthtech.dto.response.GoalResponse;
 import com.thentrees.gymhealthtech.event.GoalCreatedEvent;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.DataProcessingException;
+import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.Goal;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.UserProfile;
@@ -94,6 +95,42 @@ public class GoalServiceImpl implements GoalService {
             .findActiveGoalByUserId(UUID.fromString(userId), GoalStatus.ACTIVE)
             .orElse(null);
     return GoalResponse.from(activeGoal);
+  }
+
+  @Override
+  public GoalResponse updateGoal(String userId, String goalId, CreateGoalRequest request) {
+    boolean flag = false;
+    // For simplicity, only allowing to end a goal early
+    log.info("Updating goal: {} for user: {}", goalId, userId);
+    Goal goalExist =
+        goalRepository
+            .findById(UUID.fromString(goalId))
+            .orElseThrow(() -> new ResourceNotFoundException("Goal not found with id: " + goalId));
+
+    if (!goalExist.getObjective().equals(request.getObjective())) {
+      goalExist.setObjective(request.getObjective());
+      flag = true;
+    }
+
+    if (goalExist.getSessionsPerWeek() != request.getSessionsPerWeek()) {
+      goalExist.setSessionsPerWeek(request.getSessionsPerWeek());
+      flag = true;
+    }
+
+    if (goalExist.getSessionMinutes() != request.getSessionMinutes()) {
+      goalExist.setSessionMinutes(request.getSessionMinutes());
+      flag = true;
+    }
+    if (flag) {
+      UserProfile profile = userProfileService.getUserProfileById(UUID.fromString(userId));
+      goalExist.setEstimatedCaloriesPerSession(calculateEstimatedCalories(request, profile));
+      goalExist.setDifficultyAssessment(assessDifficulty(request, profile));
+      goalExist.setRecommendedEquipment(recommendEquipment(request.getObjective()));
+      goalExist.setHealthSafetyNotes(generateSafetyNotes(request, profile));
+      goalRepository.save(goalExist);
+    }
+
+    return GoalResponse.from(goalExist);
   }
 
   /**
