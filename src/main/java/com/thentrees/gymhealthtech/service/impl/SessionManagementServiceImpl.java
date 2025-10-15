@@ -19,6 +19,7 @@ import com.thentrees.gymhealthtech.repository.PlanItemRepository;
 import com.thentrees.gymhealthtech.repository.SessionRepository;
 import com.thentrees.gymhealthtech.repository.SessionSetRepository;
 import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
+import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
 import java.time.LocalDateTime;
@@ -47,6 +48,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionRepository sessionRepository;
   private final PlanItemRepository planItemRepository;
   private final SessionSetRepository sessionSetRepository;
+  private final CustomPlanService customPlanService;
   private final ObjectMapper objectMapper;
 
   public SessionResponse getSessionDetails(UUID userId, UUID sessionId) {
@@ -181,7 +183,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     // Update session
     session.setEndedAt(request.getEndTime() != null ? request.getEndTime() : LocalDateTime.now());
     session.setStatus(SessionStatus.COMPLETED);
-    //    session.setSessionRpe(request.getSessionRpe());
+    session.setSessionRpe(request.getSessionRpe());
 
     // Combine notes
     String completedNotes = session.getNotes() != null ? session.getNotes() : "";
@@ -193,10 +195,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       completedNotes +=
           (completedNotes.isEmpty() ? "" : "\n") + "Feeling: " + request.getWorkoutFeeling();
     }
-    //    if (request.getInjuryOccurred() && request.getInjuryNotes() != null) {
-    //      completedNotes += (completedNotes.isEmpty() ? "" : "\n") + "⚠️ Injury: " +
-    // request.getInjuryNotes();
-    //    }
 
     session.setNotes(completedNotes);
     session = sessionRepository.save(session);
@@ -205,6 +203,12 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     updatePlanProgression(session);
 
     log.info("Successfully completed session: {}", sessionId);
+
+    // create new plan day for next week
+    // find current plan day and duplicate it for next week
+    PlanDay currentPlanDay = session.getPlanDay();
+    customPlanService.duplicatePlanDayForNextWeek(currentPlanDay);
+
     return convertSessionToResponse(session, true);
   }
 

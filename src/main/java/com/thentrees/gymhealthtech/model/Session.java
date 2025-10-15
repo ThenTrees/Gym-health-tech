@@ -34,6 +34,9 @@ public class Session extends BaseEntity {
   @Column(name = "notes", columnDefinition = "TEXT")
   private String notes;
 
+  @Column(name = "session_rpe")
+  private Integer sessionRpe; // Rate of Perceived Exertion (1-10)
+
   @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   private List<SessionSet> sessionSets;
 }

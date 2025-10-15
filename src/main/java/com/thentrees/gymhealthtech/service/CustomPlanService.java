@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.model.PlanDay;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -39,4 +40,6 @@ public interface CustomPlanService {
 
   PagedResponse<PlanSummaryResponse> getAllPlansForUser(
       UUID userId, PlanSearchRequest searchCriteria, Pageable pageable);
+
+  PlanDay duplicatePlanDayForNextWeek(PlanDay planDay);
 }
