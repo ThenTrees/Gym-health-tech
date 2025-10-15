@@ -1,11 +1,8 @@
 package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.service.RedisService;
-
-import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,32 +67,29 @@ public class RedisServiceImpl implements RedisService {
   @Override
   public void deletePattern(String pattern) {
     try {
-      ScanOptions options = ScanOptions.scanOptions()
-        .match(pattern)
-        .count(100)
-        .build();
+      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
 
       AtomicInteger deletedCount = new AtomicInteger();
 
-      redisTemplate.execute((RedisCallback<Object>) connection -> {
-        try (Cursor<byte[]> cursor = connection.scan(options)) {
-          while (cursor.hasNext()) {
-            byte[] keyBytes = cursor.next();
-            String key = redisTemplate.getStringSerializer().deserialize(keyBytes);
-            if (key != null) {
-              redisTemplate.delete(key);
-              deletedCount.getAndIncrement();
-            }
-          }
-        }
-      });
+      redisTemplate.execute(
+          (RedisCallback<Object>)
+              connection -> {
+                try (Cursor<byte[]> cursor = connection.scan(options)) {
+                  while (cursor.hasNext()) {
+                    byte[] keyBytes = cursor.next();
+                    String key = redisTemplate.getStringSerializer().deserialize(keyBytes);
+                    if (key != null) {
+                      redisTemplate.delete(key);
+                      deletedCount.getAndIncrement();
+                    }
+                  }
+                }
+              });
 
       log.info("Deleted {} keys matching pattern: {}", deletedCount, pattern);
 
     } catch (Exception e) {
       log.error("Error deleting keys with pattern: {} from Redis", pattern, e);
-
     }
   }
-
 }
