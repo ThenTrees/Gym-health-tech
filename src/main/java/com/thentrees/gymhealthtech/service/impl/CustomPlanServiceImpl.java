@@ -8,11 +8,13 @@ import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +74,8 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       throw new ValidationException("Some exercises not found");
     }
 
+    LocalDate currentDate = LocalDate.now();
+
     // Create the plan
     Plan plan = new Plan();
     plan.setUser(user);
@@ -79,7 +83,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     plan.setSource(PlanSourceType.CUSTOM);
     plan.setCycleWeeks(request.getCycleWeeks());
     plan.setStatus(PlanStatusType.DRAFT); // New plans are DRAFT by default
-
+    plan.setEndDate(currentDate.plusWeeks(request.getCycleWeeks()));
     plan = planRepository.save(plan);
 
     // Create plan days
@@ -462,6 +466,46 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
     log.info(
         "Successfully added {} items to plan day: {}", request.getPlanItems().size(), planDayId);
+  }
+
+  @Override
+  @Transactional
+  public PlanDay duplicatePlanDayForNextWeek(PlanDay planDay) {
+    if (planDay != null) {
+
+      LocalDate nextScheduledDate = planDay.getScheduledDate().plusWeeks(1);
+      if (nextScheduledDate.isAfter(planDay.getPlan().getEndDate())) {
+        throw new BusinessException("Plan day end date");
+      }
+
+      PlanDay newPlanDay = new PlanDay();
+      newPlanDay.setPlan(planDay.getPlan());
+      newPlanDay.setDayIndex(planDay.getDayIndex() + 7); // Next week
+      newPlanDay.setSplitName(planDay.getSplitName());
+      if (planDay.getScheduledDate() != null) {
+        newPlanDay.setScheduledDate(nextScheduledDate);
+      }
+
+      newPlanDay = planDayRepository.save(newPlanDay);
+
+      List<PlanItem> newPlanItems = new ArrayList<>();
+      if (planDay.getPlanItems() != null) {
+        for (PlanItem item : planDay.getPlanItems()) {
+          PlanItem newItem = new PlanItem();
+          newItem.setPlanDay(newPlanDay);
+          newItem.setExercise(item.getExercise());
+          newItem.setItemIndex(item.getItemIndex());
+          newItem.setPrescription(item.getPrescription());
+          newItem.setNotes(item.getNotes());
+
+          newPlanItems.add(planItemRepository.save(newItem));
+        }
+      }
+
+      newPlanDay.setPlanItems(newPlanItems);
+      return newPlanDay;
+    }
+    return null;
   }
 
   // Helper methods

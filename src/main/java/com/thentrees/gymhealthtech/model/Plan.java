@@ -3,6 +3,7 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,6 +41,12 @@ public class Plan extends BaseEntity {
 
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
+
+  @Column(name = "notes", columnDefinition = "TEXT")
+  private String notes;
+
+  @Column(name = "end_date", nullable = false)
+  private LocalDate endDate;
 
   /** locked (BOOL): khóa khi đã kích hoạt để tránh sửa trực tiếp (buộc tạo revision mới) */
 }
