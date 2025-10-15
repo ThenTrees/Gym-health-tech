@@ -13,4 +13,6 @@ public interface RedisService {
   boolean delete(String key);
 
   String getOtpKey(String email);
+
+  void deletePattern(String pattern);
 }

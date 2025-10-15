@@ -99,6 +99,9 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   @Transactional
   public ExerciseDetailResponse createExercise(CreateExerciseRequest request, Authentication auth) {
+
+    redisService.deletePattern("exercise:*");
+
     log.info("Starting create exercise process");
     String slug = request.getName().trim().toLowerCase().replace(" ", "-");
 
@@ -137,6 +140,9 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   @Transactional
   public int importExercisesFromJson(MultipartFile file) throws IOException {
+
+    redisService.deletePattern("exercise:*");
+
     // đọc mảng ExerciseDTO từ JSON upload
     List<CreateExerciseRequest> dtos =
         objectMapper.readValue(
