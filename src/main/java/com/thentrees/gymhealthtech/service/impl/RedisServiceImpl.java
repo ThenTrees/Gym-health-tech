@@ -84,6 +84,7 @@ public class RedisServiceImpl implements RedisService {
                     }
                   }
                 }
+                return null;
               });
 
       log.info("Deleted {} keys matching pattern: {}", deletedCount, pattern);
