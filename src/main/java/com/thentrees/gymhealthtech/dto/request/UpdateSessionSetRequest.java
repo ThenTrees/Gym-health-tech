@@ -5,8 +5,10 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
 @Data
 public class UpdateSessionSetRequest {
 
@@ -26,7 +28,7 @@ public class UpdateSessionSetRequest {
 
   private String notes;
 
-  private Boolean isSkipped = false; // Mark set as skipped
+  @Builder.Default private Boolean isSkipped = false; // Mark set as skipped
 
   // Time tracking
   private Integer setDurationSeconds; // How long the set took

@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -57,7 +56,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     Session session =
         sessionRepository
             .findByIdAndUserIdWithSets(sessionId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
 
     return convertSessionToResponse(session, true);
   }
@@ -203,12 +202,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     updatePlanProgression(session);
 
     log.info("Successfully completed session: {}", sessionId);
-
-    // create new plan day for next week
-    // find current plan day and duplicate it for next week
-    PlanDay currentPlanDay = session.getPlanDay();
-    customPlanService.duplicatePlanDayForNextWeek(currentPlanDay);
-
     return convertSessionToResponse(session, true);
   }
 
@@ -243,19 +236,14 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     if (request.getSetDurationSeconds() != null) {
       actualNode.put("setDurationSeconds", request.getSetDurationSeconds());
     }
-    //    if (request.getIsSkipped()) {
-    //      actualNode.put("isSkipped", true);
-    //      if (request.getFailureReason() != null) {
-    //        actualNode.put("failureReason", request.getFailureReason());
-    //      }
-    //    }
-    if (request.getNotes() != null) {
-      actualNode.put("notes", request.getNotes());
+    if (request.getIsSkipped()) {
+      actualNode.put("isSkipped", true);
+    } else {
+      actualNode.put("completedAt", LocalDateTime.now().toString());
     }
 
-    // Mark as completed if not skipped
-    if (!request.getIsSkipped()) {
-      actualNode.put("completedAt", LocalDateTime.now().toString());
+    if (request.getNotes() != null) {
+      actualNode.put("notes", request.getNotes());
     }
 
     sessionSet.setActual(actualNode);
@@ -418,9 +406,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     if (includeSessionSets && session.getSessionSets() != null) {
       List<SessionSetResponse> sessionSetDtos =
-          session.getSessionSets().stream()
-              .map(this::convertSessionSetToResponse)
-              .collect(Collectors.toList());
+          session.getSessionSets().stream().map(this::convertSessionSetToResponse).toList();
       dto.setSessionSets(sessionSetDtos);
 
       // Calculate summary stats
