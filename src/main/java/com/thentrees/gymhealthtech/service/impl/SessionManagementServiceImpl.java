@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -239,7 +238,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     }
     if (request.getIsSkipped()) {
       actualNode.put("isSkipped", true);
-    }else{
+    } else {
       actualNode.put("completedAt", LocalDateTime.now().toString());
     }
 
@@ -407,9 +406,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     if (includeSessionSets && session.getSessionSets() != null) {
       List<SessionSetResponse> sessionSetDtos =
-          session.getSessionSets().stream()
-              .map(this::convertSessionSetToResponse)
-              .toList();
+          session.getSessionSets().stream().map(this::convertSessionSetToResponse).toList();
       dto.setSessionSets(sessionSetDtos);
 
       // Calculate summary stats
