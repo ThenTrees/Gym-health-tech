@@ -7,9 +7,13 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-@Builder
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UpdateSessionSetRequest {
 
   @NotNull(message = "Số reps thực tế là bắt buộc")
@@ -28,7 +32,8 @@ public class UpdateSessionSetRequest {
 
   private String notes;
 
-  @Builder.Default private Boolean isSkipped = false; // Mark set as skipped
+  @Builder.Default
+  private Boolean isSkipped = false; // Mark set as skipped
 
   // Time tracking
   private Integer setDurationSeconds; // How long the set took
