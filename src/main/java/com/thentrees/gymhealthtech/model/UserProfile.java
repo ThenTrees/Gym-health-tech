@@ -3,6 +3,7 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.common.FitnessLevel;
 import com.thentrees.gymhealthtech.common.GenderType;
 import jakarta.persistence.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
 import lombok.*;
@@ -14,7 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "user_profiles")
-public class UserProfile extends BaseEntity {
+public class UserProfile extends BaseEntity implements Serializable {
 
   @OneToOne(fetch = FetchType.LAZY)
   @MapsId

@@ -15,6 +15,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -27,6 +28,7 @@ public class PostServiceImpl implements PostService {
   private final PostRepository postRepository;
   private final PostMapper postMapper;
 
+  @Transactional
   @Override
   public PostResponse createPost(CreatePostRequest request) {
 
@@ -46,11 +48,11 @@ public class PostServiceImpl implements PostService {
 
     Post post = mapToPostEntity(request, user, plan);
 
-    postRepository.save(post);
-    return postMapper.toResponse(post);
-    //    return mapToPostResponse(post);
+    Post saved = postRepository.save(post);
+    return postMapper.toResponse(saved);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PostResponse getPostDetail(String postId) {
     Post post =

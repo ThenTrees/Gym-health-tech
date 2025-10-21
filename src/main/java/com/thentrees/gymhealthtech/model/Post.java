@@ -18,7 +18,7 @@ public class Post extends BaseEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "plan_id")
   private Plan plan;
 
