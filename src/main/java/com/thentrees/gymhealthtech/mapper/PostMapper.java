@@ -20,10 +20,17 @@ public interface PostMapper {
 
   default UserSummaryDTO toUserSummary(User user) {
     if (user == null) return null;
+    String avatarUrl = null;
+    try {
+      avatarUrl = user.getProfile() != null ? user.getProfile().getAvatarUrl() : null;
+    } catch (org.hibernate.LazyInitializationException e) {
+      avatarUrl = null; // tránh crash nếu lazy load fail
+    }
+
     return UserSummaryDTO.builder()
         .id(user.getId().toString())
         .username(user.getProfile().getFullName())
-        .avatarUrl(user.getProfile().getAvatarUrl())
+        .avatarUrl(avatarUrl)
         .build();
   }
 
@@ -35,6 +42,7 @@ public interface PostMapper {
                 PostCommentResponse.builder()
                     .id(c.getId().toString())
                     .content(c.getContent())
+                    .user(toUserSummary(c.getUser()))
                     .likesCount(c.getLikesCount())
                     .repliesCount(c.getRepliesCount())
                     .isPinned(c.getIsPinned())

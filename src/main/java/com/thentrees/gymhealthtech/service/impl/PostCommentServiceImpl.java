@@ -29,6 +29,7 @@ public class PostCommentServiceImpl implements PostCommentService {
   private final UserService userService;
   private final PostCommentMapper postCommentMapper;
 
+  @Transactional
   @Override
   public PostCommentResponse createPostComment(CreateCommentRequest request) {
     Optional<Post> post = postRepository.findById(UUID.fromString(request.getPostId()));
@@ -37,18 +38,6 @@ public class PostCommentServiceImpl implements PostCommentService {
     }
 
     User user = userService.getUserById(UUID.fromString(request.getUserId()));
-
-    //    PostComment comment = PostComment.builder()
-    //      .post(post.get())
-    //      .content(request.getContent())
-    //      .user(user)
-    //      .content(request.getContent())
-    //      .mediaUrl(request.getMediaUrl())
-    //      .likesCount(request.getLikeCount())
-    //      .repliesCount(request.getReplyCount())
-    //      .isActive(request.getIsActive())
-    //      .isPinned(request.getIsPinned())
-    //      .build();
 
     PostComment comment = postCommentMapper.toEntity(request, postRepository);
 
@@ -59,9 +48,9 @@ public class PostCommentServiceImpl implements PostCommentService {
               .orElseThrow(() -> new RuntimeException("Parent comment not found"));
       comment.setParentComment(parent);
     }
-    commentRepository.save(comment);
+    PostComment saved = commentRepository.save(comment);
 
-    return postCommentMapper.toDto(comment);
+    return postCommentMapper.toDto(saved);
   }
 
   @Transactional(readOnly = true)
