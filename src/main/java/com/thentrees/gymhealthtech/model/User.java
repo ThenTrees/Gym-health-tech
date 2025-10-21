@@ -39,7 +39,7 @@ public class User extends BaseEntity implements UserDetails {
   private Boolean emailVerified = false;
 
   // One-to-One relationship with UserProfile
-  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   private UserProfile profile;
 
   @Override

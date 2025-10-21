@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -29,6 +30,7 @@ public abstract class BaseEntity {
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
+  @JsonIgnoreProperties
   private LocalDateTime createdAt;
 
   @UpdateTimestamp

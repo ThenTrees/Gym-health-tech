@@ -819,8 +819,8 @@ public class GlobalExceptionHandler {
     ApiError error =
         ApiError.builder()
             .code(ErrorCodes.INTERNAL_SERVER_ERROR)
-            .message("An unexpected error occurred")
-            .details("Please try again later or contact support")
+            .message("An unexpected error occurred: " + ex.getMessage())
+            .details("Please contact support if the issue persists")
             .traceId(traceId)
             .build();
 
