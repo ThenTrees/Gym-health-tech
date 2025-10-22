@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.mapper;
 
+import com.thentrees.gymhealthtech.dto.response.PlanSummaryDTO;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.dto.response.UserSummaryDTO;
@@ -14,6 +15,7 @@ public interface PostMapper {
   // ======= 2️⃣  Post → PostResponseDTO =======
   @Mapping(target = "user", expression = "java(toUserSummary(post.getUser()))")
   @Mapping(target = "planId", source = "plan.id")
+  @Mapping(target = "plan", expression = "java(toPlanSummary(post.getPlan()))")
   @Mapping(target = "comments", expression = "java(toCommentList(post.getComments()))")
   @Mapping(target = "postId", source = "id")
   PostResponse toResponse(Post post);
@@ -32,6 +34,34 @@ public interface PostMapper {
         .username(user.getProfile().getFullName())
         .avatarUrl(avatarUrl)
         .build();
+  }
+
+  default PlanSummaryDTO toPlanSummary(Plan plan) {
+    if (plan == null) return null;
+    
+    PlanSummaryDTO dto = new PlanSummaryDTO();
+    dto.setId(plan.getId().toString());
+    dto.setTitle(plan.getTitle());
+    dto.setDescription(plan.getDescription());
+    dto.setSource(plan.getSource());
+    dto.setStatus(plan.getStatus());
+    dto.setCycleWeeks(plan.getCycleWeeks());
+    
+    // Calculate total days and exercises
+    if (plan.getPlanDays() != null) {
+      dto.setTotalDays(plan.getPlanDays().size());
+      int totalExercises = plan.getPlanDays().stream()
+          .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
+          .sum();
+      dto.setTotalExercises(totalExercises);
+    }
+    
+    // Get goal objective name
+    if (plan.getGoal() != null && plan.getGoal().getObjective() != null) {
+      dto.setGoalName(plan.getGoal().getObjective().name());
+    }
+    
+    return dto;
   }
 
   default List<PostCommentResponse> toCommentList(List<PostComment> comments) {

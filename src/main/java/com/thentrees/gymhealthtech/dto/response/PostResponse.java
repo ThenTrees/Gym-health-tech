@@ -9,6 +9,7 @@ public class PostResponse {
   private String postId;
   private UserSummaryDTO user;
   private String planId;
+  private PlanSummaryDTO plan; // Add plan details
   private String content;
   private List<String> tags;
   private List<String> mediaUrls;

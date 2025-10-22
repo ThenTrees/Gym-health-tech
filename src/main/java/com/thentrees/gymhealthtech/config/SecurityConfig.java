@@ -57,6 +57,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/exercises/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/posts/plans/**")
+                    .permitAll()
                     .requestMatchers(
                         "/api/v1/users/forgot-password",
                         "/api/v1/users/reset-password",
