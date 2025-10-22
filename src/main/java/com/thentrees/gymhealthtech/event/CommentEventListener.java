@@ -2,12 +2,11 @@ package com.thentrees.gymhealthtech.event;
 
 import com.thentrees.gymhealthtech.model.Post;
 import com.thentrees.gymhealthtech.repository.PostRepository;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor

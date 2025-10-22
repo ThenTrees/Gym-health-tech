@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -103,8 +102,8 @@ public class PostCommentController {
   }
 
   @DeleteMapping("/{commentId}")
-  public ResponseEntity<APIResponse<String>> deleteComment(@PathVariable String commentId,
-                                                           @AuthenticationPrincipal UserDetails userDetails) {
+  public ResponseEntity<APIResponse<String>> deleteComment(
+      @PathVariable String commentId, @AuthenticationPrincipal UserDetails userDetails) {
 
     log.info("Delete comment: {}", commentId);
     UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
@@ -112,7 +111,7 @@ public class PostCommentController {
     commentService.deleteCommentsByUserId(commentId, userId);
 
     // Implementation for deleting a comment goes here
-    return ResponseEntity.status(HttpStatus.NO_CONTENT).body(APIResponse.success("Comment deleted"));
+    return ResponseEntity.status(HttpStatus.NO_CONTENT)
+        .body(APIResponse.success("Comment deleted"));
   }
-
 }

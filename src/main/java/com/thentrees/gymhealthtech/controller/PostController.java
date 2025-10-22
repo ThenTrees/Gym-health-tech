@@ -11,14 +11,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("${app.prefix}/posts")
@@ -104,55 +103,53 @@ public class PostController {
 
   @Operation(
       summary = "Delete a Post",
-      description = "Deletes a specific post by its ID if the user has the necessary permissions."
-  )
+      description = "Deletes a specific post by its ID if the user has the necessary permissions.")
   @ApiResponses(
-    value = {
-      @ApiResponse(
-          responseCode = "200",
-          description = "Post deleted successfully",
-          content = {
-            @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = String.class))
-      }),
-      @ApiResponse(
-          responseCode = "403",
-          description = "Forbidden - User does not have permission to delete this post",
-          content =
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Post deleted successfully",
+            content = {
               @Content(
                   mediaType = "application/json",
-                  schema = @Schema(implementation = APIResponse.class))),
-      @ApiResponse(
-          responseCode = "404",
-          description = "Post not found",
-          content =
-              @Content(
-                  mediaType = "application/json",
-                  schema = @Schema(implementation = APIResponse.class))),
-      @ApiResponse(
-          responseCode = "500",
-          description = "Internal server error",
-          content =
-              @Content(
-                  mediaType = "application/json",
-                  schema = @Schema(implementation = APIResponse.class)))
-    }
-  )
+                  schema = @Schema(implementation = String.class))
+            }),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - User does not have permission to delete this post",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Post not found",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class)))
+      })
   @DeleteMapping("/{postId}")
   public ResponseEntity<APIResponse<String>> deletePost(
-      @PathVariable("postId") String postId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-      log.info("Delete Post Request: {}", postId);
-      UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-      postService.deletePost(postId, userId);
+      @PathVariable("postId") String postId, @AuthenticationPrincipal UserDetails userDetails) {
+    log.info("Delete Post Request: {}", postId);
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    postService.deletePost(postId, userId);
     return ResponseEntity.ok(APIResponse.success("Post deleted successfully"));
   }
 
   @PutMapping("/{postId}")
-  public ResponseEntity<APIResponse<PostResponse>> updatePost(@PathVariable("postId") String postId,
-                                                        @Valid @RequestBody CreatePostRequest request,
-                                                        @AuthenticationPrincipal UserDetails userDetails) {
+  public ResponseEntity<APIResponse<PostResponse>> updatePost(
+      @PathVariable("postId") String postId,
+      @Valid @RequestBody CreatePostRequest request,
+      @AuthenticationPrincipal UserDetails userDetails) {
     // Implementation for updating a post goes here
     log.info("Update Post Request: {}", postId);
     UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
@@ -260,9 +257,7 @@ public class PostController {
     return ResponseEntity.ok(APIResponse.success(response));
   }
 
-  @Operation(
-      summary = "Share Post",
-      description = "Increments share count for a post.")
+  @Operation(summary = "Share Post", description = "Increments share count for a post.")
   @ApiResponses(
       value = {
         @ApiResponse(

@@ -13,7 +13,6 @@ import com.thentrees.gymhealthtech.repository.PostCommentRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostCommentService;
 import com.thentrees.gymhealthtech.service.UserService;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +33,7 @@ public class PostCommentServiceImpl implements PostCommentService {
   private final UserService userService;
   private final PostCommentMapper postCommentMapper;
   private final ApplicationEventPublisher applicationEventPublisher;
+
   @Transactional
   @Override
   public PostCommentResponse createPostComment(CreateCommentRequest request) {
@@ -75,7 +75,8 @@ public class PostCommentServiceImpl implements PostCommentService {
     PostComment comment =
         commentRepository
             .findById(UUID.fromString(commentId))
-            .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Comment not found with id: " + commentId));
     if (!comment.getUser().getId().equals(userId)) {
       throw new AccessDeniedException("User is not authorized to delete this comment");
     }

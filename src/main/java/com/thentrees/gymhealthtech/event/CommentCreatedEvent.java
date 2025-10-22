@@ -8,7 +8,7 @@ import org.springframework.context.ApplicationEvent;
 public class CommentCreatedEvent extends ApplicationEvent {
   private final Post post;
 
-  public CommentCreatedEvent(Object source,Post post) {
+  public CommentCreatedEvent(Object source, Post post) {
     super(source);
     this.post = post;
   }

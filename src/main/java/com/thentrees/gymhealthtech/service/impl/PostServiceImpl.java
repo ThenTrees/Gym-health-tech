@@ -147,11 +147,12 @@ public class PostServiceImpl implements PostService {
   @Override
   public Object getSharedPlanDetails(String planId) {
     log.info("Fetching shared plan details for planId: {}", planId);
-    
-    Plan plan = planRepository
-        .findById(UUID.fromString(planId))
-        .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + planId));
-    
+
+    Plan plan =
+        planRepository
+            .findById(UUID.fromString(planId))
+            .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + planId));
+
     // Use the existing mapper to convert Plan to response format
     return postMapper.toPlanSummary(plan);
   }
@@ -160,15 +161,16 @@ public class PostServiceImpl implements PostService {
   @Override
   public Object applySharedPlan(String planId, String userId) {
     log.info("Applying shared plan {} for user: {}", planId, userId);
-    
+
     // Get the shared plan
-    Plan sharedPlan = planRepository
-        .findById(UUID.fromString(planId))
-        .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + planId));
-    
+    Plan sharedPlan =
+        planRepository
+            .findById(UUID.fromString(planId))
+            .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + planId));
+
     // Get the user
     User user = userService.getUserById(UUID.fromString(userId));
-    
+
     // Create a new plan for the user (clone the shared plan)
     Plan newPlan = new Plan();
     newPlan.setUser(user);
@@ -180,10 +182,10 @@ public class PostServiceImpl implements PostService {
     newPlan.setDescription(sharedPlan.getDescription());
     newPlan.setNotes(sharedPlan.getNotes());
     newPlan.setEndDate(LocalDate.now().plusWeeks(sharedPlan.getCycleWeeks()));
-    
+
     // Save the new plan
     newPlan = planRepository.save(newPlan);
-    
+
     // Clone all plan days
     List<PlanDay> newPlanDays = new ArrayList<>();
     if (sharedPlan.getPlanDays() != null) {
@@ -193,9 +195,9 @@ public class PostServiceImpl implements PostService {
         newDay.setDayIndex(originalDay.getDayIndex());
         newDay.setSplitName(originalDay.getSplitName());
         newDay.setScheduledDate(originalDay.getScheduledDate());
-        
+
         newDay = planDayRepository.save(newDay);
-        
+
         // Clone all plan items for this day
         List<PlanItem> newPlanItems = new ArrayList<>();
         if (originalDay.getPlanItems() != null) {
@@ -206,28 +208,31 @@ public class PostServiceImpl implements PostService {
             newItem.setItemIndex(originalItem.getItemIndex());
             newItem.setPrescription(originalItem.getPrescription());
             newItem.setNotes(originalItem.getNotes());
-            
+
             newPlanItems.add(planItemRepository.save(newItem));
           }
         }
-        
+
         newDay.setPlanItems(newPlanItems);
         newPlanDays.add(newDay);
       }
     }
-    
+
     newPlan.setPlanDays(newPlanDays);
-    
+
     // Return the response with the new plan details
     Map<String, Object> response = new HashMap<>();
     response.put("message", "Plan applied successfully");
     response.put("planId", newPlan.getId().toString());
     response.put("planTitle", newPlan.getTitle());
     response.put("status", newPlan.getStatus());
-    
-    log.info("Successfully applied shared plan {} to user {}, new plan id: {}", 
-        planId, userId, newPlan.getId());
-    
+
+    log.info(
+        "Successfully applied shared plan {} to user {}, new plan id: {}",
+        planId,
+        userId,
+        newPlan.getId());
+
     return response;
   }
 
@@ -248,8 +253,10 @@ public class PostServiceImpl implements PostService {
   @Transactional
   @Override
   public void deletePost(String postId, UUID currentUserId) {
-    Post post = postRepository.findById(UUID.fromString(postId))
-      .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+    Post post =
+        postRepository
+            .findById(UUID.fromString(postId))
+            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
     if (!post.getUser().getId().equals(currentUserId)) {
       throw new AccessDeniedException("You are not allowed to delete this post");
@@ -262,8 +269,10 @@ public class PostServiceImpl implements PostService {
   @Transactional
   @Override
   public PostResponse updatePost(String postId, CreatePostRequest request, UUID currentUserId) {
-    Post post = postRepository.findById(UUID.fromString(postId))
-      .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+    Post post =
+        postRepository
+            .findById(UUID.fromString(postId))
+            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
     if (!post.getUser().getId().equals(currentUserId)) {
       throw new AccessDeniedException("You are not allowed to update this post");
@@ -272,10 +281,10 @@ public class PostServiceImpl implements PostService {
     post.setContent(request.getContent());
     post.setTags(request.getTags());
     post.setMediaUrls(request.getMediaUrls());
-//    post.setLikesCount(request.getLikeCount());
-//    post.setCommentsCount(request.getCommentCount());
-//    post.setSharesCount(request.getShareCount());
-//    post.setSavesCount(request.getSaveCount());
+    //    post.setLikesCount(request.getLikeCount());
+    //    post.setCommentsCount(request.getCommentCount());
+    //    post.setSharesCount(request.getShareCount());
+    //    post.setSavesCount(request.getSaveCount());
 
     Post updated = postRepository.save(post);
     return postMapper.toResponse(updated);
