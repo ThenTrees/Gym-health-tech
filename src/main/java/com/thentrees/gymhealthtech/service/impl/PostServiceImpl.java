@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -244,27 +245,39 @@ public class PostServiceImpl implements PostService {
     return post;
   }
 
-  //  private PostResponse mapToPostResponse(Post post) {
-  //    PostResponse response = new PostResponse();
-  //
-  //    response.setPostId(post.getId().toString());
-  ////    response.setUser(post.getUser().getProfile());
-  //
-  //    PlanResponse plan =
-  // customPlanService.getPlanDetails(post.getUser().getId(),post.getPlan().getId());
-  //    response.setPlan(plan);
-  //    response.setContent(post.getContent());
-  //    response.setTags(post.getTags());
-  //    response.setMediaUrls(post.getMediaUrls());
-  //    response.setLikeCount(post.getLikesCount());
-  //    response.setCommentCount(post.getCommentsCount());
-  //    response.setShareCount(post.getSharesCount());
-  //    response.setSaveCount(post.getSavesCount());
-  //    response.setCreatedAt(post.getCreatedAt());
-  //
-  //    // query get all comment for the post
-  //    response.setComments(post.getComments());
-  //    return response;
-  //  }
+  @Transactional
+  @Override
+  public void deletePost(String postId, UUID currentUserId) {
+    Post post = postRepository.findById(UUID.fromString(postId))
+      .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
+    if (!post.getUser().getId().equals(currentUserId)) {
+      throw new AccessDeniedException("You are not allowed to delete this post");
+    }
+
+    post.setIsDeleted(true);
+    postRepository.save(post);
+  }
+
+  @Transactional
+  @Override
+  public PostResponse updatePost(String postId, CreatePostRequest request, UUID currentUserId) {
+    Post post = postRepository.findById(UUID.fromString(postId))
+      .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+    if (!post.getUser().getId().equals(currentUserId)) {
+      throw new AccessDeniedException("You are not allowed to update this post");
+    }
+
+    post.setContent(request.getContent());
+    post.setTags(request.getTags());
+    post.setMediaUrls(request.getMediaUrls());
+//    post.setLikesCount(request.getLikeCount());
+//    post.setCommentsCount(request.getCommentCount());
+//    post.setSharesCount(request.getShareCount());
+//    post.setSavesCount(request.getSaveCount());
+
+    Post updated = postRepository.save(post);
+    return postMapper.toResponse(updated);
+  }
 }

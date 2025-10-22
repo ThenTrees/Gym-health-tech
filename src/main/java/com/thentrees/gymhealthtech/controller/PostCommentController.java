@@ -4,6 +4,7 @@ import com.thentrees.gymhealthtech.dto.request.CreateCommentRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
 import com.thentrees.gymhealthtech.service.PostCommentService;
+import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,10 +12,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostCommentController {
 
   private final PostCommentService commentService;
+  private final UserService userService;
 
   @Operation(
       summary = "Create a new comment on a post",
@@ -95,4 +101,18 @@ public class PostCommentController {
     List<PostCommentResponse> responses = commentService.getPostComments(postId);
     return ResponseEntity.status(HttpStatus.OK).body(APIResponse.success(responses));
   }
+
+  @DeleteMapping("/{commentId}")
+  public ResponseEntity<APIResponse<String>> deleteComment(@PathVariable String commentId,
+                                                           @AuthenticationPrincipal UserDetails userDetails) {
+
+    log.info("Delete comment: {}", commentId);
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+
+    commentService.deleteCommentsByUserId(commentId, userId);
+
+    // Implementation for deleting a comment goes here
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).body(APIResponse.success("Comment deleted"));
+  }
+
 }
