@@ -1,11 +1,13 @@
 package com.thentrees.gymhealthtech.event;
 
-import com.thentrees.gymhealthtech.model.Post;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
@@ -15,20 +17,19 @@ public class CommentEventListener {
 
   private final PostRepository postRepository;
 
-  @TransactionalEventListener
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentCreated(CommentCreatedEvent event) {
-    log.info("Handling comment created event for post id: {}", event.getPost().getId());
     UUID postId = event.getPost().getId();
-    Post post = postRepository.findById(postId).orElseThrow();
-    post.setCommentsCount(post.getCommentsCount() + 1);
-    postRepository.save(post);
+    log.info("Incrementing comments count for post id: {}", postId);
+    postRepository.incrementCommentsCount(postId);
   }
 
-  @TransactionalEventListener
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentDeleted(CommentDeletedEvent event) {
-    log.info("Handling comment deleted event for post id: {}", event.getPost().getId());
-    Post post = event.getPost();
-    post.setCommentsCount(Math.max(0, post.getCommentsCount() - 1));
-    postRepository.save(post);
+    UUID postId = event.getPost().getId();
+    log.info("Decrementing comments count for post id: {}", postId);
+    postRepository.decrementCommentsCount(postId);
   }
 }
