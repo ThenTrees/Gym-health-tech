@@ -17,7 +17,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
   @Modifying
   @Transactional
+  @Query("update Post p set p.likesCount = p.likesCount + 1 where p.id = :id")
+  void incrementLikesCount(@Param("id") UUID id);
+
+  @Modifying
+  @Transactional
   @Query(
       "update Post p set p.commentsCount = case when p.commentsCount > 0 then p.commentsCount - 1 else 0 end where p.id = :id")
   void decrementCommentsCount(@Param("id") UUID id);
+
+  @Modifying
+  @Transactional
+  @Query(
+      "update Post p set p.likesCount = case when p.likesCount > 0 then p.likesCount - 1 else 0 end where p.id = :id")
+  void decrementLikesCount(@Param("id") UUID id);
 }

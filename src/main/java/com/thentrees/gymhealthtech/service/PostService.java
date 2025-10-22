@@ -12,7 +12,7 @@ public interface PostService {
 
   List<PostResponse> getAllPosts();
 
-  PostResponse toggleLike(String postId, String userId);
+  void toggleLike(UUID postId, UUID userId);
 
   PostResponse toggleSave(String postId, String userId);
 

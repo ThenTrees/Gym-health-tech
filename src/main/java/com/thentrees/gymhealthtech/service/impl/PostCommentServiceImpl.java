@@ -8,7 +8,6 @@ import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.PostCommentMapper;
 import com.thentrees.gymhealthtech.model.Post;
 import com.thentrees.gymhealthtech.model.PostComment;
-import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.PostCommentRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostCommentService;
@@ -42,8 +41,6 @@ public class PostCommentServiceImpl implements PostCommentService {
       throw new ResourceNotFoundException("Post not found with id: " + request.getPostId());
     }
 
-    User user = userService.getUserById(UUID.fromString(request.getUserId()));
-
     PostComment comment = postCommentMapper.toEntity(request, postRepository);
 
     if (request.getParentCommentId() != null) {
@@ -54,7 +51,7 @@ public class PostCommentServiceImpl implements PostCommentService {
       comment.setParentComment(parent);
     }
     PostComment saved = commentRepository.save(comment);
-    applicationEventPublisher.publishEvent(new CommentCreatedEvent(this, comment.getPost()));
+    applicationEventPublisher.publishEvent(new CommentCreatedEvent(comment.getPost()));
     return postCommentMapper.toDto(saved);
   }
 
