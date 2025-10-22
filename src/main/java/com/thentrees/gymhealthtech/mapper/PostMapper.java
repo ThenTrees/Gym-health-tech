@@ -38,7 +38,7 @@ public interface PostMapper {
 
   default PlanSummaryDTO toPlanSummary(Plan plan) {
     if (plan == null) return null;
-    
+
     PlanSummaryDTO dto = new PlanSummaryDTO();
     dto.setId(plan.getId().toString());
     dto.setTitle(plan.getTitle());
@@ -46,21 +46,22 @@ public interface PostMapper {
     dto.setSource(plan.getSource());
     dto.setStatus(plan.getStatus());
     dto.setCycleWeeks(plan.getCycleWeeks());
-    
+
     // Calculate total days and exercises
     if (plan.getPlanDays() != null) {
       dto.setTotalDays(plan.getPlanDays().size());
-      int totalExercises = plan.getPlanDays().stream()
-          .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
-          .sum();
+      int totalExercises =
+          plan.getPlanDays().stream()
+              .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
+              .sum();
       dto.setTotalExercises(totalExercises);
     }
-    
+
     // Get goal objective name
     if (plan.getGoal() != null && plan.getGoal().getObjective() != null) {
       dto.setGoalName(plan.getGoal().getObjective().name());
     }
-    
+
     return dto;
   }
 

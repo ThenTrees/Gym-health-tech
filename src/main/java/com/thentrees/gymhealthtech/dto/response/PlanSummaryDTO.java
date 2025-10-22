@@ -4,9 +4,7 @@ import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
 import lombok.Data;
 
-/**
- * Summary DTO for Plan shared in posts
- */
+/** Summary DTO for Plan shared in posts */
 @Data
 public class PlanSummaryDTO {
   private String id;

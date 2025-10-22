@@ -2,6 +2,8 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.dto.request.CreateCommentRequest;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
+import com.thentrees.gymhealthtech.event.CommentCreatedEvent;
+import com.thentrees.gymhealthtech.event.CommentDeletedEvent;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.PostCommentMapper;
 import com.thentrees.gymhealthtech.model.Post;
@@ -16,6 +18,8 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ public class PostCommentServiceImpl implements PostCommentService {
   private final PostRepository postRepository;
   private final UserService userService;
   private final PostCommentMapper postCommentMapper;
+  private final ApplicationEventPublisher applicationEventPublisher;
 
   @Transactional
   @Override
@@ -49,7 +54,7 @@ public class PostCommentServiceImpl implements PostCommentService {
       comment.setParentComment(parent);
     }
     PostComment saved = commentRepository.save(comment);
-
+    applicationEventPublisher.publishEvent(new CommentCreatedEvent(this, comment.getPost()));
     return postCommentMapper.toDto(saved);
   }
 
@@ -62,5 +67,24 @@ public class PostCommentServiceImpl implements PostCommentService {
             .orElseThrow(() -> new RuntimeException("Post not found"));
     List<PostComment> comments = commentRepository.findByPostAndParentCommentIsNull(post);
     return comments.stream().map(postCommentMapper::toDto).toList();
+  }
+
+  @Transactional
+  @Override
+  public void deleteCommentsByUserId(String commentId, UUID userId) {
+    PostComment comment =
+        commentRepository
+            .findById(UUID.fromString(commentId))
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Comment not found with id: " + commentId));
+    if (!comment.getUser().getId().equals(userId)) {
+      throw new AccessDeniedException("User is not authorized to delete this comment");
+    }
+    comment.setIsDeleted(true);
+    commentRepository.save(comment);
+
+    applicationEventPublisher.publishEvent(new CommentDeletedEvent(comment.getPost()));
+
+    log.info("Comment with id: {} marked as deleted", commentId);
   }
 }
