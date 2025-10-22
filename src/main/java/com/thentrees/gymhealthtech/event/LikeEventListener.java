@@ -1,7 +1,6 @@
 package com.thentrees.gymhealthtech.event;
 
 import com.thentrees.gymhealthtech.repository.PostRepository;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,23 +12,21 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CommentEventListener {
+public class LikeEventListener {
 
   private final PostRepository postRepository;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void handleCommentCreated(CommentCreatedEvent event) {
-    UUID postId = event.getPost().getId();
-    log.info("Incrementing comments count for post id: {}", postId);
-    postRepository.incrementCommentsCount(postId);
+  public void handleLikeToggler(LikeEvent event) {
+    log.info("User {} liked the post has id: {}", event.getUserId(), event.getPostId());
+    postRepository.incrementLikesCount(event.getPostId());
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void handleCommentDeleted(CommentDeletedEvent event) {
-    UUID postId = event.getPost().getId();
-    log.info("Decrementing comments count for post id: {}", postId);
-    postRepository.decrementCommentsCount(postId);
+  public void handleUnLikeToggle(UnLikeEvent event) {
+    log.info("User {} unLiked the post has id: {}", event.getUserId(), event.getPostId());
+    postRepository.decrementLikesCount(event.getPostId());
   }
 }

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -179,9 +180,9 @@ public class PostController {
                     schema = @Schema(implementation = APIResponse.class)))
       })
   @GetMapping
-  public ResponseEntity<APIResponse<java.util.List<PostResponse>>> getAllPosts() {
+  public ResponseEntity<APIResponse<List<PostResponse>>> getAllPosts() {
     log.info("Get All Posts Request");
-    java.util.List<PostResponse> responses = postService.getAllPosts();
+    List<PostResponse> responses = postService.getAllPosts();
     return ResponseEntity.ok(APIResponse.success(responses));
   }
 
@@ -214,11 +215,13 @@ public class PostController {
                     schema = @Schema(implementation = APIResponse.class)))
       })
   @PostMapping("/{postId}/like")
-  public ResponseEntity<APIResponse<PostResponse>> toggleLike(
-      @PathVariable("postId") String postId, @RequestParam String userId) {
+  public ResponseEntity<APIResponse<String>> toggleLike(
+      @PathVariable("postId") String postId, @AuthenticationPrincipal UserDetails userDetails) {
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+
     log.info("Toggle Like Request for post: {} by user: {}", postId, userId);
-    PostResponse response = postService.toggleLike(postId, userId);
-    return ResponseEntity.ok(APIResponse.success(response));
+    postService.toggleLike(UUID.fromString(postId), userId);
+    return ResponseEntity.ok(APIResponse.success("Like status toggled successfully"));
   }
 
   @Operation(

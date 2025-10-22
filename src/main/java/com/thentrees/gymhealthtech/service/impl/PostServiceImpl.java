@@ -4,16 +4,15 @@ import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
+import com.thentrees.gymhealthtech.event.LikeEvent;
+import com.thentrees.gymhealthtech.event.UnLikeEvent;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.PostMapper;
-import com.thentrees.gymhealthtech.model.Plan;
-import com.thentrees.gymhealthtech.model.PlanDay;
-import com.thentrees.gymhealthtech.model.PlanItem;
-import com.thentrees.gymhealthtech.model.Post;
-import com.thentrees.gymhealthtech.model.User;
+import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.PlanDayRepository;
 import com.thentrees.gymhealthtech.repository.PlanItemRepository;
 import com.thentrees.gymhealthtech.repository.PlanRepository;
+import com.thentrees.gymhealthtech.repository.PostLikeRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostService;
 import com.thentrees.gymhealthtech.service.UserService;
@@ -25,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +41,8 @@ public class PostServiceImpl implements PostService {
   private final PlanItemRepository planItemRepository;
   private final PostRepository postRepository;
   private final PostMapper postMapper;
+  private final PostLikeRepository postLikeRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   @Override
@@ -54,10 +56,7 @@ public class PostServiceImpl implements PostService {
       plan =
           planRepository
               .findById(UUID.fromString(request.getPlanId()))
-              .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException(
-                          "Plan not found with id: " + request.getPlanId()));
+              .orElseThrow(() -> new ResourceNotFoundException("Plan", request.getPlanId()));
     }
 
     Post post = mapToPostEntity(request, user, plan);
@@ -72,7 +71,7 @@ public class PostServiceImpl implements PostService {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
     return postMapper.toResponse(post);
   }
 
@@ -86,25 +85,25 @@ public class PostServiceImpl implements PostService {
 
   @Transactional
   @Override
-  public PostResponse toggleLike(String postId, String userId) {
+  public void toggleLike(UUID postId, UUID userId) {
     log.info("Toggling like for post: {} by user: {}", postId, userId);
     Post post =
         postRepository
-            .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .findById(postId)
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId.toString()));
 
-    // TODO: Implement proper like tracking with PostLike entity
-    // For now, just increment/decrement the counter
-    int currentLikes = post.getLikesCount();
-    // Simple toggle: if odd, user already liked, so unlike. if even, like it
-    if (currentLikes % 2 == 0) {
-      post.setLikesCount(currentLikes + 1);
+    User user = userService.getUserById(userId);
+
+    PostLike postLikeExists = postLikeRepository.findByPostAndUser(post, user);
+
+    if (postLikeExists == null) {
+      PostLike postLike = PostLike.builder().post(post).user(user).build();
+      postLikeRepository.save(postLike);
+      eventPublisher.publishEvent(new LikeEvent(userId, postId));
     } else {
-      post.setLikesCount(Math.max(0, currentLikes - 1));
+      postLikeRepository.delete(postLikeExists);
+      eventPublisher.publishEvent(new UnLikeEvent(userId, postId));
     }
-
-    Post saved = postRepository.save(post);
-    return postMapper.toResponse(saved);
   }
 
   @Transactional
@@ -281,11 +280,6 @@ public class PostServiceImpl implements PostService {
     post.setContent(request.getContent());
     post.setTags(request.getTags());
     post.setMediaUrls(request.getMediaUrls());
-    //    post.setLikesCount(request.getLikeCount());
-    //    post.setCommentsCount(request.getCommentCount());
-    //    post.setSharesCount(request.getShareCount());
-    //    post.setSavesCount(request.getSaveCount());
-
     Post updated = postRepository.save(post);
     return postMapper.toResponse(updated);
   }
