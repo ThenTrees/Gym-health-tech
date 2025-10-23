@@ -20,10 +20,4 @@ public class CreateCommentRequest {
   private String parentCommentId;
 
   private String content;
-  private String mediaUrl;
-
-  @Builder.Default private Integer likeCount = 0;
-  @Builder.Default private Integer replyCount = 0;
-  @Builder.Default private Boolean isActive = true;
-  @Builder.Default private Boolean isPinned = false;
 }

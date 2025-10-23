@@ -5,7 +5,6 @@ import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.service.PostService;
 import com.thentrees.gymhealthtech.service.UserService;
-import com.thentrees.gymhealthtech.util.S3Util;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,7 +30,6 @@ public class PostController {
 
   private final PostService postService;
   private final UserService userService;
-  private final S3Util s3Util;
 
   @Operation(
       summary = "Create a new post",
