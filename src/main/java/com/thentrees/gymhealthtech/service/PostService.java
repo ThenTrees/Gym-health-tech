@@ -25,5 +25,8 @@ public interface PostService {
 
   void deletePost(String postId, UUID currentUserId);
 
-  PostResponse updatePost(String postId, CreatePostRequest request, UUID currentUserId);
+  PostResponse updatePost(
+      String postId, CreatePostRequest request, List<MultipartFile> files, UUID currentUserId);
+
+  void deletePostMedia(UUID postId, String mediaUrl, UUID currentUserId);
 }

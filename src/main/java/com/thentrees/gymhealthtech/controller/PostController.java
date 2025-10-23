@@ -186,15 +186,16 @@ public class PostController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = APIResponse.class)))
       })
-  @PutMapping("/{postId}")
+  @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<APIResponse<PostResponse>> updatePost(
       @PathVariable("postId") String postId,
-      @Valid @RequestBody CreatePostRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
+      @Valid @RequestPart("post") CreatePostRequest request,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files,
+      @RequestPart @AuthenticationPrincipal UserDetails userDetails) {
     // Implementation for updating a post goes here
     log.info("Update Post Request: {}", postId);
     UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    PostResponse response = postService.updatePost(postId, request, userId);
+    PostResponse response = postService.updatePost(postId, request, files, userId);
     return ResponseEntity.ok(APIResponse.success(response, "Post updated successfully"));
   }
 
@@ -387,5 +388,48 @@ public class PostController {
     log.info("Apply shared plan {} for user: {}", planId, userId);
     Object result = postService.applySharedPlan(planId, userId);
     return ResponseEntity.ok(APIResponse.success(result));
+  }
+
+  @Operation(
+      summary = "Delete Post Media",
+      description = "Deletes a specific media file from a post.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Media deleted successfully",
+            content = @Content()),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - User does not have permission to delete this media",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Post or media not found",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class)))
+      })
+  @DeleteMapping("/{postId}/media")
+  public ResponseEntity<Void> deletePostMedia(
+      @PathVariable UUID postId,
+      @RequestParam("url") String mediaUrl,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    UUID currentUserId = userService.getUserByUsername(userDetails.getUsername()).getId();
+
+    postService.deletePostMedia(postId, mediaUrl, currentUserId);
+    return ResponseEntity.noContent().build();
   }
 }

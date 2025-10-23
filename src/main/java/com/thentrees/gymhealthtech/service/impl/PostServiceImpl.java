@@ -73,12 +73,13 @@ public class PostServiceImpl implements PostService {
     for (MultipartFile file : files) {
       String fileUrl = null;
       try {
-        fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
         String contentType = file.getContentType();
         if (contentType != null && contentType.startsWith("image/")) {
           fileValidator.validateImage(file);
+          fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
         } else if (contentType != null && contentType.startsWith("video/")) {
           fileValidator.validateVideo(file);
+          fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
         } else {
           throw new IllegalArgumentException("Only image and video files are allowed");
         }
@@ -270,10 +271,6 @@ public class PostServiceImpl implements PostService {
     post.setPlan(plan);
     post.setContent(request.getContent());
     post.setTags(request.getTags());
-    post.setLikesCount(request.getLikeCount());
-    post.setCommentsCount(request.getCommentCount());
-    post.setSharesCount(request.getShareCount());
-    post.setSavesCount(request.getSaveCount());
     return post;
   }
 
@@ -295,7 +292,8 @@ public class PostServiceImpl implements PostService {
 
   @Transactional
   @Override
-  public PostResponse updatePost(String postId, CreatePostRequest request, UUID currentUserId) {
+  public PostResponse updatePost(
+      String postId, CreatePostRequest request, List<MultipartFile> files, UUID currentUserId) {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
@@ -305,9 +303,69 @@ public class PostServiceImpl implements PostService {
       throw new AccessDeniedException("You are not allowed to update this post");
     }
 
-    post.setContent(request.getContent());
-    post.setTags(request.getTags());
+    if (request.getContent() != null && !request.getContent().equals(post.getContent())) {
+      post.setContent(request.getContent());
+    }
+
+    if (request.getTags() != null && !request.getTags().equals(post.getTags())) {
+      post.setTags(request.getTags());
+    }
+
+    List<String> mediaUrls = post.getMediaUrls();
+
+    if (files != null && !files.isEmpty()) {
+      for (MultipartFile file : files) {
+        String fileUrl = null;
+        try {
+          String contentType = file.getContentType();
+          if (contentType != null && contentType.startsWith("image/")) {
+            fileValidator.validateImage(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+          } else if (contentType != null && contentType.startsWith("video/")) {
+            fileValidator.validateVideo(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
+          } else {
+            throw new IllegalArgumentException("Only image and video files are allowed");
+          }
+          mediaUrls.add(fileUrl);
+        } catch (Exception e) {
+          log.error("Error uploading profile image", e);
+          if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+          throw new BusinessException("Failed to upload profile image", e.getMessage());
+        }
+      }
+      post.setMediaUrls(mediaUrls);
+    }
     Post updated = postRepository.save(post);
     return postMapper.toResponse(updated);
+  }
+
+  @Transactional
+  @Override
+  public void deletePostMedia(UUID postId, String mediaUrl, UUID currentUserId) {
+    Post post =
+        postRepository
+            .findById(postId)
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId.toString()));
+
+    User user = userService.getUserById(currentUserId);
+
+    if (!post.getUser().getId().equals(user.getId())) {
+      throw new AccessDeniedException("You are not allowed to delete media from this post");
+    }
+
+    List<String> mediaUrls = post.getMediaUrls();
+    if (mediaUrls == null || !mediaUrls.contains(mediaUrl)) {
+      throw new BusinessException("Media not found in post");
+    }
+
+    // Xoá file vật lý trên S3
+    s3Util.deleteFileByUrl(mediaUrl);
+
+    // Cập nhật danh sách mediaUrls trong DB
+    List<String> updatedUrls = mediaUrls.stream().filter(url -> !url.equals(mediaUrl)).toList();
+
+    post.setMediaUrls(updatedUrls);
+    postRepository.save(post);
   }
 }
