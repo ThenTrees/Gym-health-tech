@@ -4,9 +4,10 @@ import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface PostService {
-  PostResponse createPost(CreatePostRequest request);
+  PostResponse createPost(CreatePostRequest request, List<MultipartFile> files);
 
   PostResponse getPostDetail(String postId);
 

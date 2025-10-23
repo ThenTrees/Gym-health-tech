@@ -24,8 +24,6 @@ public class CreatePostRequest {
 
   private List<String> tags;
 
-  private List<String> mediaUrls;
-
   @Min(value = 0, message = "Like count cannot be negative")
   @Builder.Default
   private int likeCount = 0;

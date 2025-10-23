@@ -2,10 +2,12 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
+import com.thentrees.gymhealthtech.constant.S3Constant;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.event.LikeEvent;
 import com.thentrees.gymhealthtech.event.UnLikeEvent;
+import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.PostMapper;
 import com.thentrees.gymhealthtech.model.*;
@@ -16,6 +18,8 @@ import com.thentrees.gymhealthtech.repository.PostLikeRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostService;
 import com.thentrees.gymhealthtech.service.UserService;
+import com.thentrees.gymhealthtech.util.FileValidator;
+import com.thentrees.gymhealthtech.util.S3Util;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
@@ -43,10 +48,12 @@ public class PostServiceImpl implements PostService {
   private final PostMapper postMapper;
   private final PostLikeRepository postLikeRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final S3Util s3Util;
+  private final FileValidator fileValidator;
 
   @Transactional
   @Override
-  public PostResponse createPost(CreatePostRequest request) {
+  public PostResponse createPost(CreatePostRequest request, List<MultipartFile> files) {
 
     log.info("Creating post for user id: {}", request.getUserId());
     User user = userService.getUserById(UUID.fromString(request.getUserId()));
@@ -61,6 +68,28 @@ public class PostServiceImpl implements PostService {
 
     Post post = mapToPostEntity(request, user, plan);
 
+    List<String> mediaUrls = new ArrayList<>();
+
+    for (MultipartFile file : files) {
+      String fileUrl = null;
+      try {
+        fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+        String contentType = file.getContentType();
+        if (contentType != null && contentType.startsWith("image/")) {
+          fileValidator.validateImage(file);
+        } else if (contentType != null && contentType.startsWith("video/")) {
+          fileValidator.validateVideo(file);
+        } else {
+          throw new IllegalArgumentException("Only image and video files are allowed");
+        }
+        mediaUrls.add(fileUrl);
+      } catch (Exception e) {
+        log.error("Error uploading profile image", e);
+        if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+        throw new BusinessException("Failed to upload profile image", e.getMessage());
+      }
+    }
+    post.setMediaUrls(mediaUrls);
     Post saved = postRepository.save(post);
     return postMapper.toResponse(saved);
   }
@@ -113,7 +142,7 @@ public class PostServiceImpl implements PostService {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
 
     // TODO: Implement proper save tracking with PostSave entity
     // For now, just increment/decrement the counter
@@ -135,7 +164,7 @@ public class PostServiceImpl implements PostService {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
 
     post.setSharesCount(post.getSharesCount() + 1);
 
@@ -241,7 +270,6 @@ public class PostServiceImpl implements PostService {
     post.setPlan(plan);
     post.setContent(request.getContent());
     post.setTags(request.getTags());
-    post.setMediaUrls(request.getMediaUrls());
     post.setLikesCount(request.getLikeCount());
     post.setCommentsCount(request.getCommentCount());
     post.setSharesCount(request.getShareCount());
@@ -279,7 +307,6 @@ public class PostServiceImpl implements PostService {
 
     post.setContent(request.getContent());
     post.setTags(request.getTags());
-    post.setMediaUrls(request.getMediaUrls());
     Post updated = postRepository.save(post);
     return postMapper.toResponse(updated);
   }

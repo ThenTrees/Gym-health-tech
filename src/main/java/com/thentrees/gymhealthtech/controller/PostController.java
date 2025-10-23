@@ -5,6 +5,7 @@ import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.service.PostService;
 import com.thentrees.gymhealthtech.service.UserService;
+import com.thentrees.gymhealthtech.util.S3Util;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,10 +16,12 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("${app.prefix}/posts")
@@ -28,6 +31,7 @@ public class PostController {
 
   private final PostService postService;
   private final UserService userService;
+  private final S3Util s3Util;
 
   @Operation(
       summary = "Create a new post",
@@ -58,11 +62,12 @@ public class PostController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = APIResponse.class)))
       })
-  @PostMapping
+  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
   public ResponseEntity<APIResponse<PostResponse>> createPost(
-      @Valid @RequestBody CreatePostRequest request) {
+      @RequestPart("post") CreatePostRequest request,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files) {
     log.info("Create Post Request: {}", request);
-    PostResponse response = postService.createPost(request);
+    PostResponse response = postService.createPost(request, files);
     return ResponseEntity.ok(APIResponse.success(response));
   }
 
@@ -146,6 +151,41 @@ public class PostController {
     return ResponseEntity.ok(APIResponse.success("Post deleted successfully"));
   }
 
+  @Operation(
+      summary = "Update a Post",
+      description = "Updates the details of a specific post by its ID.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Post updated successfully",
+            content = {
+              @Content(
+                  mediaType = "application/json",
+                  schema = @Schema(implementation = PostResponse.class))
+            }),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input data",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Post not found",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = APIResponse.class)))
+      })
   @PutMapping("/{postId}")
   public ResponseEntity<APIResponse<PostResponse>> updatePost(
       @PathVariable("postId") String postId,

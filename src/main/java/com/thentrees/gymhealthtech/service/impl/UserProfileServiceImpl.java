@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import static com.thentrees.gymhealthtech.constant.S3Constant.*;
+
 import com.thentrees.gymhealthtech.common.UserStatus;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
 import com.thentrees.gymhealthtech.dto.response.UserProfileResponse;
@@ -10,34 +12,28 @@ import com.thentrees.gymhealthtech.model.UserProfile;
 import com.thentrees.gymhealthtech.repository.UserProfileRepository;
 import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.service.UserProfileService;
+import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class UserProfileServiceImpl implements UserProfileService {
 
-  @Value("${aws.s3.bucket}")
-  private String bucketName;
-
   private final UserRepository userRepository;
   private final UserProfileRepository userProfileRepository;
   private final S3Util s3Util;
-  private final S3Client s3Client;
+  private final FileValidator fileValidator;
 
   @Override
   public UserProfileResponse getUserProfile(String email) {
@@ -178,22 +174,13 @@ public class UserProfileServiceImpl implements UserProfileService {
     return mapToResponse(savedProfile);
   }
 
+  @Transactional
   @Override
   public String uploadProfileImage(MultipartFile file) {
-    // Tạo key unique cho file
-    String s3Key = s3Util.generateFileName(file.getOriginalFilename());
+    fileValidator.validateImage(file);
+    String fileUrl = null;
     try {
-      // Upload file lên S3
-      PutObjectRequest putObjectRequest =
-          PutObjectRequest.builder()
-              .bucket(bucketName)
-              .key(s3Key)
-              .contentType(file.getContentType())
-              .contentLength(file.getSize())
-              .build();
-
-      s3Client.putObject(
-          putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+      fileUrl = s3Util.uploadFile(file, S3_AVATAR_FOLDER);
 
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
       User userExist =
@@ -209,15 +196,14 @@ public class UserProfileServiceImpl implements UserProfileService {
               .findByUserId(userExist.getId())
               .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 
-      profile.setAvatarUrl(s3Key);
+      profile.setAvatarUrl(fileUrl);
       userProfileRepository.save(profile);
 
-      // Trả về URL của file
-      return s3Util.getFileUrl(s3Key);
-
+      return fileUrl;
     } catch (Exception e) {
-      log.error("Error uploading file to S3: {}", e.getMessage());
-      throw new RuntimeException("Failed to upload file", e);
+      log.error("Error uploading profile image", e);
+      if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+      throw new BusinessException("Failed to upload profile image", e.getMessage());
     }
   }
 
