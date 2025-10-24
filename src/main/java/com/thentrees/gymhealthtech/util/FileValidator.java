@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileValidator {
 
   private static final long MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  private static final long MAX_VIDEO_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  private static final long MAX_VIDEO_FILE_SIZE = 500 * 1024 * 1024; // 250MB
 
   /** Kiểm tra xem file có hợp lệ là ảnh không */
   public void validateImage(MultipartFile file) {
