@@ -1,4 +1,3 @@
-
 package com.thentrees.gymhealthtech.enums;
 
 public enum NotificationType {
