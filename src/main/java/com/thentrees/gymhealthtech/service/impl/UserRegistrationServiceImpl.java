@@ -2,11 +2,11 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
 
-import com.thentrees.gymhealthtech.common.UserRole;
-import com.thentrees.gymhealthtech.common.UserStatus;
-import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.RegisterRequest;
 import com.thentrees.gymhealthtech.dto.response.RegisterResponse;
+import com.thentrees.gymhealthtech.enums.UserRole;
+import com.thentrees.gymhealthtech.enums.UserStatus;
+import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.UserProfile;

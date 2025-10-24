@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository.spec;
 
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import com.thentrees.gymhealthtech.model.*;
 import jakarta.persistence.criteria.Join;
 import java.util.List;

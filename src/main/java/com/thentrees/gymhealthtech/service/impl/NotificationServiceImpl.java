@@ -1,11 +1,14 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.common.DevicePlatform;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
+import com.thentrees.gymhealthtech.enums.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.NotificationType;
 import com.thentrees.gymhealthtech.model.DeviceToken;
+import com.thentrees.gymhealthtech.model.Notification;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.DeviceTokenRepository;
+import com.thentrees.gymhealthtech.repository.NotificationRepository;
 import com.thentrees.gymhealthtech.service.NotificationService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.github.jav.exposerversdk.*;
@@ -28,6 +31,7 @@ public class NotificationServiceImpl implements NotificationService {
 
   private final DeviceTokenRepository deviceTokenRepository;
   private final UserService userService;
+  private final NotificationRepository notificationRepository;
 
   @Transactional
   @Override

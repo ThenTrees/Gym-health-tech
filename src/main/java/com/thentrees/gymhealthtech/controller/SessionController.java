@@ -1,6 +1,5 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
@@ -9,6 +8,7 @@ import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PagedResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionResponse;
 import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,9 +1,9 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.common.UserStatus;
-import com.thentrees.gymhealthtech.common.VerificationType;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
+import com.thentrees.gymhealthtech.enums.UserStatus;
+import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.RefreshToken;
 import com.thentrees.gymhealthtech.model.User;

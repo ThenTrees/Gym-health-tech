@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository.spec;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.model.Session;
 import org.springframework.data.jpa.domain.Specification;
 
