@@ -189,7 +189,7 @@ public class PostController {
       @PathVariable("postId") String postId,
       @Valid @RequestPart("post") CreatePostRequest request,
       @RequestPart(value = "files", required = false) List<MultipartFile> files,
-      @RequestPart @AuthenticationPrincipal UserDetails userDetails) {
+      @AuthenticationPrincipal UserDetails userDetails) {
     // Implementation for updating a post goes here
     log.info("Update Post Request: {}", postId);
     UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
