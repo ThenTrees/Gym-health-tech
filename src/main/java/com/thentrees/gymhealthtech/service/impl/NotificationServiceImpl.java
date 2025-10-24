@@ -3,7 +3,9 @@ package com.thentrees.gymhealthtech.service.impl;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
 import com.thentrees.gymhealthtech.enums.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.NotificationType;
 import com.thentrees.gymhealthtech.model.DeviceToken;
+import com.thentrees.gymhealthtech.model.Notification;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.DeviceTokenRepository;
 import com.thentrees.gymhealthtech.repository.NotificationRepository;
@@ -11,11 +13,8 @@ import com.thentrees.gymhealthtech.service.NotificationService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.github.jav.exposerversdk.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,105 +51,114 @@ public class NotificationServiceImpl implements NotificationService {
 
   @Transactional
   @Override
-  public void sendPushNotification(SendNotificationRequest request)
-      throws PushClientException, InterruptedException {
+  public void sendPushNotification(SendNotificationRequest request) throws PushClientException {
 
     List<DeviceToken> deviceTokens =
         deviceTokenRepository.findByUserId(UUID.fromString(request.getUserId()));
 
-    for (DeviceToken deviceToken : deviceTokens) {
-      if (!PushClient.isExponentPushToken(deviceToken.getPushToken()))
-        throw new Error("Token:" + deviceToken.getPushToken() + " is not a valid token.");
+    if (deviceTokens.isEmpty()) {
+      log.warn("No device tokens found for user {}", request.getUserId());
+      return;
+    }
 
-      ExpoPushMessage expoPushMessage = new ExpoPushMessage();
-      expoPushMessage.getTo().add(deviceToken.getPushToken());
-      expoPushMessage.setTitle(request.getTitle());
-      expoPushMessage.setBody(request.getBody());
+    // Chuẩn bị danh sách message
+    List<ExpoPushMessage> messages =
+        deviceTokens.stream()
+            .filter(token -> PushClient.isExponentPushToken(token.getPushToken()))
+            .map(token -> createMessage(token.getPushToken(), request))
+            .collect(Collectors.toList());
 
-      List<ExpoPushMessage> expoPushMessages = new ArrayList<>();
-      expoPushMessages.add(expoPushMessage);
+    PushClient client = new PushClient();
+    List<ExpoPushTicket> tickets = sendMessages(client, messages);
+    Notification notification =
+        Notification.builder()
+            .receiverId(UUID.fromString(request.getUserId()))
+            .title(request.getTitle())
+            .content(request.getBody())
+            .type(NotificationType.valueOf(request.getNotificationType()))
+            .createdAt(LocalDateTime.now())
+            .build();
+    notificationRepository.save(notification);
+    processTickets(client, messages, tickets);
 
-      PushClient client = new PushClient();
-      List<List<ExpoPushMessage>> chunks = client.chunkPushNotifications(expoPushMessages);
+    // (Optional) Lấy receipts để kiểm tra tình trạng
+    fetchAndLogReceipts(client, tickets);
+  }
 
-      List<CompletableFuture<List<ExpoPushTicket>>> messageRepliesFutures = new ArrayList<>();
+  private ExpoPushMessage createMessage(String pushToken, SendNotificationRequest request) {
+    ExpoPushMessage message = new ExpoPushMessage();
+    message.getTo().add(pushToken);
+    message.setTitle(request.getTitle());
+    message.setBody(request.getBody());
+    return message;
+  }
 
-      for (List<ExpoPushMessage> chunk : chunks) {
-        messageRepliesFutures.add(client.sendPushNotificationsAsync(chunk));
+  private List<ExpoPushTicket> sendMessages(PushClient client, List<ExpoPushMessage> messages) {
+
+    List<List<ExpoPushMessage>> chunks = client.chunkPushNotifications(messages);
+    List<CompletableFuture<List<ExpoPushTicket>>> futures = new ArrayList<>();
+
+    for (List<ExpoPushMessage> chunk : chunks) {
+      futures.add(client.sendPushNotificationsAsync(chunk));
+    }
+
+    return futures.stream()
+        .map(
+            future -> {
+              try {
+                return future.get();
+              } catch (Exception e) {
+                log.error("Error sending push notification chunk", e);
+                return Collections.<ExpoPushTicket>emptyList();
+              }
+            })
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+  }
+
+  private void processTickets(
+      PushClient client, List<ExpoPushMessage> messages, List<ExpoPushTicket> tickets) {
+    List<ExpoPushMessageTicketPair<ExpoPushMessage>> pairs =
+        client.zipMessagesTickets(messages, tickets);
+
+    List<ExpoPushMessageTicketPair<ExpoPushMessage>> success =
+        client.filterAllSuccessfulMessages(pairs);
+    if (!success.isEmpty()) {
+      log.info("✅ Sent {} push notifications successfully", success.size());
+    }
+
+    List<ExpoPushMessageTicketPair<ExpoPushMessage>> errors =
+        client.filterAllMessagesWithError(pairs);
+    if (!errors.isEmpty()) {
+      String errorMessages =
+          errors.stream()
+              .map(p -> String.valueOf(p.ticket.getDetails().getError()))
+              .collect(Collectors.joining(", "));
+      log.error("❌ {} notifications failed: {}", errors.size(), errorMessages);
+    }
+  }
+
+  private void fetchAndLogReceipts(PushClient client, List<ExpoPushTicket> tickets) {
+
+    List<String> ticketIds =
+        tickets.stream()
+            .map(ExpoPushTicket::getId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    if (ticketIds.isEmpty()) return;
+
+    log.info("Fetching push receipts...");
+    CompletableFuture<List<ExpoPushReceipt>> receiptsFuture =
+        client.getPushNotificationReceiptsAsync(ticketIds);
+
+    try {
+      List<ExpoPushReceipt> receipts = receiptsFuture.get();
+      for (ExpoPushReceipt receipt : receipts) {
+        log.info("📩 Receipt {} - Status: {}", receipt.getId(), receipt.getStatus());
       }
-
-      // Wait for each completable future to finish
-      List<ExpoPushTicket> allTickets = new ArrayList<>();
-      for (CompletableFuture<List<ExpoPushTicket>> messageReplyFuture : messageRepliesFutures) {
-        try {
-          for (ExpoPushTicket ticket : messageReplyFuture.get()) {
-            allTickets.add(ticket);
-          }
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        } catch (ExecutionException e) {
-          e.printStackTrace();
-        }
-      }
-
-      List<ExpoPushMessageTicketPair<ExpoPushMessage>> zippedMessagesTickets =
-          client.zipMessagesTickets(expoPushMessages, allTickets);
-
-      List<ExpoPushMessageTicketPair<ExpoPushMessage>> okTicketMessages =
-          client.filterAllSuccessfulMessages(zippedMessagesTickets);
-      String okTicketMessagesString =
-          okTicketMessages.stream()
-              .map(p -> "Title: " + p.message.getTitle() + ", Id:" + p.ticket.getId())
-              .collect(Collectors.joining(","));
-      log.info(
-          "Recieved OK ticket for "
-              + okTicketMessages.size()
-              + " messages: "
-              + okTicketMessagesString);
-
-      List<ExpoPushMessageTicketPair<ExpoPushMessage>> errorTicketMessages =
-          client.filterAllMessagesWithError(zippedMessagesTickets);
-      String errorTicketMessagesString =
-          errorTicketMessages.stream()
-              .map(
-                  p ->
-                      "Title: "
-                          + p.message.getTitle()
-                          + ", Error: "
-                          + p.ticket.getDetails().getError())
-              .collect(Collectors.joining(","));
-      log.error(
-          "Recieved ERROR ticket for "
-              + errorTicketMessages.size()
-              + " messages: "
-              + errorTicketMessagesString);
-
-      // Countdown 30s
-      int wait = 5;
-      for (int i = wait; i >= 0; i--) {
-        System.out.print("Waiting for " + wait + " seconds. " + i + "s\r");
-        Thread.sleep(1000);
-      }
-      log.info("Fetching reciepts...");
-
-      List<String> ticketIds = (client.getTicketIdsFromPairs(okTicketMessages));
-      CompletableFuture<List<ExpoPushReceipt>> receiptFutures =
-          client.getPushNotificationReceiptsAsync(ticketIds);
-
-      List<ExpoPushReceipt> receipts = new ArrayList<>();
-      try {
-        receipts = receiptFutures.get();
-      } catch (ExecutionException e) {
-        e.printStackTrace();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
-      log.info("Recieved " + receipts.size() + " receipts:");
-
-      for (ExpoPushReceipt reciept : receipts) {
-        log.info("Receipt for id: " + reciept.getId() + " had status: " + reciept.getStatus());
-      }
+    } catch (Exception e) {
+      log.error("Failed to fetch receipts", e);
     }
   }
 }
