@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.thentrees.gymhealthtech.common.ObjectiveType;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import com.thentrees.gymhealthtech.exception.HealthSafetyException;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;

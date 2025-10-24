@@ -1,10 +1,10 @@
 package com.thentrees.gymhealthtech.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
 import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;

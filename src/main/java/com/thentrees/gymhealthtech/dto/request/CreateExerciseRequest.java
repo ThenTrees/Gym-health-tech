@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

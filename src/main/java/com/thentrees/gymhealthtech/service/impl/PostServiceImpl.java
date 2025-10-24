@@ -1,10 +1,10 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.common.PlanSourceType;
-import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.constant.S3Constant;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
+import com.thentrees.gymhealthtech.enums.PlanSourceType;
+import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import com.thentrees.gymhealthtech.event.LikeEvent;
 import com.thentrees.gymhealthtech.event.UnLikeEvent;
 import com.thentrees.gymhealthtech.exception.BusinessException;

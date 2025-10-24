@@ -2,9 +2,9 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import static com.thentrees.gymhealthtech.constant.S3Constant.*;
 
-import com.thentrees.gymhealthtech.common.UserStatus;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
 import com.thentrees.gymhealthtech.dto.response.UserProfileResponse;
+import com.thentrees.gymhealthtech.enums.UserStatus;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.User;

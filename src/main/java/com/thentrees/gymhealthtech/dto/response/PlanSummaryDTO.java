@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.dto.response;
 
-import com.thentrees.gymhealthtech.common.PlanSourceType;
-import com.thentrees.gymhealthtech.common.PlanStatusType;
+import com.thentrees.gymhealthtech.enums.PlanSourceType;
+import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import lombok.Data;
 
 /** Summary DTO for Plan shared in posts */

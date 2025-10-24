@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.VerificationType;
+import com.thentrees.gymhealthtech.enums.VerificationType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;

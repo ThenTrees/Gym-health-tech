@@ -2,9 +2,9 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.common.ExerciseType;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.enums.ExerciseType;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.ExerciseMapper;
 import com.thentrees.gymhealthtech.mapper.MuscleMapper;
