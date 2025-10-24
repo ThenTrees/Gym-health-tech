@@ -59,6 +59,8 @@ public class PostCommentServiceImpl implements PostCommentService {
                   () -> new ResourceNotFoundException("PostComment", request.getParentCommentId()));
       comment.setParentComment(parent);
     }
+    comment.setLikesCount(0);
+    comment.setRepliesCount(0);
     comment.setIsActive(true);
     comment.setIsPinned(false);
 
@@ -138,7 +140,9 @@ public class PostCommentServiceImpl implements PostCommentService {
     }
 
     // Xoá file vật lý trên S3
-    s3Util.deleteFileByUrl(mediaUrl);
+    //    s3Util.deleteFileByUrl(mediaUrl);
+    s3Util.deleteFileByKey(mediaUrl);
+
     post.setMediaUrls(null);
     postRepository.save(post);
   }

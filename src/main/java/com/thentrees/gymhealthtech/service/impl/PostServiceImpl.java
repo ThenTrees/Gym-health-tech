@@ -360,7 +360,8 @@ public class PostServiceImpl implements PostService {
     }
 
     // Xoá file vật lý trên S3
-    s3Util.deleteFileByUrl(mediaUrl);
+    //    s3Util.deleteFileByUrl(mediaUrl);
+    s3Util.deleteFileByKey(mediaUrl);
 
     // Cập nhật danh sách mediaUrls trong DB
     List<String> updatedUrls = mediaUrls.stream().filter(url -> !url.equals(mediaUrl)).toList();
