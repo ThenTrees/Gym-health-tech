@@ -7,4 +7,5 @@ public class SendNotificationRequest {
   private String userId;
   private String title;
   private String body;
+  private String notificationType;
 }
