@@ -112,7 +112,7 @@ public class PostServiceImpl implements PostService {
   @Override
   public List<PostResponse> getAllPosts() {
     log.info("Fetching all posts");
-    List<Post> posts = postRepository.findAll();
+    List<Post> posts = postRepository.findAll().stream().filter(p -> !p.getIsDeleted()).toList();
     return posts.stream().map(postMapper::toResponse).toList();
   }
 

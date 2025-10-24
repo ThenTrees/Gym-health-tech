@@ -113,6 +113,7 @@ public class PostCommentServiceImpl implements PostCommentService {
       throw new AccessDeniedException("User is not authorized to delete this comment");
     }
     comment.setIsDeleted(true);
+    comment.setIsActive(false);
     commentRepository.save(comment);
 
     applicationEventPublisher.publishEvent(new CommentDeletedEvent(comment.getPost()));
