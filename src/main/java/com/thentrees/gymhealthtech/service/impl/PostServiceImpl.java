@@ -70,26 +70,29 @@ public class PostServiceImpl implements PostService {
 
     List<String> mediaUrls = new ArrayList<>();
 
-    for (MultipartFile file : files) {
-      String fileUrl = null;
-      try {
-        String contentType = file.getContentType();
-        if (contentType != null && contentType.startsWith("image/")) {
-          fileValidator.validateImage(file);
-          fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
-        } else if (contentType != null && contentType.startsWith("video/")) {
-          fileValidator.validateVideo(file);
-          fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
-        } else {
-          throw new IllegalArgumentException("Only image and video files are allowed");
+    if (files != null && !files.isEmpty()) {
+      for (MultipartFile file : files) {
+        String fileUrl = null;
+        try {
+          String contentType = file.getContentType();
+          if (contentType != null && contentType.startsWith("image/")) {
+            fileValidator.validateImage(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+          } else if (contentType != null && contentType.startsWith("video/")) {
+            fileValidator.validateVideo(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
+          } else {
+            throw new IllegalArgumentException("Only image and video files are allowed");
+          }
+          mediaUrls.add(fileUrl);
+        } catch (Exception e) {
+          log.error("Error uploading profile image", e);
+          if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+          throw new BusinessException("Failed to upload profile image", e.getMessage());
         }
-        mediaUrls.add(fileUrl);
-      } catch (Exception e) {
-        log.error("Error uploading profile image", e);
-        if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
-        throw new BusinessException("Failed to upload profile image", e.getMessage());
       }
     }
+
     post.setMediaUrls(mediaUrls);
     Post saved = postRepository.save(post);
     return postMapper.toResponse(saved);

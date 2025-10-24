@@ -64,23 +64,25 @@ public class PostCommentServiceImpl implements PostCommentService {
     comment.setIsActive(true);
     comment.setIsPinned(false);
 
-    String fileUrl = null;
-    try {
-      String contentType = file.getContentType();
-      if (contentType != null && contentType.startsWith("image/")) {
-        fileValidator.validateImage(file);
-        fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
-      } else if (contentType != null && contentType.startsWith("video/")) {
-        fileValidator.validateVideo(file);
-        fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
-      } else {
-        throw new IllegalArgumentException("Only image and video files are allowed");
+    if (file != null && !file.isEmpty()) {
+      String fileUrl = null;
+      try {
+        String contentType = file.getContentType();
+        if (contentType != null && contentType.startsWith("image/")) {
+          fileValidator.validateImage(file);
+          fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+        } else if (contentType != null && contentType.startsWith("video/")) {
+          fileValidator.validateVideo(file);
+          fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
+        } else {
+          throw new IllegalArgumentException("Only image and video files are allowed");
+        }
+        comment.setMediaUrl(fileUrl);
+      } catch (Exception e) {
+        log.error("Error uploading profile image", e);
+        if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+        throw new BusinessException("Failed to upload profile image", e.getMessage());
       }
-      comment.setMediaUrl(fileUrl);
-    } catch (Exception e) {
-      log.error("Error uploading profile image", e);
-      if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
-      throw new BusinessException("Failed to upload profile image", e.getMessage());
     }
 
     PostComment saved = commentRepository.save(comment);
