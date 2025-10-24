@@ -92,7 +92,10 @@ public class PostServiceImpl implements PostService {
         }
       }
     }
-
+    post.setLikesCount(0);
+    post.setCommentsCount(0);
+    post.setSharesCount(0);
+    post.setSavesCount(0);
     post.setMediaUrls(mediaUrls);
     Post saved = postRepository.save(post);
     return postMapper.toResponse(saved);
