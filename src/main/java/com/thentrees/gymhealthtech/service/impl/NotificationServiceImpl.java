@@ -53,6 +53,7 @@ public class NotificationServiceImpl implements NotificationService {
   @Override
   public void sendPushNotification(SendNotificationRequest request) throws PushClientException {
 
+    // Retrieve device tokens for the user
     List<DeviceToken> deviceTokens =
         deviceTokenRepository.findByUserId(UUID.fromString(request.getUserId()));
 
@@ -116,6 +117,7 @@ public class NotificationServiceImpl implements NotificationService {
         .collect(Collectors.toList());
   }
 
+  /** Log kết quả */
   private void processTickets(
       PushClient client, List<ExpoPushMessage> messages, List<ExpoPushTicket> tickets) {
     List<ExpoPushMessageTicketPair<ExpoPushMessage>> pairs =
@@ -138,6 +140,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
   }
 
+  /** Xử lý receipt riêng */
   private void fetchAndLogReceipts(PushClient client, List<ExpoPushTicket> tickets) {
 
     List<String> ticketIds =
