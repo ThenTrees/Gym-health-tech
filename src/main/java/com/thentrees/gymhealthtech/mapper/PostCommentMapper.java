@@ -25,8 +25,6 @@ public interface PostCommentMapper {
   //  @Mapping(target = "post", expression = "java(mapToPost(dto.getPostId(), postRepository))")
   @Mapping(target = "post", source = "postId", qualifiedByName = "mapPost")
   @Mapping(target = "user", source = "userId", qualifiedByName = "mapUser")
-  @Mapping(target = "likesCount", source = "likeCount")
-  @Mapping(target = "repliesCount", source = "replyCount")
   @Mapping(target = "parentComment", source = "parentCommentId", qualifiedByName = "mapParent")
   PostComment toEntity(CreateCommentRequest dto, @Context PostRepository postRepository);
 

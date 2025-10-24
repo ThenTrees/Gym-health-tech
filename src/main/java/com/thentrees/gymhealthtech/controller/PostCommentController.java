@@ -16,10 +16,12 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("${app.prefix}/comments")
@@ -59,10 +61,11 @@ public class PostCommentController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = APIResponse.class)))
       })
-  @PostMapping
+  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<APIResponse<PostCommentResponse>> createComment(
-      @Valid @RequestBody CreateCommentRequest request) {
-    PostCommentResponse response = commentService.createPostComment(request);
+      @Valid @RequestPart("comment") CreateCommentRequest request,
+      @RequestPart(value = "file", required = false) MultipartFile file) {
+    PostCommentResponse response = commentService.createPostComment(request, file);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(response));
   }
 
@@ -113,5 +116,17 @@ public class PostCommentController {
     // Implementation for deleting a comment goes here
     return ResponseEntity.status(HttpStatus.NO_CONTENT)
         .body(APIResponse.success("Comment deleted"));
+  }
+
+  @DeleteMapping("/{commentId}/media")
+  public ResponseEntity<Void> deletePostMedia(
+      @PathVariable UUID commentId,
+      @RequestParam("url") String mediaUrl,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    UUID currentUserId = userService.getUserByUsername(userDetails.getUsername()).getId();
+
+    commentService.deleteCommentMedia(mediaUrl, commentId, currentUserId);
+    return ResponseEntity.noContent().build();
   }
 }

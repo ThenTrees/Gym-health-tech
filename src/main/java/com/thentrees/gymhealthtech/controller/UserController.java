@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -339,26 +338,8 @@ public class UserController {
       })
   @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<APIResponse<UploadResponse>> uploadAvatar(
-      @RequestParam("file") MultipartFile file) throws IOException {
+      @RequestParam("file") MultipartFile file) {
     try {
-      // Validate file
-      if (file.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(APIResponse.error("File is empty"));
-      }
-
-      // Validate file type
-      if (!s3Util.isValidImageFile(file)) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(APIResponse.error("Only image files are allowed"));
-      }
-
-      // Validate file size (max 5MB)
-      if (file.getSize() > 5 * 1024 * 1024) {
-        return ResponseEntity.badRequest()
-            .body(APIResponse.error("File size must be less than 5MB"));
-      }
-
       String fileUrl = userProfileService.uploadProfileImage(file);
 
       UploadResponse uploadResponse =

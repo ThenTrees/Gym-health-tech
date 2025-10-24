@@ -2,10 +2,12 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.common.PlanSourceType;
 import com.thentrees.gymhealthtech.common.PlanStatusType;
+import com.thentrees.gymhealthtech.constant.S3Constant;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.event.LikeEvent;
 import com.thentrees.gymhealthtech.event.UnLikeEvent;
+import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.PostMapper;
 import com.thentrees.gymhealthtech.model.*;
@@ -16,6 +18,8 @@ import com.thentrees.gymhealthtech.repository.PostLikeRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostService;
 import com.thentrees.gymhealthtech.service.UserService;
+import com.thentrees.gymhealthtech.util.FileValidator;
+import com.thentrees.gymhealthtech.util.S3Util;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
@@ -43,10 +48,12 @@ public class PostServiceImpl implements PostService {
   private final PostMapper postMapper;
   private final PostLikeRepository postLikeRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final S3Util s3Util;
+  private final FileValidator fileValidator;
 
   @Transactional
   @Override
-  public PostResponse createPost(CreatePostRequest request) {
+  public PostResponse createPost(CreatePostRequest request, List<MultipartFile> files) {
 
     log.info("Creating post for user id: {}", request.getUserId());
     User user = userService.getUserById(UUID.fromString(request.getUserId()));
@@ -61,6 +68,35 @@ public class PostServiceImpl implements PostService {
 
     Post post = mapToPostEntity(request, user, plan);
 
+    List<String> mediaUrls = new ArrayList<>();
+
+    if (files != null && !files.isEmpty()) {
+      for (MultipartFile file : files) {
+        String fileUrl = null;
+        try {
+          String contentType = file.getContentType();
+          if (contentType != null && contentType.startsWith("image/")) {
+            fileValidator.validateImage(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+          } else if (contentType != null && contentType.startsWith("video/")) {
+            fileValidator.validateVideo(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
+          } else {
+            throw new IllegalArgumentException("Only image and video files are allowed");
+          }
+          mediaUrls.add(fileUrl);
+        } catch (Exception e) {
+          log.error("Error uploading profile image", e);
+          if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+          throw new BusinessException("Failed to upload profile image", e.getMessage());
+        }
+      }
+    }
+    post.setLikesCount(0);
+    post.setCommentsCount(0);
+    post.setSharesCount(0);
+    post.setSavesCount(0);
+    post.setMediaUrls(mediaUrls);
     Post saved = postRepository.save(post);
     return postMapper.toResponse(saved);
   }
@@ -79,7 +115,7 @@ public class PostServiceImpl implements PostService {
   @Override
   public List<PostResponse> getAllPosts() {
     log.info("Fetching all posts");
-    List<Post> posts = postRepository.findAll();
+    List<Post> posts = postRepository.findAll().stream().filter(p -> !p.getIsDeleted()).toList();
     return posts.stream().map(postMapper::toResponse).toList();
   }
 
@@ -113,7 +149,7 @@ public class PostServiceImpl implements PostService {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
 
     // TODO: Implement proper save tracking with PostSave entity
     // For now, just increment/decrement the counter
@@ -135,7 +171,7 @@ public class PostServiceImpl implements PostService {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
-            .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
 
     post.setSharesCount(post.getSharesCount() + 1);
 
@@ -241,11 +277,6 @@ public class PostServiceImpl implements PostService {
     post.setPlan(plan);
     post.setContent(request.getContent());
     post.setTags(request.getTags());
-    post.setMediaUrls(request.getMediaUrls());
-    post.setLikesCount(request.getLikeCount());
-    post.setCommentsCount(request.getCommentCount());
-    post.setSharesCount(request.getShareCount());
-    post.setSavesCount(request.getSaveCount());
     return post;
   }
 
@@ -267,7 +298,8 @@ public class PostServiceImpl implements PostService {
 
   @Transactional
   @Override
-  public PostResponse updatePost(String postId, CreatePostRequest request, UUID currentUserId) {
+  public PostResponse updatePost(
+      String postId, CreatePostRequest request, List<MultipartFile> files, UUID currentUserId) {
     Post post =
         postRepository
             .findById(UUID.fromString(postId))
@@ -277,10 +309,70 @@ public class PostServiceImpl implements PostService {
       throw new AccessDeniedException("You are not allowed to update this post");
     }
 
-    post.setContent(request.getContent());
-    post.setTags(request.getTags());
-    post.setMediaUrls(request.getMediaUrls());
+    if (request.getContent() != null && !request.getContent().equals(post.getContent())) {
+      post.setContent(request.getContent());
+    }
+
+    if (request.getTags() != null && !request.getTags().equals(post.getTags())) {
+      post.setTags(request.getTags());
+    }
+
+    List<String> mediaUrls = post.getMediaUrls();
+
+    if (files != null && !files.isEmpty()) {
+      for (MultipartFile file : files) {
+        String fileUrl = null;
+        try {
+          String contentType = file.getContentType();
+          if (contentType != null && contentType.startsWith("image/")) {
+            fileValidator.validateImage(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_IMAGE_POST_FOLDER);
+          } else if (contentType != null && contentType.startsWith("video/")) {
+            fileValidator.validateVideo(file);
+            fileUrl = s3Util.uploadFile(file, S3Constant.S3_VIDEO_FOLDER);
+          } else {
+            throw new IllegalArgumentException("Only image and video files are allowed");
+          }
+          mediaUrls.add(fileUrl);
+        } catch (Exception e) {
+          log.error("Error uploading profile image", e);
+          if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+          throw new BusinessException("Failed to upload profile image", e.getMessage());
+        }
+      }
+      post.setMediaUrls(mediaUrls);
+    }
     Post updated = postRepository.save(post);
     return postMapper.toResponse(updated);
+  }
+
+  @Transactional
+  @Override
+  public void deletePostMedia(UUID postId, String mediaUrl, UUID currentUserId) {
+    Post post =
+        postRepository
+            .findById(postId)
+            .orElseThrow(() -> new ResourceNotFoundException("Post", postId.toString()));
+
+    User user = userService.getUserById(currentUserId);
+
+    if (!post.getUser().getId().equals(user.getId())) {
+      throw new AccessDeniedException("You are not allowed to delete media from this post");
+    }
+
+    List<String> mediaUrls = post.getMediaUrls();
+    if (mediaUrls == null || !mediaUrls.contains(mediaUrl)) {
+      throw new BusinessException("Media not found in post");
+    }
+
+    // Xoá file vật lý trên S3
+    //    s3Util.deleteFileByUrl(mediaUrl);
+    s3Util.deleteFileByKey(mediaUrl);
+
+    // Cập nhật danh sách mediaUrls trong DB
+    List<String> updatedUrls = mediaUrls.stream().filter(url -> !url.equals(mediaUrl)).toList();
+
+    post.setMediaUrls(updatedUrls);
+    postRepository.save(post);
   }
 }

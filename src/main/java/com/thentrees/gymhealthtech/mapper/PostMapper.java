@@ -68,6 +68,7 @@ public interface PostMapper {
   default List<PostCommentResponse> toCommentList(List<PostComment> comments) {
     if (comments == null) return List.of();
     return comments.stream()
+        .filter(c -> !c.getIsDeleted()) // chỉ lấy comment is deleted = false
         .map(
             c ->
                 PostCommentResponse.builder()

@@ -16,6 +16,7 @@ public class PostCommentResponse {
   private Integer repliesCount;
   private Boolean isPinned;
   private Boolean isActive;
+  private Boolean isDeleted;
   private LocalDateTime createdAt;
   private List<PostCommentResponse> replies; // đệ quy
   private String postId; // chỉ giữ id, KHÔNG giữ Post object
