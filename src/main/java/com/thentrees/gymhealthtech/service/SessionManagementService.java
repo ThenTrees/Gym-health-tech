@@ -23,6 +23,7 @@ public interface SessionManagementService {
   void pauseSession(UUID userId, UUID sessionId, String reason);
 
   SessionResponse getSessionDetails(UUID userId, UUID sessionId);
+  SessionResponse getSummaryDay(UUID userId, UUID planDayId);
 
   SessionResponse resumeSession(UUID userId, UUID sessionId);
 

@@ -47,5 +47,14 @@ public interface SessionRepository
   Optional<Session> findByIdAndUserIdWithSets(
       @Param("sessionId") UUID sessionId, @Param("userId") UUID userId);
 
+  @Query(
+    "SELECT s FROM Session s "
+      + "LEFT JOIN FETCH s.sessionSets ss "
+      + "LEFT JOIN FETCH ss.exercise "
+      + "WHERE s.planDay.id = :planDayId AND s.user.id = :userId")
+  Optional<Session> findByPlanDayIdAndUserIdWithSets(
+    @Param("planDayId") UUID planDayId, @Param("userId") UUID userId);
+
+
   List<Session> findByUserAndStartedAtBetween(User user, LocalDateTime startedAt, LocalDateTime startedAt2);
 }
