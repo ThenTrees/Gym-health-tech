@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.ExerciseType;
+import com.thentrees.gymhealthtech.enums.ExerciseType;
 import jakarta.persistence.*;
 import java.util.List;
 import lombok.Getter;

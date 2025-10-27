@@ -2,10 +2,10 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.common.GoalStatus;
-import com.thentrees.gymhealthtech.common.ObjectiveType;
 import com.thentrees.gymhealthtech.dto.request.CreateGoalRequest;
 import com.thentrees.gymhealthtech.dto.response.GoalResponse;
+import com.thentrees.gymhealthtech.enums.GoalStatus;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import com.thentrees.gymhealthtech.event.GoalCreatedEvent;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.DataProcessingException;

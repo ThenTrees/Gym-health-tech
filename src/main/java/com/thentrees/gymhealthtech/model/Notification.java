@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.NotificationType;
+import com.thentrees.gymhealthtech.enums.NotificationType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;

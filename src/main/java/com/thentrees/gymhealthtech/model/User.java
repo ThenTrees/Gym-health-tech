@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.UserRole;
-import com.thentrees.gymhealthtech.common.UserStatus;
+import com.thentrees.gymhealthtech.enums.UserRole;
+import com.thentrees.gymhealthtech.enums.UserStatus;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository;
 
-import com.thentrees.gymhealthtech.common.GoalStatus;
+import com.thentrees.gymhealthtech.enums.GoalStatus;
 import com.thentrees.gymhealthtech.model.Goal;
 import java.util.List;
 import java.util.Optional;

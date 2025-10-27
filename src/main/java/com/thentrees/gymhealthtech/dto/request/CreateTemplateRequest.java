@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
-import com.thentrees.gymhealthtech.common.ObjectiveType;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.List;
