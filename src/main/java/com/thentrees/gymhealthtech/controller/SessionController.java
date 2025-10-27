@@ -4,10 +4,7 @@ import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
-import com.thentrees.gymhealthtech.dto.response.APIResponse;
-import com.thentrees.gymhealthtech.dto.response.PagedResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
@@ -738,5 +735,20 @@ public class SessionController {
     PagedResponse<SessionResponse> sessions =
         sessionService.getAllSessions(userId, sessionSearchRequest);
     return ResponseEntity.ok(APIResponse.success(sessions));
+  }
+
+
+  // summary info workout sessions
+  @GetMapping("/summary/week/current")
+  public ResponseEntity<APIResponse<WeeklySummaryResponse>> getSummarySessions(
+    @AuthenticationPrincipal UserDetails userDetails) {
+    log.info(
+      "GET /users/sessions/summary-sessions - Getting summary sessions for user {}",
+      userDetails.getUsername());
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    return ResponseEntity.ok(APIResponse.success(
+      sessionService.getSummaryWeekSessions(
+        userId)
+    ));
   }
 }

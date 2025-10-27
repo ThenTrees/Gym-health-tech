@@ -7,9 +7,7 @@ import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
-import com.thentrees.gymhealthtech.dto.response.PagedResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
@@ -22,11 +20,14 @@ import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,7 +48,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionRepository sessionRepository;
   private final PlanItemRepository planItemRepository;
   private final SessionSetRepository sessionSetRepository;
-  private final CustomPlanService customPlanService;
   private final ObjectMapper objectMapper;
 
   public SessionResponse getSessionDetails(UUID userId, UUID sessionId) {
@@ -350,6 +350,101 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     Page<SessionResponse> response =
         sessionPage.map(session -> convertSessionToResponse(session, false));
     return PagedResponse.of(response);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public WeeklySummaryResponse getSummaryWeekSessions(UUID userId) {
+    log.info("Getting session week summary for user: {} and plan day", userId);
+
+    LocalDate today = LocalDate.now();
+    LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+    User user = userService.getUserById(userId);
+
+    List<Session> sessions =
+        sessionRepository.findByUserAndStartedAtBetween(
+            user,
+            startOfWeek.atStartOfDay(),
+            endOfWeek.plusDays(1).atStartOfDay().minusSeconds(1));
+
+    if (sessions.isEmpty()) {
+      return WeeklySummaryResponse.builder()
+        .weekStart(startOfWeek)
+        .weekEnd(endOfWeek)
+        .totalSessions(0)
+        .completedSessions(0)
+        .totalSets(0)
+        .completedSets(0)
+        .avgCompletionPercentage(0)
+        .totalVolume(0)
+        .totalDurationMinutes(0)
+        .dailySummaries(Collections.emptyList())
+        .build();
+    }
+
+    List<SessionResponse> sessionResponses = new ArrayList<>();
+    for (Session session : sessions) {
+      sessionResponses.add(convertSessionToResponse(session, true));
+    }
+
+    int totalSessions = sessionResponses.size();
+    int completedSessions = (int) sessionResponses.stream()
+      .filter(d -> d.getStatus() == SessionStatus.COMPLETED)
+      .count();
+
+    int totalSets = sessionResponses.stream().mapToInt(SessionResponse::getTotalSets).sum();
+
+    int completedSets = sessionResponses.stream().mapToInt(SessionResponse::getCompletedSets).sum();
+    int totalVolume = sessionResponses.stream().mapToInt(SessionResponse::getTotalVolume).sum();
+    int totalDuration = sessionResponses.stream().mapToInt(SessionResponse::getDurationMinutes).sum();
+    double avgCompletion = sessionResponses.stream()
+      .mapToDouble(SessionResponse::getCompletionPercentage)
+      .average()
+      .orElse(0);
+
+    // Tìm ngày có volume cao nhất (để hiển thị "mostTrainedDayName")
+    Optional<SessionResponse> mostTrained = sessionResponses.stream()
+      .max(Comparator.comparingInt(SessionResponse::getTotalVolume));
+
+    return WeeklySummaryResponse.builder()
+      .weekStart(startOfWeek)
+      .weekEnd(endOfWeek)
+      .totalSessions(totalSessions)
+      .completedSessions(completedSessions)
+      .totalSets(totalSets)
+      .completedSets(completedSets)
+      .avgCompletionPercentage(avgCompletion)
+      .totalVolume(totalVolume)
+      .totalDurationMinutes(totalDuration)
+      .mostTrainedDayName(mostTrained.map(SessionResponse::getPlanDayName).orElse(null))
+      .dailySummaries(
+        sessionResponses.stream()
+          .map(this::mapToDailySummary)
+          .collect(Collectors.toList()))
+      .build();
+  }
+
+  private SessionResponse mapToDailySummary(SessionResponse sessionResponse) {
+    SessionResponse summary = new SessionResponse();
+    summary.setId(sessionResponse.getId());
+    summary.setPlanDayName(sessionResponse.getPlanDayName());
+    summary.setStartedAt(sessionResponse.getStartedAt());
+    summary.setEndedAt(sessionResponse.getEndedAt());
+    summary.setStatus(sessionResponse.getStatus());
+    summary.setTotalSets(sessionResponse.getTotalSets());
+    summary.setCompletedSets(sessionResponse.getCompletedSets());
+    summary.setCompletionPercentage(sessionResponse.getCompletionPercentage());
+    summary.setTotalVolume(sessionResponse.getTotalVolume());
+    summary.setDurationMinutes(sessionResponse.getDurationMinutes());
+    summary.setPlanDayId(sessionResponse.getPlanDayId());
+    summary.setCreatedAt(sessionResponse.getCreatedAt());
+    summary.setSessionRpe(summary.getSessionRpe());
+    summary.setNotes(sessionResponse.getNotes());
+    summary.setSessionSets(sessionResponse.getSessionSets());
+    summary.setPlannedItems(sessionResponse.getPlannedItems());
+    return summary;
   }
 
   private Specification<Session> buildSessionSpecification(

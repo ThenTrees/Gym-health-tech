@@ -4,9 +4,8 @@ import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
-import com.thentrees.gymhealthtech.dto.response.PagedResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
+
 import java.util.UUID;
 
 public interface SessionManagementService {
@@ -28,4 +27,6 @@ public interface SessionManagementService {
   SessionResponse resumeSession(UUID userId, UUID sessionId);
 
   PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request);
+
+  WeeklySummaryResponse getSummaryWeekSessions(UUID userId);
 }
