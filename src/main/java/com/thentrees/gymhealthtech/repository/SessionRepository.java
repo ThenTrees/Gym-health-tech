@@ -3,8 +3,11 @@ package com.thentrees.gymhealthtech.repository;
 import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.model.Session;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.thentrees.gymhealthtech.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -43,4 +46,6 @@ public interface SessionRepository
           + "WHERE s.id = :sessionId AND s.user.id = :userId")
   Optional<Session> findByIdAndUserIdWithSets(
       @Param("sessionId") UUID sessionId, @Param("userId") UUID userId);
+
+  List<Session> findByUserAndStartedAtBetween(User user, LocalDateTime startedAt, LocalDateTime startedAt2);
 }
