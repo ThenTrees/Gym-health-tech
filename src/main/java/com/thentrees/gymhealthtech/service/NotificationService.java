@@ -10,4 +10,6 @@ public interface NotificationService {
 
   void sendPushNotification(SendNotificationRequest request)
       throws PushClientException, InterruptedException;
+
+  boolean isUserSubscribed(UUID userId, String platform);
 }
