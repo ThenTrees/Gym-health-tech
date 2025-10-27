@@ -1,4 +1,4 @@
-package com.thentrees.gymhealthtech.common;
+package com.thentrees.gymhealthtech.enums;
 
 public enum PlanStatusType {
   DRAFT,

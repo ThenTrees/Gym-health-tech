@@ -1,9 +1,9 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.thentrees.gymhealthtech.common.PlanSourceType;
-import com.thentrees.gymhealthtech.common.PlanStatusType;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.enums.PlanSourceType;
+import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.dto.response;
 
-import com.thentrees.gymhealthtech.common.FitnessLevel;
-import com.thentrees.gymhealthtech.common.GenderType;
+import com.thentrees.gymhealthtech.enums.FitnessLevel;
+import com.thentrees.gymhealthtech.enums.GenderType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;

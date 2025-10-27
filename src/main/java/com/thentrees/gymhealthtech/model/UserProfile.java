@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.FitnessLevel;
-import com.thentrees.gymhealthtech.common.GenderType;
+import com.thentrees.gymhealthtech.enums.FitnessLevel;
+import com.thentrees.gymhealthtech.enums.GenderType;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;

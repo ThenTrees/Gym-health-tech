@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.response;
 
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

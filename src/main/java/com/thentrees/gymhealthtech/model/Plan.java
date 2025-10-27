@@ -1,7 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.PlanSourceType;
-import com.thentrees.gymhealthtech.common.PlanStatusType;
+import com.thentrees.gymhealthtech.enums.PlanSourceType;
+import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.List;

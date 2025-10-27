@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.model.Session;
 import java.time.LocalDateTime;
 import java.util.Optional;

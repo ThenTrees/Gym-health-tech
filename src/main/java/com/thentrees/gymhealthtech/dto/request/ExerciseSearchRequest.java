@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import java.io.Serializable;
 import java.util.List;
 import lombok.AllArgsConstructor;

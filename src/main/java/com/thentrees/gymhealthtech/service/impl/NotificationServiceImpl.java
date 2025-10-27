@@ -1,9 +1,9 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.common.DevicePlatform;
-import com.thentrees.gymhealthtech.common.NotificationType;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
+import com.thentrees.gymhealthtech.enums.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.NotificationType;
 import com.thentrees.gymhealthtech.model.DeviceToken;
 import com.thentrees.gymhealthtech.model.Notification;
 import com.thentrees.gymhealthtech.model.User;
@@ -71,31 +71,21 @@ public class NotificationServiceImpl implements NotificationService {
 
     PushClient client = new PushClient();
     List<ExpoPushTicket> tickets = sendMessages(client, messages);
-
     Notification notification =
         Notification.builder()
-            .title(request.getTitle())
             .receiverId(UUID.fromString(request.getUserId()))
+            .title(request.getTitle())
             .content(request.getBody())
             .type(NotificationType.valueOf(request.getNotificationType()))
             .createdAt(LocalDateTime.now())
             .build();
-
     notificationRepository.save(notification);
-
     processTickets(client, messages, tickets);
 
     // (Optional) Lấy receipts để kiểm tra tình trạng
     fetchAndLogReceipts(client, tickets);
   }
 
-  /**
-   * Tạo ExpoPushMessage từ push token và request => build message
-   *
-   * @param pushToken
-   * @param request
-   * @return message
-   */
   private ExpoPushMessage createMessage(String pushToken, SendNotificationRequest request) {
     ExpoPushMessage message = new ExpoPushMessage();
     message.getTo().add(pushToken);
@@ -104,7 +94,6 @@ public class NotificationServiceImpl implements NotificationService {
     return message;
   }
 
-  /** Gửi thực tế danh sách message và trả về danh sách ticket */
   private List<ExpoPushTicket> sendMessages(PushClient client, List<ExpoPushMessage> messages) {
 
     List<List<ExpoPushMessage>> chunks = client.chunkPushNotifications(messages);

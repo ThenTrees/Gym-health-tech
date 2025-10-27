@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository;
 
-import com.thentrees.gymhealthtech.common.VerificationType;
+import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.model.VerificationToken;
 import java.time.OffsetDateTime;
 import java.util.Optional;

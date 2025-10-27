@@ -2,9 +2,9 @@ package com.thentrees.gymhealthtech.dto.request;
 
 import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
 
-import com.thentrees.gymhealthtech.common.FitnessLevel;
-import com.thentrees.gymhealthtech.common.GenderType;
 import com.thentrees.gymhealthtech.custom.StrongPassword;
+import com.thentrees.gymhealthtech.enums.FitnessLevel;
+import com.thentrees.gymhealthtech.enums.GenderType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;

@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.DevicePlatform;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
