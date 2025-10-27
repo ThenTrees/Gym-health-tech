@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.repository;
 
-import com.thentrees.gymhealthtech.common.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.DevicePlatform;
 import com.thentrees.gymhealthtech.model.DeviceToken;
 import java.util.List;
 import java.util.Optional;

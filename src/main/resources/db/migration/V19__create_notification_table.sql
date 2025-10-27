@@ -8,6 +8,7 @@ CREATE TABLE notifications (
                              title VARCHAR(255),
                              content TEXT,
                              type VARCHAR(50),
+
                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
