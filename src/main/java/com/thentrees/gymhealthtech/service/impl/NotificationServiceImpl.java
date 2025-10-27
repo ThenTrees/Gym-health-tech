@@ -175,4 +175,12 @@ public class NotificationServiceImpl implements NotificationService {
       log.error("Failed to fetch receipts", e);
     }
   }
+
+  @Transactional(readOnly = true)
+  @Override
+  public boolean isUserSubscribed(UUID userId, String platform) {
+    DevicePlatform devicePlatform = DevicePlatform.valueOf(platform.toUpperCase());
+    return deviceTokenRepository.findByUserAndPlatform(userId, devicePlatform).isPresent();
+  }
+
 }
