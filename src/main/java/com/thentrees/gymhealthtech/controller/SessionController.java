@@ -751,4 +751,17 @@ public class SessionController {
         userId)
     ));
   }
+
+  @GetMapping("/summary/day/current")
+  public ResponseEntity<APIResponse<SessionResponse>> getSummaryDaySessions(
+    @AuthenticationPrincipal UserDetails userDetails,
+    @RequestParam("planDayId") UUID planDayId) {
+    log.info(
+      "GET /users/sessions/summary/day/current - Getting summary day sessions for user {}",
+      userDetails.getUsername());
+    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+    SessionResponse session = sessionService.getSummaryDay(userId, planDayId);
+
+    return ResponseEntity.ok(APIResponse.success(session));
+  }
 }

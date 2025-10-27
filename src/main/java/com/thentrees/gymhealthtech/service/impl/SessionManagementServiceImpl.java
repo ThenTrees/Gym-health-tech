@@ -61,6 +61,20 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     return convertSessionToResponse(session, true);
   }
 
+  @Transactional(readOnly = true)
+  @Override
+  public SessionResponse getSummaryDay(UUID userId, UUID planDayId) {
+    log.info("Getting summary session day for user: {} and plan day: {}", userId, planDayId);
+
+    Session session =
+      sessionRepository
+        .findByPlanDayIdAndUserIdWithSets(planDayId, userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
+
+    return convertSessionToResponse(session, true);
+  }
+
+
   /**
    * Starts a new workout session for the user based on the specified plan day. business logic: -
    * Check if user has an active session - Check if plan day exists and is associated with user -
