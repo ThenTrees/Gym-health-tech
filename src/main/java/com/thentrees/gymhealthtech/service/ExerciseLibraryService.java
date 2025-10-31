@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
+import com.thentrees.gymhealthtech.dto.request.UpdateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import java.io.IOException;
 import java.util.List;
@@ -20,4 +21,8 @@ public interface ExerciseLibraryService {
   ExerciseDetailResponse getExerciseById(UUID id);
 
   List<MuscleResponse> getMuscles();
+
+  void updateExercise(UUID exerciseId, UpdateExerciseRequest request);
+
+  void deleteExercise(UUID exerciseId);
 }

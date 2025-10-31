@@ -3,6 +3,7 @@ package com.thentrees.gymhealthtech.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
+import com.thentrees.gymhealthtech.dto.request.UpdateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
@@ -201,12 +202,34 @@ public class ExerciseController {
         @ApiResponse(responseCode = "500", description = "internal server error")
       })
   @PostMapping("/import-exercise")
-  //  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   public String importJson(@RequestParam("file") MultipartFile file) throws Exception {
     int count = exerciseLibraryService.importExercisesFromJson(file);
     return "Imported/Updated " + count + " exercises.";
   }
 
+  @PutMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> updateExercise(
+    @PathVariable("id") UUID exerciseId,
+    @Valid @RequestBody UpdateExerciseRequest request
+  ){
+    exerciseLibraryService.updateExercise(exerciseId, request);
+    return ResponseEntity.ok(
+      APIResponse.success("Update exercise successfully")
+    );
+  }
+
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> deleteExercise(
+    @PathVariable("id") UUID exerciseId
+  ){
+    exerciseLibraryService.deleteExercise(exerciseId);
+    return ResponseEntity.ok(
+      APIResponse.success("Delete exercise successfully")
+    );
+  }
   @Operation(method = "GET", description = "Get all muscle", summary = "get muscles")
   @ApiResponses(
       value = {

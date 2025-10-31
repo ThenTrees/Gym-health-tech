@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface ExerciseRepository
     extends JpaRepository<Exercise, UUID>, JpaSpecificationExecutor<Exercise> {
+
+  Optional<Exercise> findByIdAndIsDeletedFalse(UUID id);
+
   Optional<Exercise> findBySlug(String slug);
 
   boolean existsBySlug(String slug);
