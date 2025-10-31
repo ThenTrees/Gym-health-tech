@@ -5,4 +5,6 @@ public class S3Constant {
   public static final String S3_AVATAR_FOLDER = "avatars";
   public static final String S3_IMAGE_POST_FOLDER = "posts";
   public static final String S3_VIDEO_FOLDER = "videos";
+  public static final String S3_FOOD_IMAGE_FOLDER = "foods";
+  public static final String S3_DEVICE_IMAGE_FOLDER = "devices";
 }

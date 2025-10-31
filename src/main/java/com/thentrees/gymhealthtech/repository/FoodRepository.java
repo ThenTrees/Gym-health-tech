@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.model.Food;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface FoodRepository extends JpaRepository<Food, UUID> {
 
+  Page<Food> findAllByIsActiveTrue(Pageable pageable);
+
+  Optional<Food> findByIdAndIsActiveTrue(UUID id);
   @Query("SELECT f FROM Food f WHERE f.mealTime LIKE %:mealTime% AND f.isActive = true")
   List<Food> findByMealTimeContaining(@Param("mealTime") String mealTime);
 
