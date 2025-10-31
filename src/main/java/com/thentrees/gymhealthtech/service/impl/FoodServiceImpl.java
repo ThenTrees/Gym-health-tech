@@ -1,10 +1,16 @@
 package com.thentrees.gymhealthtech.service.impl;
 
 import com.thentrees.gymhealthtech.dto.request.FoodImportRequest;
+import com.thentrees.gymhealthtech.dto.request.FoodRequest;
 import com.thentrees.gymhealthtech.dto.response.FoodResponse;
 import com.thentrees.gymhealthtech.dto.response.ImportFoodResponse;
 import com.thentrees.gymhealthtech.dto.response.PagedResponse;
+import com.thentrees.gymhealthtech.exception.BusinessException;
+import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
+import com.thentrees.gymhealthtech.mapper.FoodMapper;
 import com.thentrees.gymhealthtech.model.Food;
+import com.thentrees.gymhealthtech.model.User;
+import com.thentrees.gymhealthtech.model.UserProfile;
 import com.thentrees.gymhealthtech.repository.FoodRepository;
 import com.thentrees.gymhealthtech.service.FoodService;
 import java.io.IOException;
@@ -12,6 +18,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
+
+import com.thentrees.gymhealthtech.util.FileValidator;
+import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
@@ -21,9 +31,14 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import static com.thentrees.gymhealthtech.constant.S3Constant.S3_AVATAR_FOLDER;
+import static com.thentrees.gymhealthtech.constant.S3Constant.S3_FOOD_IMAGE_FOLDER;
 
 @Slf4j
 @Service
@@ -31,9 +46,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class FoodServiceImpl implements FoodService {
 
   private final FoodRepository foodRepository;
+  private final FoodMapper foodMapper;
+  private final FileValidator fileValidator;
+  private final S3Util s3Util;
 
-  public List<FoodImportRequest> parseExcel(MultipartFile file) throws IOException {
-    List<FoodImportRequest> foods = new ArrayList<>();
+  public List<FoodRequest> parseExcel(MultipartFile file) throws IOException {
+    List<FoodRequest> foods = new ArrayList<>();
 
     try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
       Sheet sheet = workbook.getSheetAt(0);
@@ -44,7 +62,7 @@ public class FoodServiceImpl implements FoodService {
         if (row == null) continue;
 
         try {
-          FoodImportRequest food = parseRow(row);
+          FoodRequest food = parseRow(row);
           foods.add(food);
         } catch (Exception e) {
           log.error("Error parsing row {}: {}", i, e.getMessage());
@@ -60,13 +78,13 @@ public class FoodServiceImpl implements FoodService {
   @Override
   public ImportFoodResponse importDataFood(MultipartFile file) throws IOException {
     // Parse Excel
-    List<FoodImportRequest> dtos = parseExcel(file);
+    List<FoodRequest> dtos = parseExcel(file);
 
     int successCount = 0;
     int failCount = 0;
     List<String> errors = new ArrayList<>();
 
-    for (FoodImportRequest dto : dtos) {
+    for (FoodRequest dto : dtos) {
       try {
         Food food = mapToEntity(dto);
         foodRepository.save(food);
@@ -92,8 +110,9 @@ public class FoodServiceImpl implements FoodService {
   public PagedResponse<FoodResponse> getAllFoods(String keyword, Pageable pageable) {
 
     if (keyword == null || keyword.isEmpty()) {
-      Page<Food> foodsPage = foodRepository.findAll(pageable);
-      Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
+      Page<Food> foodsPage = foodRepository.findAllByIsActiveTrue(pageable);
+      Page<FoodResponse> foodResponses = foodsPage
+        .map(this::mapToResponse);
       return PagedResponse.of(
           foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
     }
@@ -103,6 +122,83 @@ public class FoodServiceImpl implements FoodService {
     Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
     return PagedResponse.of(
         foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+  }
+
+  @Transactional
+  @Override
+  public FoodResponse createFood(FoodRequest request, MultipartFile file) {
+    log.info("Creating food: {}", request.getFoodNameVi());
+    fileValidator.validateImage(file);
+    String fileUrl = null;
+    try {
+      fileUrl = s3Util.uploadFile(file, S3_FOOD_IMAGE_FOLDER);
+    } catch (Exception e) {
+      log.error("Error uploading profile image", e);
+      if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+      throw new BusinessException("Failed to upload profile image", e.getMessage());
+    }
+    Food food = mapToEntity(request);
+    food.setImageUrl(fileUrl);
+    Food savedFood = foodRepository.save(food);
+    log.info("Saved food: {}", savedFood);
+    return mapToResponse(savedFood);
+  }
+
+  @Override
+  public FoodResponse getFoodById(UUID foodId) {
+    log.info("Fetching food by ID: {}", foodId);
+    Food food =
+        foodRepository
+            .findByIdAndIsActiveTrue(foodId)
+            .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
+
+    return mapToResponse(food);
+  }
+
+  @Transactional
+  @Override
+  public void updateFood(UUID foodId, FoodRequest request) {
+    log.info("Updating food: {}", foodId);
+    Food existingFood =
+        foodRepository
+            .findByIdAndIsActiveTrue(foodId)
+            .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
+
+    foodMapper.updateFoodFromRequest(request, existingFood);
+
+    log.info("Updated food: {} successfully!", existingFood);
+  }
+
+  @Transactional
+  @Override
+  public void deleteFoodById(UUID foodId) {
+    log.info("Soft deleted food has ID: {}", foodId.toString());
+    Food existsFood = foodRepository.findByIdAndIsActiveTrue(foodId).orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
+    existsFood.markAsDeleted();
+    existsFood.setIsActive(false);
+    log.info("Deleted food has ID: {}", foodId);
+  }
+
+  @Override
+  public String uploadImage(UUID foodId, MultipartFile file) throws IOException {
+
+    log.info("Upload image food!");
+
+    Food food = foodRepository.findByIdAndIsActiveTrue(foodId)
+      .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
+
+    fileValidator.validateImage(file);
+    String fileUrl = null;
+    try {
+      fileUrl = s3Util.uploadFile(file, S3_FOOD_IMAGE_FOLDER);
+      food.setImageUrl(fileUrl);
+      foodRepository.save(food);
+      return fileUrl;
+    } catch (Exception e) {
+      log.error("Error uploading profile image", e);
+      if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
+      throw new BusinessException("Failed to upload profile image", e.getMessage());
+    }
   }
 
   private FoodResponse mapToResponse(Food food) {
@@ -132,7 +228,7 @@ public class FoodServiceImpl implements FoodService {
         .build();
   }
 
-  private Food mapToEntity(FoodImportRequest dto) {
+  private Food mapToEntity(FoodRequest dto) {
     Food food = new Food();
 
     // Basic info
@@ -156,10 +252,10 @@ public class FoodServiceImpl implements FoodService {
     // Classification
     food.setCategory(dto.getCategory());
     food.setMealTime(dto.getMealTime());
-    food.setImageUrl(dto.getImage());
+    food.setImageUrl(dto.getImageUrl());
 
     // Tags
-    food.setTags(Collections.singletonList(dto.getSearchTags()));
+    food.setTags(Collections.singletonList(dto.getTags()));
 
     // Metadata - Store additional info in JSONB or separate fields
     // For now, put in description
@@ -176,8 +272,8 @@ public class FoodServiceImpl implements FoodService {
     return food;
   }
 
-  private FoodImportRequest parseRow(Row row) {
-    FoodImportRequest food = new FoodImportRequest();
+  private FoodRequest parseRow(Row row) {
+    FoodRequest food = new FoodRequest();
 
     // Column mapping từ Excel
     food.setFoodNameVi(getCellValueAsString(row, 0)); // A
@@ -187,7 +283,7 @@ public class FoodServiceImpl implements FoodService {
     food.setProtein(getCellValueAsBigDecimal(row, 4)); // E
     food.setCarbs(getCellValueAsBigDecimal(row, 5)); // F
     food.setFat(getCellValueAsBigDecimal(row, 6)); // G
-    food.setImage(getCellValueAsString(row, 7)); // H
+    food.setImageUrl(getCellValueAsString(row, 7)); // H
     food.setMealTime(getCellValueAsString(row, 8)); // I
     food.setVitaminA(getCellValueAsBigDecimal(row, 9)); // J
     food.setVitaminC(getCellValueAsBigDecimal(row, 10)); // K
@@ -199,13 +295,13 @@ public class FoodServiceImpl implements FoodService {
     food.setCommonCombinations(getCellValueAsString(row, 16)); // R
     food.setContraindications(getCellValueAsString(row, 17)); // S
     food.setAlternativeFoods(getCellValueAsString(row, 18)); // T
-    food.setSearchTags(getCellValueAsString(row, 19)); // U
+    food.setTags(getCellValueAsString(row, 19)); // U
     food.setMealTime(getCellValueAsString(row, 20)); // U
 
     return food;
   }
 
-  private String buildEnhancedDescription(FoodImportRequest dto) {
+  private String buildEnhancedDescription(FoodRequest dto) {
     StringBuilder sb = new StringBuilder();
 
     if (dto.getDescription() != null) {
