@@ -6,5 +6,4 @@ import lombok.Data;
 public class CreateEquipmentRequest {
   private String equipmentCode;
   private String equipmentName;
-  private String imageUrl;
 }
