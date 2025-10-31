@@ -1,9 +1,9 @@
 package com.thentrees.gymhealthtech.enums;
 
 public enum UserRole {
-  ADMIN("admin"),
-  USER("user"),
-  GUEST("guest");
+  ADMIN("ADMIN"),
+  USER("USER"),
+  GUEST("GUEST");
 
   private final String displayName;
 

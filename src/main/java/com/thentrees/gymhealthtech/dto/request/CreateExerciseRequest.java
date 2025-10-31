@@ -20,7 +20,6 @@ public class CreateExerciseRequest {
   @Size(max = 120, message = "Name must not exceed 120 characters")
   private String name;
 
-  //  @NotNull(message = "Level is required")
   private ExerciseLevel exerciseLevel;
 
   private String equipmentTypeCode;

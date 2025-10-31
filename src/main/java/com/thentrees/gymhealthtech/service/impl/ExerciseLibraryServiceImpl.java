@@ -91,7 +91,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   public ExerciseDetailResponse getExerciseById(UUID id) {
     return exerciseRepository
-        .findById(id)
+        .findByIdAndIsDeletedFalse(id)
         .map(this::mapToDetailResponse)
         .orElseThrow(() -> new ResourceNotFoundException("Exercise not found with id: " + id));
   }
@@ -198,6 +198,51 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   public List<MuscleResponse> getMuscles() {
     List<Muscle> muscles = muscleRepository.findAll();
     return muscles.stream().map(muscleMapper::mapToResponse).toList();
+  }
+
+  @Transactional
+  @Override
+  public void updateExercise(UUID exerciseId, UpdateExerciseRequest request) {
+    redisService.deletePattern("exercise:*");
+    log.info("Update exercise has id: {}", exerciseId);
+
+      Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
+        () -> new ResourceNotFoundException("Exercise", exerciseId.toString())
+      );
+
+      if (!request.getName().equals(exercise.getName())){
+        exercise.setName(request.getName());
+        String newSlug = generateSlug(request.getName());
+        exercise.setSlug(newSlug);
+      }
+
+      if(!request.getSafetyNotes().equals(exercise.getSafetyNotes())){
+        exercise.setSafetyNotes(request.getSafetyNotes());
+      }
+
+      if(!request.getBodyPart().equals(exercise.getBodyPart())){
+        exercise.setBodyPart(request.getBodyPart());
+      }
+
+      if (!request.getInstructions().equals(exercise.getInstructions())){
+        exercise.setInstructions(request.getInstructions());
+      }
+
+    exercise.setExerciseType(ExerciseType.valueOf(request.getExerciseType()));
+
+
+    log.info("Update exercise has id: {} successfully", exerciseId);
+  }
+
+  @Transactional
+  @Override
+  public void deleteExercise(UUID exerciseId) {
+    log.info("Delete exercise has id: {}", exerciseId);
+    Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
+      () -> new ResourceNotFoundException("Exercise", exerciseId.toString()));
+    exercise.markAsDeleted();
+    log.info("Delete exercise has id: {} successfully", exerciseId);
+    redisService.deletePattern("exercise:*");
   }
 
   private Integer difficultyLevelForExercise(String equipmentCode) {
