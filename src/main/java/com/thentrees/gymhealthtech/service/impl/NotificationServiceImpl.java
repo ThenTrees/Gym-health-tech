@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "NOTIFICATION-SERVICE")
 public class NotificationServiceImpl implements NotificationService {
 
   private final DeviceTokenRepository deviceTokenRepository;

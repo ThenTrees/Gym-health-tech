@@ -26,7 +26,6 @@ spring:
     properties:
       hibernate.jdbc.time_zone: UTC
     open-in-view: false
-
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -42,6 +41,21 @@ spring:
           auth: true
           starttls:
             enable: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 5s
+          multiplier: 2
+          max-interval: 10s
 
 logging:
   level:
@@ -51,21 +65,23 @@ logging:
     org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
 
 app:
-  prefix: ${APP_PREFIX:/api/v1}
+  prefix: ${APP_PREFIX}
   frontend:
     url: ${FRONTEND_URL}
   jwt:
-    secret: ${JWT_SECRET:RjU5u3hN1YwqW7sPgRyd8g1qHj2W9U8QqGtxbYnTjFI=}
-    expiration: ${JWT_EXPIRATION:3600000} # 1 hour
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
   verification:
     email:
-      expiration: ${EMAIL_VERIFICATION_EXPIRATION:86400000} # 24 hours
+      expiration: ${EMAIL_VERIFICATION_EXPIRATION} # 24 hours
     forgot-password:
-      expiration: ${FORGOT_PASSWORD_EXPIRATION:360000} # 5m
+      expiration: ${FORGOT_PASSWORD_EXPIRATION:} # 5m
   rate-limit:
     otp-requests: 3
     verify-attempts: 5
     window-minutes: 15
+  cron:
+    notify-user-schedule: "0 0 7 * * ?"  # 7h sáng mỗi ngày
 
 aws:
   s3:
