@@ -1,6 +1,9 @@
 package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.model.User;
+
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +25,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   @Query(
       "SELECT u FROM User u WHERE u.email = :identifier OR u.phone = :identifier And u.status = 'ACTIVE'")
   Optional<User> findByEmailOrPhone(@Param("identifier") String identifier);
+
+  @Query("""
+    SELECT DISTINCT p.user
+    FROM Plan p
+    JOIN p.planDays d
+    WHERE d.scheduledDate = :date
+    """)
+  List<User> findUsersWithWorkoutOnDate(@Param("date") LocalDate date);
 }
