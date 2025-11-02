@@ -7,7 +7,9 @@ import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.service.WorkoutReminderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,10 +25,13 @@ import static com.thentrees.gymhealthtech.config.NotificationQueueConfig.ROUTING
 public class WorkoutReminderServiceImpl implements WorkoutReminderService {
 
   private final UserRepository userRepository;
-  private final RabbitTemplate rabbitTemplate;
+
+  @Qualifier("customRabbitTemplate")
+  private final AmqpTemplate rabbitTemplate;
 
   @Override
   public void sendReminders() {
+    log.info("sendReminders");
     LocalDate today = LocalDate.now();
 
     // Lấy tất cả user có lịch tập hôm nay
