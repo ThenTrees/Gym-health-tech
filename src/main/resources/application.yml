@@ -82,7 +82,9 @@ app:
     window-minutes: 15
   cron:
     notify-user-schedule: "0 0 7 * * ?"  # 7h sáng mỗi ngày
-
+    notify-breakfast-meal-schedule: "0 30 6 * * ?" #6h30 sáng mỗi ngày
+    notify-lunch-meal-schedule: "0 30 11 * * ?"
+    notify-dinner-meal-schedule: "0 0 19 * * ?"
 aws:
   s3:
     bucket: ${S3_BUCKET_NAME}

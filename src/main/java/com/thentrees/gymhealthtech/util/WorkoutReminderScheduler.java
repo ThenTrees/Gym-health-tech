@@ -17,4 +17,18 @@ public class WorkoutReminderScheduler {
   public void sendWorkoutReminders() throws PushClientException, InterruptedException {
     reminderService.sendReminders();
   }
+
+  @Scheduled(cron = "${app.cron.notify-breakfast-meal-schedule}")
+  public void sendBreakfastReminders() throws PushClientException, InterruptedException {
+    reminderService.sendBreakfastReminders();
+  }
+
+  @Scheduled(cron = "${app.cron.notify-lunch-meal-schedule}")
+  public void sendLunchReminders() throws PushClientException, InterruptedException {
+    reminderService.sendLunchReminders();
+  }
+  @Scheduled(cron = "${app.cron.notify-dinner-meal-schedule}")
+  public void sendDinnerReminders() throws PushClientException, InterruptedException {
+    reminderService.sendDinnerReminders();
+  }
 }
