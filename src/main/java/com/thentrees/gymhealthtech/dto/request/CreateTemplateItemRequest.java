@@ -17,17 +17,14 @@ public class CreateTemplateItemRequest {
   @NotNull(message = "Số sets là bắt buộc")
   @Min(value = 1, message = "Số sets tối thiểu là 1")
   @Max(value = 10, message = "Số sets tối đa là 10")
-  private Integer sets;
+    private Integer sets;
 
   @NotBlank(message = "Số reps là bắt buộc")
   @Size(max = 50, message = "Số reps không được vượt quá 50 ký tự")
-  private String reps;
+  private Integer reps;
 
   @Min(value = 0, message = "Thời gian nghỉ không được âm")
   private Integer restSeconds;
-
-  @Size(max = 100, message = "Ghi chú về tạ không được vượt quá 100 ký tự")
-  private String weightNote;
 
   private String notes;
 }
