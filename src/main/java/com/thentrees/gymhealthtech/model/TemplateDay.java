@@ -1,6 +1,8 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,8 +36,8 @@ public class TemplateDay extends BaseEntity{
   @Column(name = "notes", columnDefinition = "TEXT")
   private String notes;
 
-  @OneToMany(mappedBy = "templateDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  private List<TemplateItem> templateItems;
+  @OneToMany(mappedBy = "templateDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+  private List<TemplateItem> templateItems = new ArrayList<>();
 
   // Computed field for API response
   @Transient private Integer totalExercises;

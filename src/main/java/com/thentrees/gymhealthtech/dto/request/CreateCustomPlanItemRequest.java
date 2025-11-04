@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CreateCustomPlanItemRequest {
 
   @NotNull(message = "Exercise ID là bắt buộc")

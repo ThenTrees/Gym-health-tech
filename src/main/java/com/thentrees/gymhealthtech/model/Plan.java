@@ -5,13 +5,16 @@ import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
+
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "plans")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Plan extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.EAGER)
@@ -36,7 +39,7 @@ public class Plan extends BaseEntity {
   @Column(name = "status", nullable = false)
   private PlanStatusType status = PlanStatusType.DRAFT;
 
-  @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
   private List<PlanDay> planDays;
 
   @Column(name = "description", columnDefinition = "TEXT")

@@ -2,6 +2,8 @@ package com.thentrees.gymhealthtech.model;
 
 import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.*;
@@ -41,6 +43,6 @@ public class WorkoutTemplate extends BaseEntity {
   @Builder.Default
   private Integer totalUsed = 0;
 
-  @OneToMany(mappedBy = "workoutTemplate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  private List<TemplateDay> templateDays;
+  @OneToMany(mappedBy = "workoutTemplate", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+  private List<TemplateDay> templateDays = new ArrayList<>();
 }

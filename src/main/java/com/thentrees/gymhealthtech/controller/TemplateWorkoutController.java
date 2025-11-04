@@ -1,14 +1,20 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.dto.request.CreateTemplateDayRequest;
+import com.thentrees.gymhealthtech.dto.request.CreateTemplateItemRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
+import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutDayResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutResponse;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
+import com.thentrees.gymhealthtech.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,6 +27,7 @@ import java.util.UUID;
 public class TemplateWorkoutController {
 
   private final TemplateWorkoutService templateWorkoutService;
+  private final UserService userService;
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
@@ -72,7 +79,50 @@ public class TemplateWorkoutController {
     return ResponseEntity.ok(APIResponse.success("Template workout is active."));
   }
 
-  //TODO: add item into template day
+  @PostMapping("/{id}/template-day")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<TemplateWorkoutResponse>> addTemplateDayToTemplate(
+    @PathVariable("id") UUID templateId,
+    @RequestBody CreateTemplateDayRequest request){
+    return ResponseEntity.ok(APIResponse.success(templateWorkoutService.addTemplateDayToTemplate(templateId, request)));
+  }
 
-  //TODO: add templateDay into temlate
+  @PostMapping("/{id}/template-item")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<TemplateWorkoutDayResponse>> addTemplateItemToTemplateDay(
+    @PathVariable("id") UUID templateDayId,
+    @RequestBody CreateTemplateItemRequest request){
+    return ResponseEntity.ok(APIResponse.success(templateWorkoutService.addTemplateItemToTemplateDay(templateDayId, request)));
+  }
+
+  @DeleteMapping("/{templateItemId}/items")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> deleteTemplateItemFromTemplateDay(
+    @PathVariable("templateItemId") UUID templateItemId
+  ){
+    templateWorkoutService.removeTemplateItem(templateItemId);
+    return ResponseEntity.ok(APIResponse.success("Remove template Item successfully!"));
+  }
+
+  @DeleteMapping("/{templateDayId}/days")
+  public ResponseEntity<APIResponse<String>> deleteTemplateDayFromTemplate(
+    @PathVariable("templateDayId") UUID templateDayId
+  ){
+    templateWorkoutService.removeTemplateDay(templateDayId);
+    return ResponseEntity.ok(APIResponse.success("Delete template Day successfully!"));
+  }
+
+  //TODO: apply template
+  @GetMapping("/{templateId}/apply")
+  public ResponseEntity<APIResponse<String>> applyTemplate(
+    @AuthenticationPrincipal UserDetails user,
+    @PathVariable("templateId") UUID templateId
+    ){
+
+    UUID userId = userService.getUserByUsername(user.getUsername()).getId();
+
+    templateWorkoutService.applyTemplateWorkout(userId, templateId);
+    return ResponseEntity.ok(APIResponse.success("Apply success!"));
+  }
+  //TODO: chuyeenr logic them day - item thanh mang
 }
