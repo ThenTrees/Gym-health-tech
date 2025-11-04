@@ -1,20 +1,22 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.dto.request.CreateTemplateDayRequest;
-import com.thentrees.gymhealthtech.dto.request.CreateTemplateItemRequest;
-import com.thentrees.gymhealthtech.dto.request.CreateTemplateRequest;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.TemplateItemResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutDayResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutResponse;
+import com.thentrees.gymhealthtech.enums.PlanSourceType;
+import com.thentrees.gymhealthtech.enums.PlanStatusType;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
-import com.thentrees.gymhealthtech.model.Exercise;
-import com.thentrees.gymhealthtech.model.TemplateDay;
-import com.thentrees.gymhealthtech.model.TemplateItem;
-import com.thentrees.gymhealthtech.model.WorkoutTemplate;
-import com.thentrees.gymhealthtech.repository.ExerciseRepository;
-import com.thentrees.gymhealthtech.repository.TemplateWorkoutRepository;
+import com.thentrees.gymhealthtech.model.*;
+import com.thentrees.gymhealthtech.repository.*;
+import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
+import com.thentrees.gymhealthtech.service.UserService;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.UUID;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 
 import static com.thentrees.gymhealthtech.constant.S3Constant.S3_IMAGE_POST_FOLDER;
 
@@ -37,6 +42,12 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   private final ExerciseRepository exerciseRepository;
   private final S3Util s3Util;
   private final FileValidator fileValidator;
+  private final TemplateDayRepository templateDayRepository;
+  private final TemplateItemRepository templateItemRepository;
+  private final UserService userService;
+  private final ObjectMapper objectMapper;
+  private final PlanRepository planRepository;
+  private final SessionRepository sessionRepository;
 
   @Transactional
   @Override
@@ -97,12 +108,11 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     return mapToTemplateWorkoutResponse(workoutTemplate);
   }
 
-
   @Transactional(readOnly = true) // co the dung fetch join
   @Override
   public List<TemplateWorkoutResponse> getTemplateWorkouts() {
     //TODO: impl cache
-    List<WorkoutTemplate> templateWorkouts = templateWorkoutRepository.findAllByIsActiveTrue();
+    List<WorkoutTemplate> templateWorkouts = templateWorkoutRepository.findAll();
     return templateWorkouts.stream().map(this::mapToTemplateWorkoutResponse).toList();
   }
 
@@ -150,6 +160,150 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     workoutTemplate.restore();
     templateWorkoutRepository.save(workoutTemplate);
   }
+
+  @Transactional
+  @Override
+  public TemplateWorkoutResponse addTemplateDayToTemplate(UUID templateId, CreateTemplateDayRequest request) {
+    //TODO: xoá cache
+    WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(templateId).orElseThrow(
+      ()-> new ResourceNotFoundException("TemplateWorkout", templateId.toString()));
+
+    TemplateDay templateDay = mapToTemplateDayEntity(request);
+    templateDay.setWorkoutTemplate(workoutTemplate);
+
+    List<TemplateItem> templateItems = request.getTemplateItems().stream()
+      .map(this::mapToTemplateItemEntity)
+      .peek(templateItem -> templateItem.setTemplateDay(templateDay))
+      .toList();
+
+    templateDay.setTemplateItems(templateItems);
+
+    workoutTemplate.getTemplateDays().add(templateDay);
+    templateWorkoutRepository.save(workoutTemplate);
+    return mapToTemplateWorkoutResponse(workoutTemplate);
+  }
+
+  @Transactional
+  @Override
+  public TemplateWorkoutDayResponse addTemplateItemToTemplateDay(UUID templateDayId, CreateTemplateItemRequest request) {
+    TemplateDay templateDay = templateDayRepository.findById(templateDayId).orElseThrow(
+      ()-> new ResourceNotFoundException("TemplateDay", templateDayId.toString()));
+    TemplateItem templateItem = mapToTemplateItemEntity(request);
+    templateItem.setTemplateDay(templateDay);
+    templateDay.getTemplateItems().add(templateItem);
+    templateDayRepository.save(templateDay);
+    return mapToTemplateWorkoutDayResponse(templateDay);
+  }
+
+  @Override
+  public void removeTemplateItem(UUID templateItemId) {
+
+    //TODO: clear cache
+
+    TemplateItem item = templateItemRepository.findById(templateItemId).orElseThrow(
+      ()->new ResourceNotFoundException("TemplateItem", templateItemId.toString()));
+    templateItemRepository.delete(item);
+    log.info("Remove template item: {} successfully!", templateItemId);
+  }
+
+  @Override
+  public void removeTemplateDay(UUID templateDayId) {
+    TemplateDay templateDay = templateDayRepository.findById(templateDayId).orElseThrow(
+      ()-> new ResourceNotFoundException("TemplateDay", templateDayId.toString())
+    );
+    templateDayRepository.delete(templateDay);
+    log.info("Remove template day: {} successfully!", templateDayId);
+  }
+
+  @Transactional
+  @Override
+  public void applyTemplateWorkout(UUID userId, UUID templateId) {
+    WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(templateId)
+      .orElseThrow(() -> new ResourceNotFoundException("TemplateWorkout", templateId.toString()));
+
+    // pause existing plans/sessions...
+    List<Plan> plans = planRepository.findByUserId(userId);
+    if (!plans.isEmpty()) {
+      plans.forEach(plan -> plan.setStatus(PlanStatusType.PAUSE));
+      planRepository.saveAll(plans);
+    }
+    Session session = sessionRepository.findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS).orElse(null);
+    if (session != null) {
+      session.setStatus(SessionStatus.PAUSED);
+      sessionRepository.save(session);
+    }
+
+    User user = userService.getUserById(userId);
+
+    Plan newPlan = Plan.builder()
+      .user(user)
+      .title(workoutTemplate.getName())
+      .description(workoutTemplate.getDescription())
+      .cycleWeeks(workoutTemplate.getDurationWeeks())
+      .source(PlanSourceType.TEMPLATE)
+      .status(PlanStatusType.ACTIVE)
+      .endDate(LocalDate.now().plusWeeks(workoutTemplate.getDurationWeeks()))
+      .build();
+
+    LocalDate startDate = LocalDate.now();
+
+    // ensure templateDays are in expected order (dayOrder ascending)
+    List<TemplateDay> templateDays = workoutTemplate.getTemplateDays().stream()
+      .sorted(Comparator.comparingInt(TemplateDay::getDayOrder))
+      .toList();
+
+    List<PlanDay> planDays = new ArrayList<>();
+    int dayIndexCounter = 1;
+
+    // Precompute baseScheduled for each templateDay (the first occurrence >= startDate)
+    Map<TemplateDay, LocalDate> baseScheduledMap = new HashMap<>();
+    for (TemplateDay td : templateDays) {
+      DayOfWeek dow = DayOfWeek.of(td.getDayOfWeek()); // assuming getDayOfWeek() returns 1..7
+      LocalDate base = startDate.with(TemporalAdjusters.nextOrSame(dow));
+      // if base is before startDate (shouldn't happen because nextOrSame), but keep safe:
+      if (base.isBefore(startDate)) {
+        base = base.plusWeeks(1);
+      }
+      baseScheduledMap.put(td, base);
+    }
+
+    // For each week, clone templateDays with proper week offset
+    for (int week = 0; week < workoutTemplate.getDurationWeeks(); week++) {
+      for (TemplateDay templateDay : templateDays) {
+        LocalDate scheduled = baseScheduledMap.get(templateDay).plusWeeks(week);
+
+        PlanDay planDay = PlanDay.builder()
+          .plan(newPlan)
+          .dayIndex(dayIndexCounter++)      // unique across whole plan
+          .splitName(templateDay.getDayName())
+          .createdAt(OffsetDateTime.now())
+          .scheduledDate(scheduled)
+          .build();
+
+        List<PlanItem> planItems = templateDay.getTemplateItems().stream()
+          .sorted(Comparator.comparingInt(TemplateItem::getItemOrder))
+          .map(templateItem -> PlanItem.builder()
+            .planDay(planDay)
+            .exercise(templateItem.getExercise())
+            .itemIndex(templateItem.getItemOrder())
+            .notes(templateItem.getNotes())
+            .prescription(convertPrescriptionToJson(
+              templateItem.getSets(),
+              templateItem.getReps(),
+              templateItem.getRestSeconds()))
+            .createdAt(OffsetDateTime.now())
+            .build())
+          .toList();
+
+        planDay.setPlanItems(planItems);
+        planDays.add(planDay);
+      }
+    }
+
+    newPlan.setPlanDays(planDays);
+    planRepository.save(newPlan);
+  }
+
 
   private TemplateWorkoutResponse mapToTemplateWorkoutResponse(WorkoutTemplate entity){
 
@@ -202,15 +356,13 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
       .build();
   }
 
-  private TemplateDay mapToTemplateDayEntity(CreateTemplateDayRequest request, WorkoutTemplate entity){
+  private TemplateDay mapToTemplateDayEntity(CreateTemplateDayRequest request){
     return TemplateDay.builder()
-      .workoutTemplate(entity)
       .dayName(request.getDayName())
       .dayOfWeek(request.getDayOfWeek())
       .dayOrder(request.getDayOrder())
       .durationMinutes(request.getDurationMinutes())
       .notes(request.getNotes())
-      .templateItems(request.getTemplateItems().stream().map(this::mapToTemplateItemEntity).toList())
       .build();
   }
 
@@ -255,5 +407,14 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
       .bodyPart(templateItem.getExercise().getBodyPart())
       .thumbnailUrl(templateItem.getExercise().getThumbnailUrl())
       .build();
+  }
+
+  private JsonNode convertPrescriptionToJson(
+    Integer sets, Integer reps, Integer restSeconds) {
+    ObjectNode node = objectMapper.createObjectNode();
+    node.put("sets", sets);
+    node.put("reps", reps);
+    node.put("restSeconds", restSeconds);
+    return node;
   }
 }

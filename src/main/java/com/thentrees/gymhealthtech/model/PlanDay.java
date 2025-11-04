@@ -5,13 +5,16 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import lombok.Getter;
-import lombok.Setter;
+
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "plan_days")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class PlanDay {
 
   @Id
@@ -34,6 +37,6 @@ public class PlanDay {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt = OffsetDateTime.now();
 
-  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
   private List<PlanItem> planItems;
 }

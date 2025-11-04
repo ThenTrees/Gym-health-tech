@@ -508,6 +508,25 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     return null;
   }
 
+  @Override
+  public void usePlan(UUID planId) {
+    Plan plan = planRepository.findById(planId)
+      .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
+
+    List<PlanDay> planDays = planDayRepository.findAllByPlanId(plan.getId());
+
+    LocalDate currentDate = LocalDate.now();
+    planDays.sort(Comparator.comparingInt(PlanDay::getDayIndex));
+
+    for (int i = 0; i < planDays.size(); i++) {
+      planDays.get(i).setScheduledDate(currentDate.plusDays(i));
+    }
+
+    plan.setEndDate(currentDate.plusWeeks(plan.getCycleWeeks()));
+    plan.setStatus(PlanStatusType.ACTIVE);
+    planRepository.save(plan);
+  }
+
   // Helper methods
   private JsonNode convertPrescriptionToJson(
       CreateCustomPlanItemRequest.PlanItemPrescription prescription) {

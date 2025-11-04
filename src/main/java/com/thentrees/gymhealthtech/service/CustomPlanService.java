@@ -42,4 +42,6 @@ public interface CustomPlanService {
       UUID userId, PlanSearchRequest searchCriteria, Pageable pageable);
 
   PlanDay duplicatePlanDayForNextWeek(PlanDay planDay);
+
+  void usePlan(UUID planId);
 }

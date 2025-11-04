@@ -4,9 +4,16 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CreateCustomPlanRequest {
   @NotBlank(message = "Tên kế hoạch tập luyện không được để trống")
   @Size(max = 120, message = "Tên kế hoạch không được vượt quá 120 ký tự")
