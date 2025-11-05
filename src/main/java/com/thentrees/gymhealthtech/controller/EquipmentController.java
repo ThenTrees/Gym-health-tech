@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.dto.request.CreateEquipmentRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateEquipmentRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
@@ -7,9 +8,7 @@ import com.thentrees.gymhealthtech.dto.response.EquipmentResponse;
 import com.thentrees.gymhealthtech.service.EquipmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("${app.prefix}/equipments")
+@RequestMapping(AppConstants.API_V1+"/equipments")
 @RequiredArgsConstructor
 @Slf4j(topic = "EQUIPMENT-CONTROLLER")
 @Tag(name = "Equipment", description = "endpoint for equipment manager")
@@ -30,14 +29,14 @@ public class EquipmentController {
   private final EquipmentService equipmentService;
 
   @GetMapping
-  public ResponseEntity<APIResponse<List<EquipmentResponse>>> getAllEquipment(
+  public ResponseEntity<APIResponse<List<EquipmentResponse>>> equipments(
       @RequestParam(required = false) String name) {
     return ResponseEntity.status(200)
         .body(APIResponse.success(equipmentService.getAllEquipment(name)));
   }
 
   @GetMapping("/{code}")
-  public ResponseEntity<APIResponse<EquipmentResponse>> getEquipmentByCode(
+  public ResponseEntity<APIResponse<EquipmentResponse>> equipmentByCode(
     @PathVariable("code") String code
   ){
     return ResponseEntity.ok(APIResponse.success(equipmentService.getEquipment(code)));

@@ -7,6 +7,9 @@ public final class ErrorMessages {
   // NOTIFICATION
   public static final String SEND_MAIL_VERIFICATION_FAILED = "Failed to send verification email to ";
 
+  //EQUIPMENT
+  public static final String EQUIPMENT_ALREADY_EXISTS = "Equipment already exists!";
+  public static final String UPLOAD_EQUIPMENT_IMAGE_FAILED = "Error uploading equipment image";
 
 
   private ErrorMessages() {

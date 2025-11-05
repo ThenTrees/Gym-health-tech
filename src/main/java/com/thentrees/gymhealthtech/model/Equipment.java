@@ -1,13 +1,15 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "equipments")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Equipment {
 
   @Id

@@ -9,6 +9,9 @@ public final class ValidationMessages {
   public static final String REFRESH_TOKEN_REQUIRE = "Refresh token is required";
   public static final String TOKEN_REQUIRE = "Token is required";
 
+  //EQUIPMENT VALIDATION
+  public static final String EQUIPMENT_CODE_REQUIRE = "Equipment code is required";
+  public static final String EQUIPMENT_NAME_REQUIRE = "Equipment name is required";
 
   // User Validation
   public static final String EMAIL_REQUIRED = "Email is required";
