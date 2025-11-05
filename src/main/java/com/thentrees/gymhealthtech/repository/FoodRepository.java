@@ -25,4 +25,8 @@ public interface FoodRepository extends JpaRepository<Food, UUID> {
   @Query(
       "SELECT f FROM Food f WHERE (LOWER(f.foodNameVi) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND f.isActive = true")
   Page<Food> findAllByFoodNameVi(@Param("keyword") String keyword, Pageable pageable);
+
+  @Query(
+    "SELECT f FROM Food f WHERE (LOWER(f.foodNameVi) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+  Page<Food> findAllWithFoodNameVi(@Param("keyword") String keyword, Pageable pageable);
 }

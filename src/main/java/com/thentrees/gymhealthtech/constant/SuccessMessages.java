@@ -6,6 +6,9 @@ public final class SuccessMessages {
   public static final String DEL_EXERCISE_SUCCESS = "Delete exercise successfully";
   public static final String UPDATE_EXERCISE_SUCCESS = "Update exercise successfully";
 
+  //FOOD
+  public static final String UPDATE_FOOD_SUCCESS = "Update food Successfully!";
+
 
   // User Management
   public static final String USER_CREATED = "Account created successfully. Please check your email for verification.";
