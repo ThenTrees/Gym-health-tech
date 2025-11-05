@@ -13,6 +13,15 @@ public final class ValidationMessages {
   public static final String EQUIPMENT_CODE_REQUIRE = "Equipment code is required";
   public static final String EQUIPMENT_NAME_REQUIRE = "Equipment name is required";
 
+  //EXERCISE VALIDATION
+  public static final String EXERCISE_NAME_REQUIRE = "Exercise name is required";
+  public static final String EXERCISE_NAME_EXCEED_120 = "Name must not exceed 120 characters";
+  public static final String INTRODUCE_EXCEED_10000 = "Instructions must not exceed 10000 characters";
+  public static final String SAFETY_NOTE_EXCEED_5000 = "Safety must not exceed 5000 characters";
+  public static final String EXERCISE_CATEGORY_REQUIRE = "Exercise category is required";
+
+
+
   // User Validation
   public static final String EMAIL_REQUIRED = "Email is required";
   public static final String EMAIL_INVALID = "Please provide a valid email address";

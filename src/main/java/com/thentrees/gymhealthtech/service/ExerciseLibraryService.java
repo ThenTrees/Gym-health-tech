@@ -14,7 +14,7 @@ public interface ExerciseLibraryService {
   PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request);
 
   ExerciseDetailResponse createExercise(
-      CreateExerciseRequest request, Authentication authentication);
+      CreateExerciseRequest request);
 
   int importExercisesFromJson(MultipartFile file) throws IOException;
 

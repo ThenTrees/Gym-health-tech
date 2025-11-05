@@ -16,6 +16,8 @@ import com.thentrees.gymhealthtech.service.RedisService;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,7 +33,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-@Slf4j
+@Slf4j(topic = "EXERCISE-SERVICE")
 @RequiredArgsConstructor
 public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
@@ -45,32 +47,30 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final MuscleMapper muscleMapper;
   private final ExerciseEquipmentRepository exerciseEquipmentRepository;
   private final RedisService redisService;
+  private final CacheKeyUtils cacheKeyUtils;
 
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
 
-    // first step: check data in cache
-    // create cache key based on request dto
-    String cacheKey = buildCacheKey(request);
+    String cacheKey = cacheKeyUtils.buildKey("exercise:search:", request);
 
-    // 2. Kiểm tra trong Redis
-    Object cached = redisService.get(cacheKey);
-
-    PagedResponse<ExerciseListResponse> result = null;
-    if (cached != null) {
-      result =
-          objectMapper.convertValue(
-              cached, new TypeReference<PagedResponse<ExerciseListResponse>>() {});
-    }
-
-    if (result != null) {
-      log.info("Cached exercise list response");
-      return result;
+    try {
+      Object cached = redisService.get(cacheKey);
+      if (cached != null) {
+        PagedResponse<ExerciseListResponse> cachedResponse =
+          objectMapper.convertValue(cached, new TypeReference<>() {});
+        if (cachedResponse != null) {
+          log.debug("Cache HIT for key: {}", cacheKey);
+          return cachedResponse;
+        }
+      }
+      log.debug("Cache MISS for key: {}", cacheKey);
+    } catch (Exception e) {
+      log.warn("Failed to read cache for key {}: {}", cacheKey, e.getMessage());
     }
 
     Specification<Exercise> spec = buildSearchSpecification(request);
 
-    // Create pageable
     Pageable pageable =
         PageRequest.of(
             request.getPage(),
@@ -82,7 +82,6 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     Page<ExerciseListResponse> exerciseListResponsePage = exercises.map(this::mapToListResponse);
     PagedResponse<ExerciseListResponse> response = PagedResponse.of(exerciseListResponsePage);
 
-    // 4. Lưu vào Redis với TTL
     redisService.set(cacheKey, response);
 
     return response;
@@ -93,18 +92,14 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     return exerciseRepository
         .findByIdAndIsDeletedFalse(id)
         .map(this::mapToDetailResponse)
-        .orElseThrow(() -> new ResourceNotFoundException("Exercise not found with id: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Exercise", id.toString()));
   }
 
   @Override
   @Transactional
-  public ExerciseDetailResponse createExercise(CreateExerciseRequest request, Authentication auth) {
-
+  public ExerciseDetailResponse createExercise(CreateExerciseRequest request) {
     redisService.deletePattern("exercise:*");
-
-    log.info("Starting create exercise process");
     String slug = request.getName().trim().toLowerCase().replace(" ", "-");
-
     // Validate slug uniqueness
     if (exerciseRepository.existsBySlug(slug)) {
       throw new IllegalArgumentException("Exercise with slug '" + slug + "' already exists");
@@ -133,7 +128,6 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     if (request.getMuscles() != null && !request.getMuscles().isEmpty()) {
       saveMusclesForExercise(savedExercise, request.getMuscles());
     }
-
     return mapToDetailResponse(savedExercise);
   }
 
@@ -204,8 +198,6 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   public void updateExercise(UUID exerciseId, UpdateExerciseRequest request) {
     redisService.deletePattern("exercise:*");
-    log.info("Update exercise has id: {}", exerciseId);
-
       Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
         () -> new ResourceNotFoundException("Exercise", exerciseId.toString())
       );
@@ -227,21 +219,15 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       if (!request.getInstructions().equals(exercise.getInstructions())){
         exercise.setInstructions(request.getInstructions());
       }
-
     exercise.setExerciseType(ExerciseType.valueOf(request.getExerciseType()));
-
-
-    log.info("Update exercise has id: {} successfully", exerciseId);
   }
 
   @Transactional
   @Override
   public void deleteExercise(UUID exerciseId) {
-    log.info("Delete exercise has id: {}", exerciseId);
     Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
       () -> new ResourceNotFoundException("Exercise", exerciseId.toString()));
     exercise.markAsDeleted();
-    log.info("Delete exercise has id: {} successfully", exerciseId);
     redisService.deletePattern("exercise:*");
   }
 
@@ -469,18 +455,5 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
   private String generateSlug(String name) {
     return name.trim().toLowerCase().replace(" ", "-");
-  }
-
-  private String buildCacheKey(ExerciseSearchRequest request) {
-    try {
-      // Convert request to JSON string
-      ObjectMapper mapper = new ObjectMapper();
-      String json = mapper.writeValueAsString(request);
-
-      // Hash để key ngắn gọn
-      return "exercise:search:" + DigestUtils.md5DigestAsHex(json.getBytes());
-    } catch (Exception e) {
-      throw new RuntimeException("Không thể tạo cache key", e);
-    }
   }
 }
