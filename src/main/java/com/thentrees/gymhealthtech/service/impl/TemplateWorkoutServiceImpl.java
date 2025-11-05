@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,8 +16,10 @@ import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
+import com.thentrees.gymhealthtech.service.RedisService;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
 import com.thentrees.gymhealthtech.service.UserService;
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
@@ -48,19 +51,18 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   private final ObjectMapper objectMapper;
   private final PlanRepository planRepository;
   private final SessionRepository sessionRepository;
+  private final RedisService redisService;
+  private final CacheKeyUtils cacheKeyUtils;
 
   @Transactional
   @Override
   public TemplateWorkoutResponse createTemplateWorkout(CreateTemplateRequest request, MultipartFile file) {
-
-    //TODO: xoá cache
+    redisService.deletePattern("template:*");
 
     log.info("Create template workout: {}", request.toString());
 
     String fileUrl = this.uploadImageBanner(file);
-
     WorkoutTemplate workoutTemplate = mapToEntity(request, fileUrl);
-
     List<TemplateDay> templateDays = request.getTemplateDays().stream().map(templateDayRequest -> {
         TemplateDay templateDay = TemplateDay.builder()
           .workoutTemplate(workoutTemplate)
@@ -101,24 +103,53 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   @Transactional(readOnly = true)
   @Override
   public TemplateWorkoutResponse getTemplateWorkoutById(UUID id) {
-    // TODO:impl cache
+
+    String cacheKey = cacheKeyUtils.buildKey("template:", id);
+    Object cached = redisService.get(cacheKey);
+    if (cached != null) {
+      TemplateWorkoutResponse result = objectMapper.convertValue(cached, TemplateWorkoutResponse.class);
+      if (result != null)
+        return result;
+    }
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(id).orElseThrow(
       ()-> new ResourceNotFoundException("TemplateWorkout", id.toString()));
 
-    return mapToTemplateWorkoutResponse(workoutTemplate);
+    TemplateWorkoutResponse res = mapToTemplateWorkoutResponse(workoutTemplate);
+
+    redisService.set(cacheKey, res);
+
+    return res;
   }
 
-  @Transactional(readOnly = true) // co the dung fetch join
+  @Transactional(readOnly = true)
   @Override
   public List<TemplateWorkoutResponse> getTemplateWorkouts() {
-    //TODO: impl cache
+
+    String cacheKey = cacheKeyUtils.buildKey("template:", "all");
+
+    Object cached = redisService.get(cacheKey);
+
+    if (cached != null) {
+      List<TemplateWorkoutResponse> result = objectMapper.convertValue(cached, new TypeReference<List<TemplateWorkoutResponse>>() {
+      });
+      if (result != null)
+        return result;
+    }
+
     List<WorkoutTemplate> templateWorkouts = templateWorkoutRepository.findAll();
-    return templateWorkouts.stream().map(this::mapToTemplateWorkoutResponse).toList();
+
+    List<TemplateWorkoutResponse> res = templateWorkouts.stream().map(this::mapToTemplateWorkoutResponse).toList();
+
+    redisService.set(cacheKey, res);
+
+    return res;
   }
 
   @Override
   public TemplateWorkoutResponse updateTemplateWorkout(UUID id, CreateTemplateRequest request, MultipartFile file) {
-    //TODO: xoá cache về template
+
+    redisService.deletePattern("template:*");
+
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(id).orElseThrow(
       () -> new ResourceNotFoundException("TemplateWorkout", id.toString())
     );
@@ -140,7 +171,9 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
   @Override
   public void deleteTemplateWorkoutById(UUID id) {
-    //TODO: clear cache
+
+    redisService.deletePattern("template:*");
+
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(id).orElseThrow(
       () -> new ResourceNotFoundException("TemplateWorkout", id.toString())
     );
@@ -152,7 +185,9 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
   @Override
   public void activeTemplateWorkoutById(UUID id) {
-    //TODO: clear cache
+
+    redisService.deletePattern("template:*");
+
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findById(id).orElseThrow(
       () -> new ResourceNotFoundException("TemplateWorkout", id.toString())
     );
@@ -164,7 +199,9 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   @Transactional
   @Override
   public TemplateWorkoutResponse addTemplateDayToTemplate(UUID templateId, CreateTemplateDayRequest request) {
-    //TODO: xoá cache
+
+    redisService.deletePattern("template:*");
+
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(templateId).orElseThrow(
       ()-> new ResourceNotFoundException("TemplateWorkout", templateId.toString()));
 
@@ -198,7 +235,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   @Override
   public void removeTemplateItem(UUID templateItemId) {
 
-    //TODO: clear cache
+    redisService.deletePattern("template:*");
 
     TemplateItem item = templateItemRepository.findById(templateItemId).orElseThrow(
       ()->new ResourceNotFoundException("TemplateItem", templateItemId.toString()));
