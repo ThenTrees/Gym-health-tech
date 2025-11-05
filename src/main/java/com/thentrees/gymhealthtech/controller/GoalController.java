@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.dto.request.CreateGoalRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.GoalResponse;
-import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.service.GoalService;
-import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -19,16 +18,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/goals")
+@RequestMapping(AppConstants.API_V1 + "/users/goals")
 @Validated
 @Slf4j
 @RequiredArgsConstructor
 public class GoalController {
-  private final UserService userService;
   private final GoalService goalService;
 
   @Operation(method = "POST", description = "Create a new goal for a user", summary = "Create Goal")
@@ -79,12 +78,9 @@ public class GoalController {
             content = @Content(mediaType = "application/json"))
       })
   @PostMapping
-  public ResponseEntity<APIResponse<GoalResponse>> createGoal(
-      @PathVariable String userId, @Valid @RequestBody CreateGoalRequest request) {
-    // Validate user exists
-    User user = userService.getUserById(UUID.fromString(userId));
-
-    APIResponse<GoalResponse> response = APIResponse.success(goalService.createGoal(user, request));
+  public ResponseEntity<APIResponse<GoalResponse>> goals(
+      @Valid @RequestBody CreateGoalRequest request, Authentication authentication) {
+    APIResponse<GoalResponse> response = APIResponse.success(goalService.createGoal(authentication, request));
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
@@ -147,16 +143,9 @@ public class GoalController {
       })
   @GetMapping
   public ResponseEntity<APIResponse<List<GoalResponse>>> getUserGoals(
-      @PathVariable String userId, @RequestParam(defaultValue = "false") boolean includeCompleted) {
-
-    try {
-      List<GoalResponse> goals = goalService.getUserGoals(userId, includeCompleted);
+      @RequestParam(defaultValue = "false") boolean includeCompleted, Authentication authentication) {
+      List<GoalResponse> goals = goalService.getUserGoals(authentication, includeCompleted);
       return ResponseEntity.ok(APIResponse.success(goals));
-
-    } catch (Exception e) {
-      log.error("Error retrieving goals for user: {}", userId, e);
-      return ResponseEntity.ok(APIResponse.error("Error retrieving goals for user: {}", userId));
-    }
   }
 
   @Operation(method = "GET", description = "Get goal active")
@@ -192,30 +181,20 @@ public class GoalController {
                   }
           """)))
   @GetMapping("/active")
-  public ResponseEntity<APIResponse<GoalResponse>> getActiveGoal(@PathVariable String userId) {
-    try {
-      GoalResponse activeGoal = goalService.getActiveGoal(userId);
-
+  public ResponseEntity<APIResponse<GoalResponse>> getActiveGoal(
+    Authentication authentication
+  ) {
+      GoalResponse activeGoal = goalService.getActiveGoal(authentication);
       return ResponseEntity.ok(APIResponse.success(activeGoal));
-
-    } catch (Exception e) {
-      log.error("Error retrieving active goal for user: {}", userId, e);
-      return ResponseEntity.ok(
-          APIResponse.error("Error retrieving active goal for user: {}", userId));
-    }
   }
 
   @PutMapping("/{goalId}")
   public ResponseEntity<APIResponse<GoalResponse>> updateGoalStatus(
-      @PathVariable String userId,
-      @PathVariable String goalId,
-      @RequestBody CreateGoalRequest request) {
-    try {
-      GoalResponse updatedGoal = goalService.updateGoal(userId, goalId, request);
+      @PathVariable UUID goalId,
+      @RequestBody CreateGoalRequest request,
+      Authentication authentication
+      ) {
+      GoalResponse updatedGoal = goalService.updateGoal(authentication, goalId, request);
       return ResponseEntity.ok(APIResponse.success(updatedGoal));
-    } catch (Exception e) {
-      log.error("Error updating goal status for user: {}, goal: {}", userId, goalId, e);
-      return ResponseEntity.ok(APIResponse.error("Error updating goal for user: {}", userId));
-    }
   }
 }
