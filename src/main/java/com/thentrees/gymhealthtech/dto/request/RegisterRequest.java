@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.dto.request;
 
 import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
 
+import com.thentrees.gymhealthtech.constant.ValidationMessages;
 import com.thentrees.gymhealthtech.custom.StrongPassword;
 import com.thentrees.gymhealthtech.enums.FitnessLevel;
 import com.thentrees.gymhealthtech.enums.GenderType;
@@ -10,7 +11,6 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import lombok.Data;
 
-/** DTO for user registration requests. follow the `Fitbod` app registration */
 @Data
 @Schema(description = "Request for user registration")
 public class RegisterRequest {
@@ -26,10 +26,11 @@ public class RegisterRequest {
 
   @NotBlank(message = PASSWORD_REQUIRED)
   @StrongPassword
+  @Min(value = 6, message = PASSWORD_TOO_SHORT)
   @Schema(description = "User password", example = "MySecurePass123!")
   private String password;
 
-  @NotBlank(message = "Confirm password is required")
+  @NotBlank(message = CONFIRM_PASSWORD_REQUIRED)
   @Schema(description = "Password confirmation", example = "MySecurePass123!")
   private String confirmPassword;
 
@@ -41,12 +42,9 @@ public class RegisterRequest {
   @Schema(description = "User gender", example = "MALE")
   private GenderType gender;
 
-  //  @Past(message = FUTURE_DATE_NOT_ALLOWED)
-  //  @Schema(description = "User date of birth", example = "1990-01-01")
-  //  private LocalDate dateOfBirth;
-
   @Schema(description = "Age of user", example = "20")
-  @NotNull(message = "age is required")
+  @NotNull(message = AGE_REQUIRE)
+  @Min(value = 13, message = AGE_TOO_YOUNG)
   private Integer age;
 
   @NotNull(message = HEIGHT_REQUIRED)
@@ -63,7 +61,7 @@ public class RegisterRequest {
   @Schema(description = "User weight in kilograms", example = "70.50")
   private BigDecimal weightKg;
 
-  @Size(max = 1000, message = "Health notes must not exceed 1000 characters")
+  @Size(max = 1000, message = HEALTH_NOTE)
   @Schema(description = "User health notes", example = "No known allergies")
   private String healthNotes;
 

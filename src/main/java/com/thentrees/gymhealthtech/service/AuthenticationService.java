@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
+import org.springframework.security.core.Authentication;
 
 public interface AuthenticationService {
   void verifyEmail(EmailVerificationRequest request);
@@ -14,5 +15,5 @@ public interface AuthenticationService {
 
   void logout(LogoutRequest request, String currentUserEmail);
 
-  void changePassword(ChangePasswordRequest request, String currentUserEmail);
+  void changePassword(ChangePasswordRequest request, Authentication authentication);
 }

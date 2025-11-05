@@ -6,24 +6,25 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
+
 @Data
 @Schema(description = "Change password request")
 public class ChangePasswordRequest {
 
-  @NotBlank(message = "Current password is required")
+  @NotBlank(message = CURRENT_PASSWORD_REQUIRED)
   @Schema(description = "Current password", example = "OldPassword123!")
   private String currentPassword;
 
-  @NotBlank(message = "New password is required")
+  @NotBlank(message = NEW_PASSWORD_REQUIRED)
   @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
   @Pattern(
       regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-      message =
-          "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character")
+      message = PASSWORD_TOO_WEAK)
   @Schema(description = "New password", example = "NewPassword123!")
   private String newPassword;
 
-  @NotBlank(message = "Confirm new password is required")
+  @NotBlank(message = CONFIRM_PASSWORD_REQUIRED)
   @Schema(description = "Confirm new password", example = "NewPassword123!")
   private String confirmNewPassword;
 }

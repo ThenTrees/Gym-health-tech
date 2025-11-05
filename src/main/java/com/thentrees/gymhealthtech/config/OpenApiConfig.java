@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.config;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
@@ -19,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
             title = "GymHealthTech API",
             description =
                 "REST API for GymHealthTech application - A comprehensive fitness and health tracking platform",
-            version = "v1.0.0",
+            version = AppConstants.CURRENT_API_VERSION,
             contact =
                 @Contact(
                     name = "GymHealthTech Team",
