@@ -2,20 +2,42 @@ package com.thentrees.gymhealthtech.constant;
 
 public final class ValidationMessages {
 
+  //AUTH
+  public static final String IDENTITY_REQUIRE = "Email or phone is required";
+
+  //TOKEN
+  public static final String REFRESH_TOKEN_REQUIRE = "Refresh token is required";
+  public static final String TOKEN_REQUIRE = "Token is required";
+
+  //EQUIPMENT VALIDATION
+  public static final String EQUIPMENT_CODE_REQUIRE = "Equipment code is required";
+  public static final String EQUIPMENT_NAME_REQUIRE = "Equipment name is required";
+
+  //EXERCISE VALIDATION
+  public static final String EXERCISE_NAME_REQUIRE = "Exercise name is required";
+  public static final String EXERCISE_NAME_EXCEED_120 = "Name must not exceed 120 characters";
+  public static final String INTRODUCE_EXCEED_10000 = "Instructions must not exceed 10000 characters";
+  public static final String SAFETY_NOTE_EXCEED_5000 = "Safety must not exceed 5000 characters";
+  public static final String EXERCISE_CATEGORY_REQUIRE = "Exercise category is required";
+
+
+
   // User Validation
   public static final String EMAIL_REQUIRED = "Email is required";
   public static final String EMAIL_INVALID = "Please provide a valid email address";
   public static final String PASSWORD_REQUIRED = "Password is required";
+  public static final String CURRENT_PASSWORD_REQUIRED = "Current password is required";
+  public static final String NEW_PASSWORD_REQUIRED = "New password is required";
+  public static final String CONFIRM_PASSWORD_REQUIRED = "Confirm password is required";
   public static final String PASSWORD_TOO_SHORT = "Password must be at least 8 characters long";
   public static final String PASSWORD_TOO_WEAK =
       "Password must contain at least one uppercase letter, one lowercase letter, and one number";
   public static final String PASSWORDS_DO_NOT_MATCH = "Passwords do not match";
+  public static final String AGE_REQUIRE = "Age is require";
 
   // Profile Validation
   public static final String FULL_NAME_REQUIRED = "Full name is required";
   public static final String FULL_NAME_TOO_LONG = "Full name cannot exceed 120 characters";
-  public static final String INVALID_DATE_OF_BIRTH = "Invalid date of birth";
-  public static final String FUTURE_DATE_NOT_ALLOWED = "Date cannot be in the future";
   public static final String AGE_TOO_YOUNG = "You must be at least 13 years old";
 
   // Measurement Validation
@@ -25,6 +47,8 @@ public final class ValidationMessages {
   public static final String HEIGHT_OUT_OF_RANGE = "Height must be between 50cm and 250cm";
   public static final String BODYFAT_OUT_OF_RANGE =
       "Body fat percentage must be between 2% and 70%";
+  public static final String HEALTH_NOTE =
+    "Health notes must not exceed 1000 characters";
 
   // Workout Validation
   public static final String EXERCISE_ID_REQUIRED = "Exercise ID is required";

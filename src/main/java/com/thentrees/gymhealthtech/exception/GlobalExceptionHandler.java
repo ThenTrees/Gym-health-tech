@@ -39,7 +39,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
-@Slf4j
+@Slf4j(topic = "GLOBAL-EXCEPTION")
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 

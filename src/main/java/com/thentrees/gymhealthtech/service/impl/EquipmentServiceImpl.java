@@ -1,30 +1,30 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.dto.request.CreateEquipmentRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateEquipmentRequest;
 import com.thentrees.gymhealthtech.dto.response.EquipmentResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.Equipment;
-import com.thentrees.gymhealthtech.model.Food;
 import com.thentrees.gymhealthtech.repository.EquipmentRepository;
 import com.thentrees.gymhealthtech.service.EquipmentService;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
+import com.thentrees.gymhealthtech.service.RedisService;
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import static com.thentrees.gymhealthtech.constant.ErrorMessages.EQUIPMENT_ALREADY_EXISTS;
+import static com.thentrees.gymhealthtech.constant.ErrorMessages.UPLOAD_EQUIPMENT_IMAGE_FAILED;
 import static com.thentrees.gymhealthtech.constant.S3Constant.S3_DEVICE_IMAGE_FOLDER;
-import static com.thentrees.gymhealthtech.constant.S3Constant.S3_FOOD_IMAGE_FOLDER;
 
 @Service
 @Slf4j(topic = "EQUIPMENT-SERVICE")
@@ -34,23 +34,57 @@ public class EquipmentServiceImpl implements EquipmentService {
   private final EquipmentRepository equipmentRepository;
   private final FileValidator fileValidator;
   private final S3Util s3Util;
+  private final RedisService redisService;
+  private final CacheKeyUtils cacheKeyUtils;
+  private final ObjectMapper objectMapper;
 
   @Override
   public List<EquipmentResponse> getAllEquipment(String name) {
-    log.info("getAllEquipment");
-    if (StringUtils.isEmpty(name)) {
-      List<Equipment> equipments = equipmentRepository.findAll();
-      return equipments.stream().map(this::mapToResponse).toList();
-    } else {
-      List<Equipment> equipmentList = equipmentRepository.findByName(name);
-      return equipmentList.stream().map(this::mapToResponse).toList();
+    // 1. Chuẩn hóa tên key
+    String safeName = (name == null || name.isBlank()) ? "all" : name.trim().toLowerCase();
+    String cacheKey = cacheKeyUtils.buildKey("equipment:search:", safeName);
+
+    // 2. Đọc cache trước
+    try {
+      Object cached = redisService.get(cacheKey);
+      if (cached != null) {
+        List<EquipmentResponse> cachedResult =
+          objectMapper.convertValue(cached, new TypeReference<List<EquipmentResponse>>() {});
+        if (cachedResult != null && !cachedResult.isEmpty()) {
+          log.debug("Cache hit for key: {}", cacheKey);
+          return cachedResult;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to read from cache: {}", e.getMessage());
     }
+
+    // 3. Lấy từ DB
+    List<Equipment> equipments = (name == null || name.isBlank())
+      ? equipmentRepository.findAll()
+      : equipmentRepository.findByName(name);
+
+    List<EquipmentResponse> result = equipments.stream()
+      .map(this::mapToResponse)
+      .toList();
+
+    // 4. Ghi lại cache (nếu có data)
+    if (!result.isEmpty()) {
+      try {
+        redisService.set(cacheKey, result);
+        log.debug("Cache stored for key: {}", cacheKey);
+      } catch (Exception e) {
+        log.warn("Failed to store cache for key {}: {}", cacheKey, e.getMessage());
+      }
+    }
+
+    return result;
   }
 
-  @Transactional
   @Override
   public EquipmentResponse addEquipment(CreateEquipmentRequest request, MultipartFile file) {
-    log.info("addEquipment start");
+
+    redisService.deletePattern("equipment:*");
 
     fileValidator.validateImage(file);
     String fileUrl= null;
@@ -58,66 +92,60 @@ public class EquipmentServiceImpl implements EquipmentService {
     Equipment equipmentExist =
         equipmentRepository.findByCode(request.getEquipmentCode()).orElse(null);
     if (equipmentExist != null) {
-      throw new BusinessException("Equipment already exists!");
+      throw new BusinessException(EQUIPMENT_ALREADY_EXISTS);
     }
-    Equipment equipment = new Equipment();
-    equipment.setCode(request.getEquipmentCode());
-    equipment.setName(request.getEquipmentName());
+    equipmentExist = Equipment.builder()
+      .code(request.getEquipmentCode())
+      .name(request.getEquipmentName())
+      .build();
     try {
       fileUrl = s3Util.uploadFile(file, S3_DEVICE_IMAGE_FOLDER);
       equipmentExist.setImageUrl(fileUrl);
     } catch (Exception e) {
-      log.error("Error uploading profile image", e);
+      log.error(UPLOAD_EQUIPMENT_IMAGE_FAILED + e);
       if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
-      throw new BusinessException("Failed to upload profile image", e.getMessage());
+      throw new BusinessException(UPLOAD_EQUIPMENT_IMAGE_FAILED, e.getMessage());
     }
-
-    equipmentRepository.save(equipment);
-    log.info("addEquipment successfully");
-    return mapToResponse(equipment);
+    equipmentRepository.save(equipmentExist);
+    return mapToResponse(equipmentExist);
   }
 
-  @Transactional
   @Override
-  public String uploadImage(String code, MultipartFile file) {
-    log.info("Upload image food!");
+  public void uploadImage(String code, MultipartFile file) {
+
+    redisService.deletePattern("equipment:*");
+
     Equipment equipment = equipmentRepository.findById(code)
       .orElseThrow(() -> new ResourceNotFoundException("Equipment", code));
     fileValidator.validateImage(file);
     String fileUrl = null;
     try {
-      fileUrl = s3Util.uploadFile(file, S3_FOOD_IMAGE_FOLDER);
+      fileUrl = s3Util.uploadFile(file, S3_DEVICE_IMAGE_FOLDER);
       equipment.setImageUrl(fileUrl);
-      return fileUrl;
+      equipmentRepository.save(equipment);
     } catch (Exception e) {
-      log.error("Error uploading profile image", e);
+      log.error(UPLOAD_EQUIPMENT_IMAGE_FAILED+e);
       if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
-      throw new BusinessException("Failed to upload profile image", e.getMessage());
+      throw new BusinessException(UPLOAD_EQUIPMENT_IMAGE_FAILED, e.getMessage());
     }
   }
 
-  @Transactional
   @Override
   public void updateEquipment(String equipmentCode, UpdateEquipmentRequest request) {
-    log.info("Equipment with code {} start updated", equipmentCode);
+    redisService.deletePattern("equipment:*");
     Equipment equipmentExist =
         equipmentRepository
             .findByCode(equipmentCode)
             .orElseThrow(() -> new ResourceNotFoundException("Equipment", equipmentCode));
-    if (request.getEquipmentName() != null) {
+    if (!request.getEquipmentName().equals(equipmentExist.getName())) {
       equipmentExist.setName(request.getEquipmentName());
     }
-    if (request.getImageUrl() != null) {
-      equipmentExist.setImageUrl(request.getImageUrl());
-    }
     equipmentRepository.save(equipmentExist);
-    log.info("Equipment with code {} updated successfully", equipmentCode);
   }
 
-  @Transactional
   @Override
   public void deleteEquipment(String code) {
-    log.info("deleteEquipment: {}", code);
+    redisService.deletePattern("equipment:*");
     Equipment equipment = equipmentRepository.findById(code).orElseThrow(
       ()-> new ResourceNotFoundException("Equipment", code)
     );

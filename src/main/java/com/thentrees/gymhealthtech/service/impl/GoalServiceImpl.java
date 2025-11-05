@@ -23,12 +23,13 @@ import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "GOAL-SERVICE")
 @Transactional
 public class GoalServiceImpl implements GoalService {
 
@@ -39,73 +40,57 @@ public class GoalServiceImpl implements GoalService {
   private final UserRepository userRepository;
 
   @Override
-  public GoalResponse createGoal(User user, CreateGoalRequest request) {
+  public GoalResponse createGoal(Authentication authentication, CreateGoalRequest request) {
+    User user = (User) authentication.getPrincipal();
 
-    log.info("Creating goal for user: {}, objective: {}", user.getId(), request.getObjective());
-
-    log.info("request data: {}", request);
-
-    UUID userId = user.getId();
-
-    UserProfile profile = userProfileService.getUserProfileById(userId);
-    // Validate goal preferences
+    UserProfile profile = userProfileService.getUserProfileById(user.getId());
     if (request.getPreferences() != null) {
       request.getPreferences().validate(request.getObjective());
     }
 
-    // 3. Perform health and safety checks
     performHealthSafetyChecks(profile, request);
 
-    // 4. End any existing active goals
-    endActiveGoals(userId);
-    // 5. Create and save new goal
+    endActiveGoals(user.getId());
     Goal goal = createGoalEntity(user, request, profile);
     Goal savedGoal = goalRepository.save(goal);
-
-    // 6. Publish goal created event for AI plan generation
     eventPublisher.publishEvent(new GoalCreatedEvent(savedGoal, profile));
 
-    // 7. Build and return response
-    GoalResponse response = GoalResponse.from(savedGoal);
-    log.info("Goal created successfully: {}", savedGoal.getId());
-    return response;
+    return GoalResponse.from(savedGoal);
   }
 
   @Override
-  public List<GoalResponse> getUserGoals(String userId, boolean includeCompleted) {
+  public List<GoalResponse> getUserGoals(Authentication authentication, boolean includeCompleted) {
 
-    User user = userRepository.findById(UUID.fromString(userId)).get();
-
+    User user = (User) authentication.getPrincipal();
     List<Goal> goals;
     if (includeCompleted) {
       goals = goalRepository.findAllByUserIdIncludingCompleted(user.getId());
     } else {
       goals = goalRepository.findAllByUserIdExcludingCompleted(user.getId(), GoalStatus.COMPLETED);
     }
-
-    return goals.stream().map(goal -> GoalResponse.from(goal)).toList();
+    return goals.stream().map(GoalResponse::from).toList();
   }
 
   @Override
-  public GoalResponse getActiveGoal(String userId) {
-    log.info("Fetching active goal for user: {}", userId);
-
+  public GoalResponse getActiveGoal(Authentication authentication) {
+    User user = (User) authentication.getPrincipal();
     Goal activeGoal =
         goalRepository
-            .findActiveGoalByUserId(UUID.fromString(userId), GoalStatus.ACTIVE)
+            .findActiveGoalByUserId(user.getId(), GoalStatus.ACTIVE)
             .orElse(null);
     return GoalResponse.from(activeGoal);
   }
 
   @Override
-  public GoalResponse updateGoal(String userId, String goalId, CreateGoalRequest request) {
+  public GoalResponse updateGoal(Authentication authentication, UUID goalId, CreateGoalRequest request) {
     boolean flag = false;
-    // For simplicity, only allowing to end a goal early
-    log.info("Updating goal: {} for user: {}", goalId, userId);
+
+    User user = (User) authentication.getPrincipal();
+
     Goal goalExist =
         goalRepository
-            .findById(UUID.fromString(goalId))
-            .orElseThrow(() -> new ResourceNotFoundException("Goal not found with id: " + goalId));
+            .findById(goalId)
+            .orElseThrow(() -> new ResourceNotFoundException("Goal", goalId.toString()));
 
     if (!goalExist.getObjective().equals(request.getObjective())) {
       goalExist.setObjective(request.getObjective());
@@ -122,7 +107,7 @@ public class GoalServiceImpl implements GoalService {
       flag = true;
     }
     if (flag) {
-      UserProfile profile = userProfileService.getUserProfileById(UUID.fromString(userId));
+      UserProfile profile = userProfileService.getUserProfileById(user.getId());
       goalExist.setEstimatedCaloriesPerSession(calculateEstimatedCalories(request, profile));
       goalExist.setDifficultyAssessment(assessDifficulty(request, profile));
       goalExist.setRecommendedEquipment(recommendEquipment(request.getObjective()));
@@ -133,12 +118,6 @@ public class GoalServiceImpl implements GoalService {
     return GoalResponse.from(goalExist);
   }
 
-  /**
-   * check age of user to warning safety health
-   *
-   * @param profile
-   * @param request
-   */
   private void performHealthSafetyChecks(UserProfile profile, CreateGoalRequest request) {
     // Age-based checks
     if (profile.getAge() != null) {

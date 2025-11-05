@@ -56,7 +56,7 @@ public class User extends BaseEntity implements UserDetails {
 
   @Override
   public String getUsername() {
-    return profile.getFullName();
+    return this.email;
   }
 
   @Override
@@ -77,29 +77,5 @@ public class User extends BaseEntity implements UserDetails {
   @Override
   public boolean isEnabled() {
     return status == UserStatus.ACTIVE && Boolean.TRUE.equals(emailVerified);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    User user = (User) o;
-    return Objects.equals(email, user.email)
-        && Objects.equals(phone, user.phone)
-        && Objects.equals(passwordHash, user.passwordHash)
-        && status == user.status
-        && role == user.role
-        && Objects.equals(emailVerified, user.emailVerified)
-        && Objects.equals(profile, user.profile);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        super.hashCode(), email, phone, passwordHash, status, role, emailVerified, profile);
   }
 }

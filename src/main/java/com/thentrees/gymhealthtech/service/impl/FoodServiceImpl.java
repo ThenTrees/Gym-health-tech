@@ -1,10 +1,14 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.dto.request.FoodImportRequest;
 import com.thentrees.gymhealthtech.dto.request.FoodRequest;
+import com.thentrees.gymhealthtech.dto.response.ExerciseListResponse;
 import com.thentrees.gymhealthtech.dto.response.FoodResponse;
 import com.thentrees.gymhealthtech.dto.response.ImportFoodResponse;
 import com.thentrees.gymhealthtech.dto.response.PagedResponse;
+import com.thentrees.gymhealthtech.enums.UserRole;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.mapper.FoodMapper;
@@ -20,6 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import com.thentrees.gymhealthtech.service.RedisService;
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static com.thentrees.gymhealthtech.constant.S3Constant.S3_AVATAR_FOLDER;
 import static com.thentrees.gymhealthtech.constant.S3Constant.S3_FOOD_IMAGE_FOLDER;
 
-@Slf4j
+@Slf4j(topic = "FOOD-SERVICE")
 @Service
 @RequiredArgsConstructor
 public class FoodServiceImpl implements FoodService {
@@ -49,6 +55,9 @@ public class FoodServiceImpl implements FoodService {
   private final FoodMapper foodMapper;
   private final FileValidator fileValidator;
   private final S3Util s3Util;
+  private final CacheKeyUtils cacheKeyUtils;
+  private final RedisService redisService;
+  private final ObjectMapper objectMapper;
 
   public List<FoodRequest> parseExcel(MultipartFile file) throws IOException {
     List<FoodRequest> foods = new ArrayList<>();
@@ -77,6 +86,9 @@ public class FoodServiceImpl implements FoodService {
   @Transactional
   @Override
   public ImportFoodResponse importDataFood(MultipartFile file) throws IOException {
+
+    redisService.deletePattern("food:*");
+
     // Parse Excel
     List<FoodRequest> dtos = parseExcel(file);
 
@@ -108,81 +120,100 @@ public class FoodServiceImpl implements FoodService {
 
   @Override
   public PagedResponse<FoodResponse> getAllFoods(String keyword, Pageable pageable) {
-
-    if (keyword == null || keyword.isEmpty()) {
-      Page<Food> foodsPage = foodRepository.findAllByIsActiveTrue(pageable);
-      Page<FoodResponse> foodResponses = foodsPage
-        .map(this::mapToResponse);
-      return PagedResponse.of(
-          foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+    String normalizedKeyword = (keyword == null) ? "" : keyword.trim().toLowerCase();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    User user = (User) authentication.getPrincipal();
+    String cacheKey = "";
+    if (user.getRole() == UserRole.USER) {
+       cacheKey = cacheKeyUtils.buildKey("food:search:user:", normalizedKeyword);
+    }else {
+       cacheKey = cacheKeyUtils.buildKey("food:search:admin:", normalizedKeyword);
+    }
+    // Check cache
+    Object cached = redisService.get(cacheKey);
+    if (cached != null) {
+      PagedResponse<FoodResponse> cachedResponse =
+        objectMapper.convertValue(cached, new TypeReference<>() {});
+      if (cachedResponse != null) {
+        log.debug("Cache HIT for key: {}", cacheKey);
+        return cachedResponse;
+      }
+    }
+    Page<Food> foodsPage;
+    if (user.getRole() == UserRole.USER) {
+      foodsPage = normalizedKeyword.isEmpty()
+        ? foodRepository.findAllByIsActiveTrue(pageable)
+        : foodRepository.findAllByFoodNameVi(normalizedKeyword, pageable);
+    }else{
+      foodsPage = normalizedKeyword.isEmpty()
+        ? foodRepository.findAll(pageable)
+        : foodRepository.findAllWithFoodNameVi(normalizedKeyword, pageable);
     }
 
-    Page<Food> foodsPage = foodRepository.findAllByFoodNameVi(keyword, pageable);
-
     Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
-    return PagedResponse.of(
-        foodResponses, pageable.getSort().toString(), pageable.getSort().toString());
+    PagedResponse<FoodResponse> response = PagedResponse.of(foodResponses);
+
+    // Cache result
+    redisService.set(cacheKey, response);
+    log.debug("Cache SET for key: {}", cacheKey);
+
+    return response;
   }
 
-  @Transactional
   @Override
   public FoodResponse createFood(FoodRequest request, MultipartFile file) {
-    log.info("Creating food: {}", request.getFoodNameVi());
+    redisService.deletePattern("food:*");
     fileValidator.validateImage(file);
     String fileUrl = null;
     try {
       fileUrl = s3Util.uploadFile(file, S3_FOOD_IMAGE_FOLDER);
     } catch (Exception e) {
-      log.error("Error uploading profile image", e);
+      log.error("Error uploading food image", e);
       if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
-      throw new BusinessException("Failed to upload profile image", e.getMessage());
+      throw new BusinessException("Failed to upload food image", e.getMessage());
     }
     Food food = mapToEntity(request);
     food.setImageUrl(fileUrl);
     Food savedFood = foodRepository.save(food);
-    log.info("Saved food: {}", savedFood);
     return mapToResponse(savedFood);
   }
 
   @Override
   public FoodResponse getFoodById(UUID foodId) {
-    log.info("Fetching food by ID: {}", foodId);
-    Food food =
+    return
         foodRepository
             .findByIdAndIsActiveTrue(foodId)
+            .map(this::mapToResponse)
             .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
-
-    return mapToResponse(food);
   }
 
   @Transactional
   @Override
   public void updateFood(UUID foodId, FoodRequest request) {
-    log.info("Updating food: {}", foodId);
+
+    redisService.deletePattern("food:*");
+
     Food existingFood =
         foodRepository
             .findByIdAndIsActiveTrue(foodId)
             .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
-
     foodMapper.updateFoodFromRequest(request, existingFood);
-
-    log.info("Updated food: {} successfully!", existingFood);
   }
 
-  @Transactional
   @Override
   public void deleteFoodById(UUID foodId) {
-    log.info("Soft deleted food has ID: {}", foodId.toString());
+    redisService.deletePattern("food:*");
     Food existsFood = foodRepository.findByIdAndIsActiveTrue(foodId).orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
     existsFood.markAsDeleted();
     existsFood.setIsActive(false);
+    foodRepository.save(existsFood);
     log.info("Deleted food has ID: {}", foodId);
   }
 
   @Override
-  public String uploadImage(UUID foodId, MultipartFile file) throws IOException {
+  public String uploadImage(UUID foodId, MultipartFile file) {
 
-    log.info("Upload image food!");
+    redisService.deletePattern("food:*");
 
     Food food = foodRepository.findByIdAndIsActiveTrue(foodId)
       .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
@@ -199,6 +230,17 @@ public class FoodServiceImpl implements FoodService {
       if (fileUrl != null) s3Util.deleteFileByUrl(fileUrl);
       throw new BusinessException("Failed to upload profile image", e.getMessage());
     }
+  }
+
+  @Override
+  public void makeActiveFood(UUID foodId) {
+    Food food = foodRepository.findById(foodId).orElseThrow(
+      ()-> new ResourceNotFoundException("Food", foodId.toString())
+    );
+    food.setIsActive(true);
+    food.restore();
+    foodRepository.save(food);
+    redisService.deletePattern("food:*");
   }
 
   private FoodResponse mapToResponse(Food food) {

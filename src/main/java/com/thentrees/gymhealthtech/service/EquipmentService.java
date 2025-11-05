@@ -6,7 +6,6 @@ import com.thentrees.gymhealthtech.dto.response.EquipmentResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 public interface EquipmentService {
 
@@ -16,7 +15,7 @@ public interface EquipmentService {
 
   void updateEquipment(String equipmentCode, UpdateEquipmentRequest request);
 
-  String uploadImage(String code, MultipartFile file);
+  void uploadImage(String code, MultipartFile file);
 
   void deleteEquipment(String code);
 

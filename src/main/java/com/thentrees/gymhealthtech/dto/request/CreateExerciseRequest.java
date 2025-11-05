@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import com.thentrees.gymhealthtech.constant.ValidationMessages;
 import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -16,18 +17,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Valid
 public class CreateExerciseRequest {
-  @NotBlank(message = "Exercise name is required")
-  @Size(max = 120, message = "Name must not exceed 120 characters")
+  @NotBlank(message = ValidationMessages.EXERCISE_NAME_REQUIRE)
+  @Size(max = 120, message = ValidationMessages.EXERCISE_NAME_EXCEED_120)
   private String name;
 
   private ExerciseLevel exerciseLevel;
 
   private String equipmentTypeCode;
 
-  @Size(max = 10000, message = "Instructions must not exceed 10000 characters")
+  @Size(max = 10000, message = ValidationMessages.INTRODUCE_EXCEED_10000)
   private List<String> instructions;
 
-  @Size(max = 5000, message = "Safety notes must not exceed 5000 characters")
+  @Size(max = 5000, message = ValidationMessages.SAFETY_NOTE_EXCEED_5000)
   private String safetyNotes;
 
   private String thumbnailUrl;
@@ -35,7 +36,7 @@ public class CreateExerciseRequest {
   // Muscles with roles
   @Valid private List<ExerciseMuscleRequest> muscles;
 
-  @NotBlank(message = "Exercise category is required")
+  @NotBlank(message = ValidationMessages.EXERCISE_CATEGORY_REQUIRE)
   private String exerciseCategory;
 
   private String exerciseType;

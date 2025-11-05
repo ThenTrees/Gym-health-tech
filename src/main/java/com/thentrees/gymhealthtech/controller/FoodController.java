@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.FoodRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.FoodResponse;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/admin/nutrition")
+@RequestMapping(AppConstants.API_V1 + "/nutrition")
 @RequiredArgsConstructor
 @Slf4j
 public class FoodController {
@@ -34,8 +36,6 @@ public class FoodController {
   @PostMapping(value = "/foods/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ImportFoodResponse> importFoods(@RequestParam("file") MultipartFile file) {
-    log.info("Importing foods from Excel: {}", file.getOriginalFilename());
-
     // Validate file
     if (file.isEmpty()) {
       return ResponseEntity.badRequest().body(ImportFoodResponse.error("File is empty"));
@@ -76,12 +76,12 @@ public class FoodController {
   }
 
   @GetMapping("/foods")
-  public ResponseEntity<APIResponse<PagedResponse<FoodResponse>>> getAllFoods(
+  public ResponseEntity<APIResponse<PagedResponse<FoodResponse>>> foods(
       @RequestParam(required = false) String keyword,
-      @RequestParam(defaultValue = "0") Integer page,
-      @RequestParam(defaultValue = "20") Integer size,
-      @RequestParam(defaultValue = "foodNameVi") String sortBy,
-      @RequestParam(defaultValue = "ASC") String sortDirection) {
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) Integer page,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_SIZE) Integer size,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDirection) {
     Pageable pageable =
         PageRequest.of(page, size, Sort.Direction.fromString(sortDirection), sortBy);
 
@@ -119,7 +119,7 @@ public class FoodController {
     @ApiResponse(responseCode = "500", description = "Internal server error")
   })
   @GetMapping("/{foodId}")
-  public ResponseEntity<APIResponse<FoodResponse>> getFoodById(@PathVariable("foodId") UUID foodId) {
+  public ResponseEntity<APIResponse<FoodResponse>> foodById(@PathVariable("foodId") UUID foodId) {
     FoodResponse foodResponse = foodService.getFoodById(foodId);
     return ResponseEntity.ok(APIResponse.success(foodResponse));
   }
@@ -130,14 +130,13 @@ public class FoodController {
       @PathVariable("foodId") UUID foodId,
       @Valid @RequestBody FoodRequest foodRequest) {
     foodService.updateFood(foodId, foodRequest);
-    return ResponseEntity.ok(APIResponse.success("Update food Successfully!")); // Placeholder response
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.UPDATE_FOOD_SUCCESS)); // Placeholder response
   }
 
   @DeleteMapping("/{foodId}")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<String>> deleteFood(
       @PathVariable("foodId") UUID foodId) {
-
     foodService.deleteFoodById(foodId);
     return ResponseEntity.ok(APIResponse.success("Delete food Successfully!"));
   }
@@ -147,12 +146,16 @@ public class FoodController {
   public ResponseEntity<APIResponse<String>> uploadFoodImage(
     @PathVariable("foodId") UUID foodId,
     @RequestParam("file") MultipartFile file) throws IOException {
-
     return ResponseEntity.ok(APIResponse.success(foodService.uploadImage(foodId, file)));
-
   }
 
-
+  @GetMapping(value = "/{foodId}/active")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> makeActiveFood(
+    @PathVariable("foodId") UUID foodId){
+    foodService.makeActiveFood(foodId);
+    return ResponseEntity.ok(APIResponse.success("Food is active"));
+  }
 
   private boolean isExcelFile(MultipartFile file) {
     String filename = file.getOriginalFilename();

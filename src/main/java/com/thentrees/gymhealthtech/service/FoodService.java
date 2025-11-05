@@ -24,4 +24,5 @@ public interface FoodService {
   void deleteFoodById(UUID foodId);
 
   String uploadImage(UUID foodId, MultipartFile file) throws IOException;
+  void makeActiveFood(UUID foodId);
 }

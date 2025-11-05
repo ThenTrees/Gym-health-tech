@@ -2,8 +2,16 @@ package com.thentrees.gymhealthtech.constant;
 
 public final class SuccessMessages {
 
+  //ex
+  public static final String DEL_EXERCISE_SUCCESS = "Delete exercise successfully";
+  public static final String UPDATE_EXERCISE_SUCCESS = "Update exercise successfully";
+
+  //FOOD
+  public static final String UPDATE_FOOD_SUCCESS = "Update food Successfully!";
+
+
   // User Management
-  public static final String USER_CREATED = "User account created successfully";
+  public static final String USER_CREATED = "Account created successfully. Please check your email for verification.";
   public static final String USER_UPDATED = "User profile updated successfully";
   public static final String USER_DELETED = "User account deleted successfully";
   public static final String EMAIL_VERIFIED = "Email verified successfully";

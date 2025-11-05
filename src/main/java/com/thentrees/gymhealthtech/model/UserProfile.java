@@ -63,42 +63,4 @@ public class UserProfile extends BaseEntity implements Serializable {
   @Column(name = "fitness_level")
   private FitnessLevel fitnessLevel;
 
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    UserProfile that = (UserProfile) o;
-    return Objects.equals(user, that.user)
-        && Objects.equals(fullName, that.fullName)
-        && gender == that.gender
-        && Objects.equals(age, that.age)
-        && Objects.equals(heightCm, that.heightCm)
-        && Objects.equals(weightKg, that.weightKg)
-        && Objects.equals(bmi, that.bmi)
-        && Objects.equals(healthNotes, that.healthNotes)
-        && Objects.equals(timezone, that.timezone)
-        && Objects.equals(unitWeight, that.unitWeight)
-        && Objects.equals(unitLength, that.unitLength);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        super.hashCode(),
-        user,
-        fullName,
-        gender,
-        age,
-        heightCm,
-        weightKg,
-        bmi,
-        healthNotes,
-        timezone,
-        unitWeight,
-        unitLength);
-  }
 }
