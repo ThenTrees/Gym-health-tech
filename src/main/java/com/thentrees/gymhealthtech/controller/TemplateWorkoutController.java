@@ -46,7 +46,6 @@ public class TemplateWorkoutController {
     return ResponseEntity.ok(APIResponse.success(templateWorkoutService.getTemplateWorkoutById(templateId)));
   }
 
-  //TODO: response page
   @GetMapping
   public ResponseEntity<APIResponse<List<TemplateWorkoutResponse>>> getTemplates(){
     return ResponseEntity.ok(APIResponse.success(templateWorkoutService.getTemplateWorkouts()));
@@ -71,7 +70,6 @@ public class TemplateWorkoutController {
     return ResponseEntity.ok(APIResponse.success("template workout deleted"));
   }
 
-  //TODO: active template
   @GetMapping("/{id}/active")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<String>> isTemplateWorkoutActive(@PathVariable("id") UUID id){
@@ -112,17 +110,13 @@ public class TemplateWorkoutController {
     return ResponseEntity.ok(APIResponse.success("Delete template Day successfully!"));
   }
 
-  //TODO: apply template
   @GetMapping("/{templateId}/apply")
   public ResponseEntity<APIResponse<String>> applyTemplate(
     @AuthenticationPrincipal UserDetails user,
     @PathVariable("templateId") UUID templateId
     ){
-
     UUID userId = userService.getUserByUsername(user.getUsername()).getId();
-
     templateWorkoutService.applyTemplateWorkout(userId, templateId);
     return ResponseEntity.ok(APIResponse.success("Apply success!"));
   }
-  //TODO: chuyeenr logic them day - item thanh mang
 }
