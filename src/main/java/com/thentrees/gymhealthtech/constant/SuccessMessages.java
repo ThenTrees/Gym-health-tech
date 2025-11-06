@@ -9,6 +9,10 @@ public final class SuccessMessages {
   //FOOD
   public static final String UPDATE_FOOD_SUCCESS = "Update food Successfully!";
 
+  //NOTIFICATION
+  public static final String PUSH_TOKEN_SUCCESS = "Push token saved successfully";
+  public static final String SEND_NOTIFICATION_SUCCESS = "Notification sent successfully";
+
 
   // User Management
   public static final String USER_CREATED = "Account created successfully. Please check your email for verification.";

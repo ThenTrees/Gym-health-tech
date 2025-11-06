@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.thentrees.gymhealthtech.constant.ErrorMessages;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
 import com.thentrees.gymhealthtech.enums.DevicePlatform;
@@ -18,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +32,10 @@ public class NotificationServiceImpl implements NotificationService {
   private final UserService userService;
   private final NotificationRepository notificationRepository;
 
-  @Transactional
   @Override
-  public void savePushToken(PushTokenRequest request, UUID userId) {
+  public void savePushToken(PushTokenRequest request, Authentication authentication) {
+    User user = (User) authentication.getPrincipal();
 
-    User user = userService.getUserById(userId);
-
-    // Logic to save the push token associated with the user
-    log.info("Saving push token for user {}: {}", user.getUsername(), request.getToken());
     DeviceToken deviceToken =
         DeviceToken.builder()
             .user(user)
@@ -46,6 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
             .enabled(true)
             .createdAt(LocalDateTime.now())
             .build();
+
     deviceTokenRepository.save(deviceToken);
   }
 
@@ -109,7 +108,7 @@ public class NotificationServiceImpl implements NotificationService {
               try {
                 return future.get();
               } catch (Exception e) {
-                log.error("Error sending push notification chunk", e);
+                log.error(ErrorMessages.SEND_NOTIFICATION_ERROR, e);
                 return Collections.<ExpoPushTicket>emptyList();
               }
             })
@@ -126,7 +125,7 @@ public class NotificationServiceImpl implements NotificationService {
     List<ExpoPushMessageTicketPair<ExpoPushMessage>> success =
         client.filterAllSuccessfulMessages(pairs);
     if (!success.isEmpty()) {
-      log.info("✅ Sent {} push notifications successfully", success.size());
+      log.info("Sent {} push notifications successfully", success.size());
     }
 
     List<ExpoPushMessageTicketPair<ExpoPushMessage>> errors =
@@ -136,7 +135,7 @@ public class NotificationServiceImpl implements NotificationService {
           errors.stream()
               .map(p -> String.valueOf(p.ticket.getDetails().getError()))
               .collect(Collectors.joining(", "));
-      log.error("❌ {} notifications failed: {}", errors.size(), errorMessages);
+      log.error("{} notifications failed: {}", errors.size(), errorMessages);
     }
   }
 
@@ -165,11 +164,11 @@ public class NotificationServiceImpl implements NotificationService {
     }
   }
 
-  @Transactional(readOnly = true)
   @Override
-  public boolean isUserSubscribed(UUID userId, String platform) {
+  public boolean isUserSubscribed(Authentication authentication, String platform) {
+    User user = (User) authentication.getPrincipal();
     DevicePlatform devicePlatform = DevicePlatform.valueOf(platform.toUpperCase());
-    return deviceTokenRepository.findByUserAndPlatform(userId, devicePlatform).isPresent();
+    return deviceTokenRepository.findByUserAndPlatform(user.getId(), devicePlatform).isPresent();
   }
 
 }
