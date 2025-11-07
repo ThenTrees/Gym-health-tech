@@ -6,40 +6,41 @@ import com.thentrees.gymhealthtech.model.PlanDay;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 
 public interface CustomPlanService {
-  PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request);
+  PlanResponse createCustomPlan(Authentication authentication, CreateCustomPlanRequest request);
 
-  List<PlanResponse> getUserPlans(String email);
+  List<PlanResponse> getUserPlans(Authentication authentication);
 
-  PlanResponse getPlanDetails(UUID userId, UUID planId);
+  PlanResponse getPlanDetails(UUID planId);
 
-  PlanResponse updatePlan(UUID userId, UUID planId, UpdateCustomPlanRequest request);
+  PlanResponse updatePlan(Authentication authentication, UUID planId, UpdateCustomPlanRequest request);
 
-  void deletePlan(UUID userId, UUID planId);
+  void deletePlan(Authentication authentication, UUID planId);
 
-  PlanDayResponse addDayToPlan(UUID userId, UUID planId, CreateCustomPlanDayRequest request);
+  PlanDayResponse addDayToPlan(Authentication authentication, UUID planId, CreateCustomPlanDayRequest request);
 
-  void removeDayFromPlan(UUID userId, UUID planId, UUID planDayId);
+  void removeDayFromPlan(Authentication authentication, UUID planId, UUID planDayId);
 
-  PlanDayResponse getPlanDayDetails(UUID userId, UUID planId, UUID planDayId);
+  PlanDayResponse getPlanDayDetails(Authentication authentication, UUID planId, UUID planDayId);
 
   PlanDayResponse updatePlanDay(
-      UUID userId, UUID planId, UUID planDayId, UpdatePlanDayRequest request);
+    Authentication authentication, UUID planId, UUID planDayId, UpdatePlanDayRequest request);
 
   PlanItemResponse addItemToPlanDay(
-      UUID userId, UUID planId, UUID planDayId, CreateCustomPlanItemRequest request);
+      Authentication authentication, UUID planId, UUID planDayId, CreateCustomPlanItemRequest request);
 
   PlanItemResponse updatePlanItem(
-      UUID userId, UUID planId, UUID planDayId, UUID planItemId, UpdatePlanItemRequest request);
+      Authentication authentication, UUID planId, UUID planDayId, UUID planItemId, UpdatePlanItemRequest request);
 
-  void removePlanItem(UUID userId, UUID planId, UUID planDayId, UUID planItemId);
+  void removePlanItem(Authentication authentication, UUID planId, UUID planDayId, UUID planItemId);
 
   void addMultipleItemsToPlanDay(
-      UUID userId, UUID planId, UUID planDayId, AddMultipleItemsRequest request);
+      Authentication authentication, UUID planId, UUID planDayId, AddMultipleItemsRequest request);
 
   PagedResponse<PlanSummaryResponse> getAllPlansForUser(
-      UUID userId, PlanSearchRequest searchCriteria, Pageable pageable);
+    Authentication authentication, PlanSearchRequest searchCriteria, Pageable pageable);
 
   PlanDay duplicatePlanDayForNextWeek(PlanDay planDay);
 
