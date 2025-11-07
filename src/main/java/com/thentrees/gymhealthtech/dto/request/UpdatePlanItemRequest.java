@@ -9,7 +9,7 @@ public class UpdatePlanItemRequest {
 
   private UUID exerciseId; // Allow changing exercise
 
-  @Min(value = 1, message = "Thứ tự bài tập tối thiểu là 1")
+  @Min(value = 1, message = "The index exercise least one!")
   private Integer itemIndex;
 
   private CreateCustomPlanItemRequest.PlanItemPrescription prescription;

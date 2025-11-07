@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.PlanSourceType;
@@ -28,14 +30,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/users/plans")
+@RequestMapping(AppConstants.API_V1 + "/users/plans")
 @Slf4j
 @RequiredArgsConstructor
 public class PlanController {
-
   private final CustomPlanService customPlanService;
-  private final UserService userService;
-
   @Operation(
       method = "GET",
       summary = "Get All Plans",
@@ -81,18 +80,17 @@ public class PlanController {
                     schema = @Schema(implementation = APIResponse.class)))
       })
   @GetMapping
-  @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<PagedResponse<PlanSummaryResponse>>> getAllPlans(
       @RequestParam(required = false, defaultValue = "") String query,
       @RequestParam(required = false) List<PlanSourceType> planSourceTypes,
       @RequestParam(required = false) List<PlanStatusType> statusTypes,
       @RequestParam(required = false) List<UUID> goalIds,
       @RequestParam(required = false, defaultValue = "false") String hasActiveGoal,
-      @RequestParam(defaultValue = "0") Integer page,
-      @RequestParam(defaultValue = "10") Integer size,
-      @RequestParam(defaultValue = "createdAt") String sortBy,
-      @RequestParam(defaultValue = "ASC") String sortDirection,
-      @AuthenticationPrincipal UserDetails userDetails) {
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) Integer page,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_SIZE) Integer size,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDirection,
+      Authentication authentication) {
 
     PlanSearchRequest searchRequest =
         PlanSearchRequest.builder()
@@ -107,10 +105,8 @@ public class PlanController {
 
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
 
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("GET /users/plans - User {} fetching all plans", userId);
     PagedResponse<PlanSummaryResponse> plans =
-        customPlanService.getAllPlansForUser(userId, searchRequest, pageable);
+        customPlanService.getAllPlansForUser(authentication, searchRequest, pageable);
     return ResponseEntity.ok(APIResponse.success(plans));
   }
 
@@ -161,11 +157,7 @@ public class PlanController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<PlanResponse>> createCustomPlan(
       @Valid @RequestBody CreateCustomPlanRequest request, Authentication authentication) {
-    String email = authentication.getName();
-    log.info("POST /users/plans - User {} creating custom plan: {}", email, request.getTitle());
-
-    PlanResponse plan = customPlanService.createCustomPlan(email, request);
-
+    PlanResponse plan = customPlanService.createCustomPlan(authentication, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(plan));
   }
 
@@ -202,12 +194,8 @@ public class PlanController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<List<PlanResponse>>> getUserPlans(
       Authentication authentication) {
-    String email = authentication.getName();
-    log.info("GET /users/plans - User {} fetching plans", email);
-
-    List<PlanResponse> plans = customPlanService.getUserPlans(email);
-
-    return ResponseEntity.ok(APIResponse.success(plans, "User plans retrieved successfully"));
+    List<PlanResponse> plans = customPlanService.getUserPlans(authentication);
+    return ResponseEntity.ok(APIResponse.success(plans, SuccessMessages.GET_PLAN_SUCCESS));
   }
 
   @Operation(
@@ -263,13 +251,8 @@ public class PlanController {
   @GetMapping("/{planId}")
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<PlanResponse>> getPlanDetails(
-      @PathVariable UUID planId, @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("GET /users/plans/{} - User {} fetching plan details", planId, userId);
-
-    PlanResponse plan = customPlanService.getPlanDetails(userId, planId);
-
+      @PathVariable UUID planId) {
+    PlanResponse plan = customPlanService.getPlanDetails(planId);
     return ResponseEntity.ok(APIResponse.success(plan));
   }
 
@@ -328,13 +311,8 @@ public class PlanController {
   public ResponseEntity<APIResponse<PlanResponse>> updatePlan(
       @PathVariable UUID planId,
       @Valid @RequestBody UpdateCustomPlanRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("PUT /users/plans/{} - User {} updating plan", planId, userId);
-
-    PlanResponse plan = customPlanService.updatePlan(userId, planId, request);
-
+      Authentication authentication) {
+    PlanResponse plan = customPlanService.updatePlan(authentication, planId, request);
     return ResponseEntity.ok(APIResponse.success(plan));
   }
 
@@ -389,16 +367,10 @@ public class PlanController {
                     schema = @Schema(implementation = APIResponse.class)))
       })
   @DeleteMapping("/{planId}")
-  @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<Void>> deletePlan(
-      @PathVariable UUID planId, @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("DELETE /users/plans/{} - User {} deleting plan", planId, userId);
-
-    customPlanService.deletePlan(userId, planId);
-
-    return ResponseEntity.ok(APIResponse.success(null, "Plan deleted successfully"));
+  public ResponseEntity<APIResponse<String>> deletePlan(
+      @PathVariable UUID planId, Authentication authentication) {
+    customPlanService.deletePlan(authentication, planId);
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.DELETE_PLAN_SUCCESS));
   }
 
   @Operation(
@@ -455,13 +427,8 @@ public class PlanController {
   public ResponseEntity<APIResponse<PlanDayResponse>> addDayToPlan(
       @PathVariable UUID planId,
       @Valid @RequestBody CreateCustomPlanDayRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("POST /users/plans/{}/days - User {} adding day to plan", planId, userId);
-
-    PlanDayResponse planDay = customPlanService.addDayToPlan(userId, planId, request);
-
+      Authentication authentication) {
+    PlanDayResponse planDay = customPlanService.addDayToPlan(authentication, planId, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(planDay));
   }
 
@@ -514,24 +481,14 @@ public class PlanController {
   })
   @DeleteMapping("/{planId}/days/{planDayId}")
   @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<Void>> removeDayFromPlan(
+  public ResponseEntity<APIResponse<String>> removeDayFromPlan(
       @PathVariable UUID planId,
       @PathVariable UUID planDayId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "DELETE /users/plans/{}/days/{} - User {} removing day from plan",
-        planId,
-        planDayId,
-        userId);
-
-    customPlanService.removeDayFromPlan(userId, planId, planDayId);
-
-    return ResponseEntity.ok(APIResponse.success(null, "Day removed from plan successfully"));
+      Authentication authentication) {
+    customPlanService.removeDayFromPlan(authentication, planId, planDayId);
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.DELETE_PLAN_DAY_SUCCESS));
   }
 
-  // Plan Day Management APIs
   @Operation(
       method = "GET",
       summary = "Get Plan Day Details",
@@ -584,19 +541,12 @@ public class PlanController {
   @GetMapping("/{planId}/days/{planDayId}")
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<PlanDayResponse>> getPlanDayDetails(
-      @PathVariable String planId,
-      @PathVariable String planDayId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "GET /users/plans/{}/days/{} - User {} fetching day details", planId, planDayId, userId);
-
-    // This would need to be implemented in the service
+      @PathVariable UUID planId,
+      @PathVariable UUID planDayId,
+      Authentication authentication) {
     PlanDayResponse planDay =
         customPlanService.getPlanDayDetails(
-            userId, UUID.fromString(planId), UUID.fromString(planDayId));
-
+            authentication,planId, planDayId);
     return ResponseEntity.ok(APIResponse.success(planDay));
   }
 
@@ -650,24 +600,16 @@ public class PlanController {
                 schema = @Schema(implementation = APIResponse.class)))
   })
   @PutMapping("/{planId}/days/{planDayId}")
-  @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<PlanDayResponse>> updatePlanDay(
-      @PathVariable String planId,
-      @PathVariable String planDayId,
+      @PathVariable UUID planId,
+      @PathVariable UUID planDayId,
       @Valid @RequestBody UpdatePlanDayRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("PUT /users/plans/{}/days/{} - User {} updating day", planId, planDayId, userId);
-
+      Authentication authentication) {
     PlanDayResponse planDay =
-        customPlanService.updatePlanDay(
-            userId, UUID.fromString(planId), UUID.fromString(planDayId), request);
-
-    return ResponseEntity.ok(APIResponse.success(planDay, "Day updated successfully"));
+      customPlanService.updatePlanDay(authentication,planId,planDayId, request);
+    return ResponseEntity.ok(APIResponse.success(planDay, SuccessMessages.UPDATE_PLAN_DAY_SUCCESS));
   }
 
-  //  // Plan Item Management APIs
   @Operation(
       method = "POST",
       summary = "Add Item to Plan Day",
@@ -723,20 +665,12 @@ public class PlanController {
       @PathVariable UUID planId,
       @PathVariable UUID planDayId,
       @Valid @RequestBody CreateCustomPlanItemRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "POST /users/plans/{}/days/{}/items - User {} adding item to day",
-        planId,
-        planDayId,
-        userId);
-
+      Authentication authentication
+  ) {
     PlanItemResponse planItem =
-        customPlanService.addItemToPlanDay(userId, planId, planDayId, request);
-
+        customPlanService.addItemToPlanDay(authentication, planId, planDayId, request);
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(APIResponse.success(planItem, "Item added to day successfully"));
+        .body(APIResponse.success(planItem));
   }
 
   @Operation(
@@ -744,7 +678,7 @@ public class PlanController {
       summary = "Update Plan Item",
       description =
           "Update details of a specific item within a plan day for the authenticated user.")
-  @ApiResponses({
+  @ApiResponses( value = {
     @ApiResponse(
         responseCode = "200",
         description = "Plan item updated successfully",
@@ -796,20 +730,10 @@ public class PlanController {
       @PathVariable UUID planDayId,
       @PathVariable UUID planItemId,
       @Valid @RequestBody UpdatePlanItemRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "PUT /users/plans/{}/days/{}/items/{} - User {} updating item",
-        planId,
-        planDayId,
-        planItemId,
-        userId);
-
+      Authentication authentication) {
     PlanItemResponse planItem =
-        customPlanService.updatePlanItem(userId, planId, planDayId, planItemId, request);
-
-    return ResponseEntity.ok(APIResponse.success(planItem, "Item updated successfully"));
+        customPlanService.updatePlanItem(authentication, planId, planDayId, planItemId, request);
+    return ResponseEntity.ok(APIResponse.success(planItem, SuccessMessages.UPDATE_PLAN_ITEM_SUCCESS));
   }
 
   @Operation(
@@ -863,59 +787,23 @@ public class PlanController {
   })
   @DeleteMapping("/{planId}/days/{planDayId}/items/{planItemId}")
   @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<Void>> removePlanItem(
+  public ResponseEntity<APIResponse<String>> removePlanItem(
       @PathVariable UUID planId,
       @PathVariable UUID planDayId,
       @PathVariable UUID planItemId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "DELETE /users/plans/{}/days/{}/items/{} - User {} removing item",
-        planId,
-        planDayId,
-        planItemId,
-        userId);
-
-    customPlanService.removePlanItem(userId, planId, planDayId, planItemId);
-
-    return ResponseEntity.ok(APIResponse.success(null, "Item removed successfully"));
+      Authentication authentication) {
+    customPlanService.removePlanItem(authentication, planId, planDayId, planItemId);
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.DELETE_PLAN_ITEM_SUCCESS));
   }
 
   @PostMapping("/{planId}/days/{planDayId}/items/bulk")
-  @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<Void>> addMultipleItemsToPlanDay(
+  public ResponseEntity<APIResponse<String>> addMultipleItemsToPlanDay(
       @PathVariable UUID planId,
       @PathVariable UUID planDayId,
       @Valid @RequestBody AddMultipleItemsRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "POST /users/plans/{}/days/{}/items/bulk - User {} adding multiple items",
-        planId,
-        planDayId,
-        userId);
-
-    customPlanService.addMultipleItemsToPlanDay(userId, planId, planDayId, request);
-
+      Authentication authentication) {
+    customPlanService.addMultipleItemsToPlanDay(authentication, planId, planDayId, request);
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(APIResponse.success(null, "Items added successfully"));
+        .body(APIResponse.success(SuccessMessages.CREATE_PLAN_ITEM_SUCCESS));
   }
-
-  //  // Statistics and Analytics
-  //    @GetMapping("/{planId}/stats")
-  //    @PreAuthorize("hasRole('USER')")
-  //    public ResponseEntity<PlanStatsDto> getPlanStatistics(
-  //      @PathVariable UUID planId,
-  //      @AuthenticationPrincipal UserDetails userDetails) {
-  //
-  //      UUID userId = getCurrentUserId(userDetails);
-  //      log.info("GET /users/plans/{}/stats - User {} fetching plan statistics", planId, userId);
-  //
-  //      PlanStatsDto stats = customPlanService.getPlanStatistics(userId, planId);
-  //
-  //      return ResponseEntity.ok(stats);
-  //    }
-
 }

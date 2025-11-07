@@ -3,13 +3,13 @@ package com.thentrees.gymhealthtech.service;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
 import io.github.jav.exposerversdk.PushClientException;
-import java.util.UUID;
+import org.springframework.security.core.Authentication;
 
 public interface NotificationService {
-  void savePushToken(PushTokenRequest request, UUID userId);
+  void savePushToken(PushTokenRequest request, Authentication authentication);
 
   void sendPushNotification(SendNotificationRequest request)
       throws PushClientException, InterruptedException;
 
-  boolean isUserSubscribed(UUID userId, String platform);
+  boolean isUserSubscribed(Authentication authentication, String platform);
 }

@@ -20,7 +20,31 @@ public final class ValidationMessages {
   public static final String SAFETY_NOTE_EXCEED_5000 = "Safety must not exceed 5000 characters";
   public static final String EXERCISE_CATEGORY_REQUIRE = "Exercise category is required";
 
+  // PLAN VALIDATION
+  public static final String PLAN_NAME_REQUIRE = "Name plan is require!";
+  public static final String PLAN_NAME_EXCEED_120_CHAR = "Name plan didn't exceed 120 character!";
+  public static final String CYCLE_WEEK_REQUIRE = "Cycle week is require!";
+  public static final String CYCLE_WEEK_MIN = "The minimum number of training weeks is 1";
+  public static final String CYCLE_WEEK_MAX = "The maximum number of training weeks is 52";
+  public static final String PLAN_MUST_INCLUDE_PLAN_DAY = "The plan must include at least one day of training.";
+  public static final String DAY_IDX_REQUIRE = "Day index is require!";
+  public static final String DAY_IDX_MIN = "The minimum daily index is 1";
+  public static final String DAY_NAME_EXCEED_50_CHAR = "The division name must not exceed 50 characters";
+  public static final String DAY_TRAINING_INCLUDE_EXERCISE = "Each day of training must include at least one exercise.";
 
+  //PLAN_DAY
+  public static final String NAME_SLUG_EXCEED_50_CHAR = "name slug do not exceed 50 charactor";
+
+  // EXERCISE
+  public static final String EX_ID_REQUIRE = "Exercise ID is require";
+  public static final String EX_IDX_REQUIRE = "Ex index is require";
+  public static final String EX_IDX_MIN = "Exercise index minimum is 1!";
+  public static final String PARAMETER_EXERCISE_REQUIRE = "Parameter exercise is require!";
+  public static final String SET_REQUIRE = "Set number is require!";
+  public static final String SET_MIN = "Set number at least one";
+  public static final String SET_MAX = "Set number maximum at 10";
+  public static final String REP_REQUIRE = "Rep number is require!";
+  public static final String REST_TIME_NOT_NEGATIVE = "rest time cannot be negative";
 
   // User Validation
   public static final String EMAIL_REQUIRED = "Email is required";

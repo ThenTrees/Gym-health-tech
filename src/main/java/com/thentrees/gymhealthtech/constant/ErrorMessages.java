@@ -6,6 +6,7 @@ public final class ErrorMessages {
 
   // NOTIFICATION
   public static final String SEND_MAIL_VERIFICATION_FAILED = "Failed to send verification email to ";
+  public static final String SEND_NOTIFICATION_ERROR = "Error sending push notification chunk";
 
   //EQUIPMENT
   public static final String EQUIPMENT_ALREADY_EXISTS = "Equipment already exists!";

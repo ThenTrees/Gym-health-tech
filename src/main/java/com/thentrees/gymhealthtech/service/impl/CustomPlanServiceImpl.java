@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,31 +33,26 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   private final PlanDayRepository planDayRepository;
   private final PlanItemRepository planItemRepository;
   private final ExerciseRepository exerciseRepository;
-  private final UserRepository userRepository;
   private final SessionRepository sessionRepository;
   private final ObjectMapper objectMapper;
 
   @Override
   public PagedResponse<PlanSummaryResponse> getAllPlansForUser(
-      UUID userId, PlanSearchRequest searchCriteria, Pageable pageable) {
-    // This method can be implemented to fetch all plans for a user if needed
-    log.info("Searching plans for user {} with criteria: {}", userId, searchCriteria);
+    Authentication authentication, PlanSearchRequest searchCriteria, Pageable pageable) {
+
+    User user = (User) authentication.getPrincipal();
 
     // This would use a custom repository method with dynamic query building
-    Page<Plan> plans = planRepository.findPlansWithCriteria(userId, searchCriteria, pageable);
+    Page<Plan> plans = planRepository.findPlansWithCriteria(user.getId(), searchCriteria, pageable);
     Page<PlanSummaryResponse> planResponses = plans.map(this::convertPlanToSummaryResponse);
     return PagedResponse.of(planResponses);
   }
 
   @Transactional
   @Override
-  public PlanResponse createCustomPlan(String email, CreateCustomPlanRequest request) {
-    log.info("Creating custom plan for user: {} with title: {}", email, request.getTitle());
+  public PlanResponse createCustomPlan(Authentication authentication, CreateCustomPlanRequest request) {
 
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    User user = (User) authentication.getPrincipal();
 
     // get all exercise IDs from the request
     Set<UUID> exerciseIds =
@@ -115,52 +111,39 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       planDay.setPlanItems(planItems);
       planDays.add(planDay);
     }
-
     plan.setPlanDays(planDays);
-
-    log.info("Successfully created custom plan with ID: {} for user: {}", plan.getId(), email);
     return convertPlanToResponse(plan, true);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<PlanResponse> getUserPlans(String email) {
-    log.info("Fetching all plans for user: {}", email);
+  public List<PlanResponse> getUserPlans(Authentication authentication) {
 
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+    User user = (User) authentication.getPrincipal();
     List<Plan> plans = planRepository.findByUserId(user.getId());
-
     return plans.stream()
         .map(plan -> convertPlanToResponse(plan, true))
-        .collect(Collectors.toList());
+      .toList();
   }
 
   @Override
   @Transactional(readOnly = true)
-  public PlanResponse getPlanDetails(UUID userId, UUID planId) {
-    log.info("Fetching plan details for user: {}, plan: {}", userId, planId);
-
+  public PlanResponse getPlanDetails(UUID planId) {
     Plan plan =
         planRepository
-            .findByIdAndUserId(planId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
-
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
     return convertPlanToResponse(plan, true);
   }
 
   @Transactional
   @Override
-  public PlanResponse updatePlan(UUID userId, UUID planId, UpdateCustomPlanRequest request) {
-    log.info("Updating plan {} for user {}", planId, userId);
-
+  public PlanResponse updatePlan(Authentication authentication, UUID planId, UpdateCustomPlanRequest request) {
+    User user = (User) authentication.getPrincipal();
     Plan plan =
         planRepository
-            .findByIdAndUserId(planId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
 
     // Update basic fields
     if (request.getTitle() != null) {
@@ -173,7 +156,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
     if (request.getStatus() != null) {
       if (request.getStatus().equalsIgnoreCase(PlanStatusType.ACTIVE.toString())) {
-        List<Plan> listPlan = planRepository.findByUserId(userId);
+        List<Plan> listPlan = planRepository.findByUserId(user.getId());
         for (Plan planItem : listPlan) {
           planItem.setStatus(PlanStatusType.PAUSE);
           planRepository.save(planItem);
@@ -190,13 +173,17 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Transactional
   @Override
-  public void deletePlan(UUID userId, UUID planId) {
-    log.info("Deleting plan {} for user {}", planId, userId);
-
+  public void deletePlan(Authentication authentication, UUID planId) {
+    User user = (User) authentication.getPrincipal();
     Plan plan =
         planRepository
-            .findByIdAndUserId(planId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
+
+    // check must your plan
+    if (!plan.getUser().getId().equals(user.getId())) {
+      throw new BusinessException("You can del your plan!");
+    }
 
     // Check if there are any completed sessions
     boolean hasCompletedSessions =
@@ -217,12 +204,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   @Transactional
   @Override
   public PlanDayResponse addDayToPlan(
-      UUID userId, UUID planId, CreateCustomPlanDayRequest request) {
-    log.info("Adding day to plan {} for user {}", planId, userId);
+      Authentication authentication, UUID planId, CreateCustomPlanDayRequest request) {
+
+    User user = (User) authentication.getPrincipal();
 
     Plan plan =
         planRepository
-            .findByIdAndUserId(planId, userId)
+            .findByIdAndUserId(planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
 
     // Validate exercises
@@ -271,12 +259,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Transactional
   @Override
-  public void removeDayFromPlan(UUID userId, UUID planId, UUID planDayId) {
-    log.info("Removing day {} from plan {} for user {}", planDayId, planId, userId);
+  public void removeDayFromPlan(Authentication authentication, UUID planId, UUID planDayId) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, userId)
+            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
     // Check if day has any completed sessions
@@ -293,13 +282,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Transactional
   @Override
-  public PlanDayResponse getPlanDayDetails(UUID userId, UUID planId, UUID planDayId) {
-    log.info(
-        "Fetching plan day details for user: {}, plan: {}, day: {}", userId, planId, planDayId);
+  public PlanDayResponse getPlanDayDetails(Authentication authentication, UUID planId, UUID planDayId) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, userId)
+            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
     return convertPlanDayToResponse(planDay, true);
@@ -308,12 +297,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   @Transactional
   @Override
   public PlanDayResponse updatePlanDay(
-      UUID userId, UUID planId, UUID planDayId, UpdatePlanDayRequest request) {
-    log.info("Updating plan day {} for user {}", planDayId, userId);
+      Authentication authentication, UUID planId, UUID planDayId, UpdatePlanDayRequest request) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, userId)
+            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
     if (request.getSplitName() != null) {
@@ -337,12 +327,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   @Transactional
   @Override
   public PlanItemResponse addItemToPlanDay(
-      UUID userId, UUID planId, UUID planDayId, CreateCustomPlanItemRequest request) {
-    log.info("Adding item to plan day {} for user {}", planDayId, userId);
+      Authentication authentication, UUID planId, UUID planDayId, CreateCustomPlanItemRequest request) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, userId)
+            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
     Exercise exercise =
@@ -366,13 +357,14 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   @Transactional
   @Override
   public PlanItemResponse updatePlanItem(
-      UUID userId, UUID planId, UUID planDayId, UUID planItemId, UpdatePlanItemRequest request) {
-    log.info("Updating plan item {} for user {}", planItemId, userId);
+      Authentication authentication, UUID planId, UUID planDayId, UUID planItemId, UpdatePlanItemRequest request) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanItem planItem =
         planItemRepository
             .findByIdAndPlanDayIdAndPlanDayPlanIdAndPlanDayPlanUserId(
-                planItemId, planDayId, planId, userId)
+                planItemId, planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan item not found"));
 
     if (request.getExerciseId() != null) {
@@ -403,13 +395,14 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
   @Transactional
   @Override
-  public void removePlanItem(UUID userId, UUID planId, UUID planDayId, UUID planItemId) {
-    log.info("Removing plan item {} for user {}", planItemId, userId);
+  public void removePlanItem(Authentication authentication, UUID planId, UUID planDayId, UUID planItemId) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanItem planItem =
         planItemRepository
             .findByIdAndPlanDayIdAndPlanDayPlanIdAndPlanDayPlanUserId(
-                planItemId, planDayId, planId, userId)
+                planItemId, planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan item not found"));
 
     // Check if item has any completed sessions
@@ -428,12 +421,13 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   @Transactional
   @Override
   public void addMultipleItemsToPlanDay(
-      UUID userId, UUID planId, UUID planDayId, AddMultipleItemsRequest request) {
-    log.info("Adding multiple items to plan day {} for user {}", planDayId, userId);
+      Authentication authentication, UUID planId, UUID planDayId, AddMultipleItemsRequest request) {
+
+    User user = (User) authentication.getPrincipal();
 
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, userId)
+            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
     // Validate exercises
@@ -463,9 +457,6 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
       planItemRepository.save(planItem);
     }
-
-    log.info(
-        "Successfully added {} items to plan day: {}", request.getPlanItems().size(), planDayId);
   }
 
   @Override

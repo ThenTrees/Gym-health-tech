@@ -1,12 +1,13 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.PushTokenRequest;
 import com.thentrees.gymhealthtech.dto.request.SendNotificationRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.service.NotificationService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.github.jav.exposerversdk.PushClientException;
-import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,12 +15,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("${app.prefix}/notifications")
+@RequestMapping(AppConstants.API_V1 + "/notifications")
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationController {
@@ -29,11 +29,9 @@ public class NotificationController {
 
   @PostMapping("/push-token")
   public ResponseEntity<APIResponse<String>> savePushToken(
-      @RequestBody PushTokenRequest request, @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    notificationService.savePushToken(request, userId);
-    return ResponseEntity.ok(APIResponse.success("Push token saved successfully"));
+    @RequestBody PushTokenRequest request, Authentication authentication) {
+    notificationService.savePushToken(request, authentication);
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.PUSH_TOKEN_SUCCESS));
   }
 
   @PostMapping("/send")
@@ -41,7 +39,7 @@ public class NotificationController {
       @RequestBody SendNotificationRequest request) {
     try {
       notificationService.sendPushNotification(request);
-      return ResponseEntity.ok(APIResponse.success("Notification sent successfully"));
+      return ResponseEntity.ok(APIResponse.success(SuccessMessages.SEND_NOTIFICATION_SUCCESS));
     } catch (PushClientException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -59,10 +57,8 @@ public class NotificationController {
   @GetMapping("/is-subscribed")
   public ResponseEntity<APIResponse<Boolean>> isUserSubscribed(
     @RequestParam(value = "platform", required = false, defaultValue = "ios") String platform,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    boolean isSubscribed = notificationService.isUserSubscribed(userId,platform);
+      Authentication authentication) {
+    boolean isSubscribed = notificationService.isUserSubscribed(authentication,platform);
     return ResponseEntity.ok(APIResponse.success(isSubscribed));
   }
 }

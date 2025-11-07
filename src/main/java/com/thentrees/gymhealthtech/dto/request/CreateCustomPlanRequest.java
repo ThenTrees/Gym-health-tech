@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import com.thentrees.gymhealthtech.constant.ValidationMessages;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.List;
@@ -15,20 +16,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class CreateCustomPlanRequest {
-  @NotBlank(message = "Tên kế hoạch tập luyện không được để trống")
-  @Size(max = 120, message = "Tên kế hoạch không được vượt quá 120 ký tự")
+  @NotBlank(message = ValidationMessages.PLAN_NAME_REQUIRE)
+  @Size(max = 120, message = ValidationMessages.PLAN_NAME_EXCEED_120_CHAR)
   private String title;
 
-  private UUID goalId; // Optional - link to existing goal
+  private UUID goalId;
 
-  @NotNull(message = "Số tuần tập luyện là bắt buộc")
-  @Min(value = 1, message = "Số tuần tập luyện tối thiểu là 1")
-  @Max(value = 52, message = "Số tuần tập luyện tối đa là 52")
+  @NotNull(message = ValidationMessages.CYCLE_WEEK_REQUIRE)
+  @Min(value = 1, message = ValidationMessages.CYCLE_WEEK_MIN)
+  @Max(value = 52, message = ValidationMessages.CYCLE_WEEK_MAX)
   private Integer cycleWeeks;
 
   private String notes;
 
   @Valid
-  @NotEmpty(message = "Kế hoạch phải có ít nhất 1 ngày tập")
+  @NotEmpty(message = ValidationMessages.PLAN_MUST_INCLUDE_PLAN_DAY)
   private List<CreateCustomPlanDayRequest> planDays;
 }
