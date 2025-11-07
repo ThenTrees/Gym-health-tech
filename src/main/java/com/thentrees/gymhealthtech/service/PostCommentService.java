@@ -4,6 +4,8 @@ import com.thentrees.gymhealthtech.dto.request.CreateCommentRequest;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface PostCommentService {
@@ -11,7 +13,7 @@ public interface PostCommentService {
 
   List<PostCommentResponse> getPostComments(String postId);
 
-  void deleteCommentsByUserId(String commentId, UUID userId);
+  void deleteCommentsByUserId(String commentId, Authentication authentication);
 
-  void deleteCommentMedia(String mediaUrl, UUID commentId, UUID userId);
+  void deleteCommentMedia(String mediaUrl, UUID commentId, Authentication authentication);
 }

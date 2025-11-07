@@ -14,7 +14,6 @@ import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.repository.PostCommentRepository;
 import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostCommentService;
-import com.thentrees.gymhealthtech.service.UserService;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import java.util.List;
@@ -24,12 +23,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-@Slf4j
+@Slf4j(topic = "COMMENT-SERVICE")
 @RequiredArgsConstructor
 public class PostCommentServiceImpl implements PostCommentService {
 
@@ -39,14 +39,13 @@ public class PostCommentServiceImpl implements PostCommentService {
   private final ApplicationEventPublisher applicationEventPublisher;
   private final FileValidator fileValidator;
   private final S3Util s3Util;
-  private final UserService userService;
 
   @Transactional
   @Override
   public PostCommentResponse createPostComment(CreateCommentRequest request, MultipartFile file) {
-    Optional<Post> post = postRepository.findById(UUID.fromString(request.getPostId()));
+    Optional<Post> post = postRepository.findById(request.getPostId());
     if (post.isEmpty()) {
-      throw new ResourceNotFoundException("Post not found with id: " + request.getPostId());
+      throw new ResourceNotFoundException("Post", request.getPostId().toString());
     }
 
     PostComment comment = postCommentMapper.toEntity(request, postRepository);
@@ -54,9 +53,9 @@ public class PostCommentServiceImpl implements PostCommentService {
     if (request.getParentCommentId() != null) {
       PostComment parent =
           commentRepository
-              .findById(UUID.fromString(request.getParentCommentId()))
+              .findById(request.getParentCommentId())
               .orElseThrow(
-                  () -> new ResourceNotFoundException("PostComment", request.getParentCommentId()));
+                  () -> new ResourceNotFoundException("PostComment", request.getParentCommentId().toString()));
       comment.setParentComment(parent);
     }
     comment.setLikesCount(0);
@@ -103,13 +102,16 @@ public class PostCommentServiceImpl implements PostCommentService {
 
   @Transactional
   @Override
-  public void deleteCommentsByUserId(String commentId, UUID userId) {
+  public void deleteCommentsByUserId(String commentId, Authentication authentication) {
+
+    User user = (User) authentication.getPrincipal();
+
     PostComment comment =
         commentRepository
             .findById(UUID.fromString(commentId))
             .orElseThrow(
                 () -> new ResourceNotFoundException("Comment not found with id: " + commentId));
-    if (!comment.getUser().getId().equals(userId)) {
+    if (!comment.getUser().getId().equals(user.getId())) {
       throw new AccessDeniedException("User is not authorized to delete this comment");
     }
     comment.setIsDeleted(true);
@@ -121,9 +123,8 @@ public class PostCommentServiceImpl implements PostCommentService {
     log.info("Comment with id: {} marked as deleted", commentId);
   }
 
-  @Transactional
   @Override
-  public void deleteCommentMedia(String mediaUrl, UUID commentId, UUID userId) {
+  public void deleteCommentMedia(String mediaUrl, UUID commentId, Authentication authentication) {
     PostComment comment =
         commentRepository
             .findById(commentId)
@@ -135,7 +136,7 @@ public class PostCommentServiceImpl implements PostCommentService {
             .orElseThrow(
                 () -> new ResourceNotFoundException("Post", comment.getPost().getId().toString()));
 
-    User user = userService.getUserById(userId);
+    User user = (User)  authentication.getPrincipal();
 
     if (!post.getUser().getId().equals(user.getId())
         || !comment.getUser().getId().equals(user.getId())) {
@@ -143,7 +144,6 @@ public class PostCommentServiceImpl implements PostCommentService {
     }
 
     // Xoá file vật lý trên S3
-    //    s3Util.deleteFileByUrl(mediaUrl);
     s3Util.deleteFileByKey(mediaUrl);
 
     post.setMediaUrls(null);
