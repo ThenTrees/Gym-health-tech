@@ -6,18 +6,20 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateCommentRequest {
   @NotBlank(message = "Post ID cannot be blank")
-  private String postId;
+  private UUID postId;
 
   @NotBlank(message = "User ID cannot be blank")
   private String userId;
 
-  private String parentCommentId;
+  private UUID parentCommentId;
 
   private String content;
 }
