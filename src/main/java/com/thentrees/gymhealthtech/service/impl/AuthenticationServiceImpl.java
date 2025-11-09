@@ -1,13 +1,17 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.enums.UserStatus;
 import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
+import com.thentrees.gymhealthtech.exception.UnauthorizedException;
 import com.thentrees.gymhealthtech.model.RefreshToken;
 import com.thentrees.gymhealthtech.model.User;
+import com.thentrees.gymhealthtech.model.UserProfile;
 import com.thentrees.gymhealthtech.model.VerificationToken;
 import com.thentrees.gymhealthtech.repository.UserRepository;
 import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
@@ -23,7 +27,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -214,6 +217,43 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     refreshTokenService.revokeAllUserTokens(user);
 
     log.info("Password changed successfully for user: {}", user.getUsername());
+  }
+
+  @Override
+  public AuthResponse loginWithFirebase(String idToken) {
+    try {
+      FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+      String email = decodedToken.getEmail();
+      String name = decodedToken.getName();
+      String picture = decodedToken.getPicture();
+      boolean emailVerify = decodedToken.isEmailVerified();
+      User user = userRepository.findByEmail(email)
+        .orElseGet(() -> createUser(email, name, picture, emailVerify));
+      String accessToken = jwtService.generateTokenForUser(user);
+      RefreshToken refreshToken =
+        refreshTokenService.createRefreshToken(user, null, null);
+      return buildAuthResponse(user, accessToken, refreshToken.getTokenHash());
+    } catch (Exception e) {
+      throw new UnauthorizedException(e.getMessage());
+    }
+  }
+
+  private User createUser(String email, String name, String picture, boolean emailVerify) {
+    User user = new User();
+    user.setEmail(email);
+    user.setEmailVerified(emailVerify);
+    UserProfile profile = createUserProfile(user, name, picture);
+    user.setProfile(profile);
+    user.setProfileCompleted(false);
+    return userRepository.save(user);
+  }
+
+  private UserProfile createUserProfile(User user,String name, String picture){
+    return UserProfile.builder()
+      .user(user)
+      .fullName(name)
+      .avatarUrl(picture)
+      .build();
   }
 
   private void validateUserAccount(User user) {

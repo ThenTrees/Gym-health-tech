@@ -57,6 +57,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
 
     UserProfile profile = createUserProfile(user, request);
     user.setProfile(profile);
+    user.setProfileCompleted(true);
 
     user = userRepository.save(user);
 

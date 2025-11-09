@@ -16,4 +16,6 @@ public interface AuthenticationService {
   void logout(LogoutRequest request, String currentUserEmail);
 
   void changePassword(ChangePasswordRequest request, Authentication authentication);
+
+  AuthResponse loginWithFirebase(String idToken);
 }

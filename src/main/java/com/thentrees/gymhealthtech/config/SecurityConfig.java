@@ -66,7 +66,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/admin/nutrition/foods/import")
                     .permitAll()
-                    .anyRequest()
+                  .anyRequest()
                     .authenticated())
         .authenticationProvider(authenticationProvider());
     return http.build();
