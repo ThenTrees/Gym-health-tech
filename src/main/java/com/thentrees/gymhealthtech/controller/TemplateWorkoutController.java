@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateDayRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateItemRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateRequest;
@@ -7,14 +8,11 @@ import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutDayResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutResponse;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
-import com.thentrees.gymhealthtech.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,13 +20,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("${app.prefix}/templates")
+@RequestMapping(AppConstants.API_V1 + "/templates")
 @RequiredArgsConstructor
 public class TemplateWorkoutController {
-
   private final TemplateWorkoutService templateWorkoutService;
-  private final UserService userService;
-
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<TemplateWorkoutResponse>> createTemplate(
@@ -112,11 +107,9 @@ public class TemplateWorkoutController {
 
   @GetMapping("/{templateId}/apply")
   public ResponseEntity<APIResponse<String>> applyTemplate(
-    @AuthenticationPrincipal UserDetails user,
     @PathVariable("templateId") UUID templateId
     ){
-    UUID userId = userService.getUserByUsername(user.getUsername()).getId();
-    templateWorkoutService.applyTemplateWorkout(userId, templateId);
+    templateWorkoutService.applyTemplateWorkout(templateId);
     return ResponseEntity.ok(APIResponse.success("Apply success!"));
   }
 }
