@@ -38,6 +38,12 @@ public class AuthenticationController {
   private final AuthenticationService authenticationService;
   private final GetClientIp getClientIpAddress;
 
+  @PostMapping("/firebase")
+  public ResponseEntity<APIResponse<AuthResponse>> loginWithFirebase(@RequestBody Map<String, String> body) {
+    String idToken = body.get("token");
+    return ResponseEntity.ok(APIResponse.success(authenticationService.loginWithFirebase(idToken)));
+  }
+
   @Operation(
       method = "POST",
       summary = "Register new user account",
