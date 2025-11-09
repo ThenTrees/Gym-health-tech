@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
@@ -7,7 +8,6 @@ import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
-import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -21,19 +21,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("${app.prefix}/users/sessions")
+@RequestMapping(AppConstants.API_V1 + "/users/sessions")
 @RequiredArgsConstructor
 public class SessionController {
   private final SessionManagementService sessionService;
-  private final UserService userService;
 
-  // Session lifecycle management endpoints would go here (start, pause, resume, end, etc.)
   @Operation(
       method = "POST",
       summary = "Start a new workout session",
@@ -100,14 +96,8 @@ public class SessionController {
   @PostMapping("/start")
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<SessionResponse>> startSession(
-      @Valid @RequestBody CreateStartSessionRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info(
-        "POST /users/sessions/start - User {} is starting a session with plan day {}",
-        userId,
-        request.getPlanDayId());
-    SessionResponse session = sessionService.startSession(userId, request);
+      @Valid @RequestBody CreateStartSessionRequest request) {
+    SessionResponse session = sessionService.startSession(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(session));
   }
 
@@ -175,14 +165,8 @@ public class SessionController {
       })
   @GetMapping("/active")
   @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<SessionResponse>> getActiveSession(
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("GET /users/sessions/active - User {} getting active session", userId);
-
-    SessionResponse session = sessionService.getActiveSession(userId);
-
+  public ResponseEntity<APIResponse<SessionResponse>> getActiveSession() {
+    SessionResponse session = sessionService.getActiveSession();
     return ResponseEntity.ok(APIResponse.success(session));
   }
 
@@ -252,16 +236,12 @@ public class SessionController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<SessionResponse>> completeSession(
       @PathVariable UUID sessionId,
-      @Valid @RequestBody CompleteSessionRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("POST /users/sessions/{}/complete - User {} completing session", sessionId, userId);
-
-    SessionResponse session = sessionService.completeSession(userId, sessionId, request);
-
+      @Valid @RequestBody CompleteSessionRequest request
+      ) {
+    SessionResponse session = sessionService.completeSession(sessionId, request);
     return ResponseEntity.ok(APIResponse.success(session));
   }
+
 
   @Operation(
       method = "PUT",
@@ -277,8 +257,7 @@ public class SessionController {
                 @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = SessionSetResponse.class),
-                    examples = @ExampleObject("""
-            """))),
+                    examples = @ExampleObject())),
         @ApiResponse(
             responseCode = "400",
             description = "Invalid request data",
@@ -330,14 +309,8 @@ public class SessionController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<SessionSetResponse>> updateSessionSet(
       @PathVariable UUID sessionSetId,
-      @Valid @RequestBody UpdateSessionSetRequest request,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("PUT /users/sessions/sets/{} - User {} updating session set", sessionSetId, userId);
-
-    SessionSetResponse sessionSet = sessionService.updateSessionSet(userId, sessionSetId, request);
-
+      @Valid @RequestBody UpdateSessionSetRequest request) {
+    SessionSetResponse sessionSet = sessionService.updateSessionSet(sessionSetId, request);
     return ResponseEntity.ok(APIResponse.success(sessionSet));
   }
 
@@ -414,14 +387,9 @@ public class SessionController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<Void>> cancelSession(
       @PathVariable UUID sessionId,
-      @RequestParam(required = false) String reason,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("POST /users/sessions/{}/cancel - User {} cancelling session", sessionId, userId);
-
-    sessionService.cancelSession(userId, sessionId, reason);
-
+      @RequestParam(required = false) String reason
+    ) {
+    sessionService.cancelSession(sessionId, reason);
     return ResponseEntity.ok(APIResponse.success(null, "Session cancelled successfully"));
   }
 
@@ -496,17 +464,11 @@ public class SessionController {
       })
   @PostMapping("/{sessionId}/pause")
   @PreAuthorize("hasRole('USER')")
-  public ResponseEntity<APIResponse<Void>> pauseSession(
+  public ResponseEntity<APIResponse<String>> pauseSession(
       @PathVariable UUID sessionId,
-      @RequestParam(required = false) String reason,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("POST /users/sessions/{}/pause - User {} pausing session", sessionId, userId);
-
-    sessionService.pauseSession(userId, sessionId, reason);
-
-    return ResponseEntity.ok(APIResponse.success(null, "Session paused successfully"));
+      @RequestParam(required = false) String reason) {
+    sessionService.pauseSession(sessionId, reason);
+    return ResponseEntity.ok(APIResponse.success("Session paused successfully"));
   }
 
   @Operation(
@@ -575,13 +537,8 @@ public class SessionController {
   @GetMapping("/{sessionId}")
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<SessionResponse>> getSessionDetails(
-      @PathVariable UUID sessionId, @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("GET /users/sessions/{} - User {} getting session details", sessionId, userId);
-
-    SessionResponse session = sessionService.getSessionDetails(userId, sessionId);
-
+      @PathVariable UUID sessionId) {
+    SessionResponse session = sessionService.getSessionDetails(sessionId);
     return ResponseEntity.ok(APIResponse.success(session));
   }
 
@@ -652,11 +609,8 @@ public class SessionController {
   @PreAuthorize("hasRole('USER')")
   public ResponseEntity<APIResponse<SessionResponse>> resumeSession(
       @PathVariable UUID sessionId,
-      @RequestParam(required = false) String reason,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    log.info("POST /users/sessions/{}/resume - User {} resuming session", sessionId, userId);
-    SessionResponse sessionResponse = sessionService.resumeSession(userId, sessionId);
+      @RequestParam(required = false) String reason) {
+    SessionResponse sessionResponse = sessionService.resumeSession(sessionId);
     return ResponseEntity.ok(APIResponse.success(sessionResponse, "Session resumed successfully"));
   }
 
@@ -715,11 +669,7 @@ public class SessionController {
       @RequestParam(value = "sort", defaultValue = "createdAt") String sort,
       @RequestParam(value = "direction", defaultValue = "desc") String direction,
       @RequestParam(value = "status", required = false) SessionStatus status,
-      @RequestParam(value = "keyword", required = false) String keyword,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    log.info(
-        "GET /users/sessions/all - Getting all sessions for user {}", userDetails.getUsername());
+      @RequestParam(value = "keyword", required = false) String keyword) {
 
     SessionSearchRequest sessionSearchRequest =
         SessionSearchRequest.builder()
@@ -731,36 +681,25 @@ public class SessionController {
             .sortOrder(direction)
             .build();
 
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
     PagedResponse<SessionResponse> sessions =
-        sessionService.getAllSessions(userId, sessionSearchRequest);
+        sessionService.getAllSessions(sessionSearchRequest);
     return ResponseEntity.ok(APIResponse.success(sessions));
   }
 
 
   // summary info workout sessions
   @GetMapping("/summary/week/current")
-  public ResponseEntity<APIResponse<WeeklySummaryResponse>> getSummarySessions(
-    @AuthenticationPrincipal UserDetails userDetails) {
-    log.info(
-      "GET /users/sessions/summary-sessions - Getting summary sessions for user {}",
-      userDetails.getUsername());
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
+  public ResponseEntity<APIResponse<WeeklySummaryResponse>> getSummarySessions() {
     return ResponseEntity.ok(APIResponse.success(
-      sessionService.getSummaryWeekSessions(
-        userId)
+      sessionService.getSummaryWeekSessions()
     ));
   }
 
   @GetMapping("/summary/day/current")
   public ResponseEntity<APIResponse<SessionResponse>> getSummaryDaySessions(
-    @AuthenticationPrincipal UserDetails userDetails,
     @RequestParam("planDayId") UUID planDayId) {
-    log.info(
-      "GET /users/sessions/summary/day/current - Getting summary day sessions for user {}",
-      userDetails.getUsername());
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    SessionResponse session = sessionService.getSummaryDay(userId, planDayId);
+
+    SessionResponse session = sessionService.getSummaryDay(planDayId);
 
     return ResponseEntity.ok(APIResponse.success(session));
   }

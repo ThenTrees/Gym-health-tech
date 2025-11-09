@@ -4,6 +4,8 @@ import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface PostService {
@@ -13,20 +15,20 @@ public interface PostService {
 
   List<PostResponse> getAllPosts();
 
-  void toggleLike(UUID postId, UUID userId);
+  void toggleLike(UUID postId, Authentication authentication);
 
-  PostResponse toggleSave(String postId, String userId);
+  PostResponse toggleSave(UUID postId);
 
-  PostResponse sharePost(String postId, String userId);
+  PostResponse sharePost(UUID postId);
 
-  Object getSharedPlanDetails(String planId);
+  Object getSharedPlanDetails(UUID planId);
 
   Object applySharedPlan(String planId, String userId);
 
-  void deletePost(String postId, UUID currentUserId);
+  void deletePost(UUID postId, Authentication authentication);
 
   PostResponse updatePost(
-      String postId, CreatePostRequest request, List<MultipartFile> files, UUID currentUserId);
+      UUID postId, CreatePostRequest request, List<MultipartFile> files, Authentication authentication);
 
-  void deletePostMedia(UUID postId, String mediaUrl, UUID currentUserId);
+  void deletePostMedia(UUID postId, String mediaUrl, Authentication authentication);
 }

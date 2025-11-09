@@ -17,7 +17,6 @@ import com.thentrees.gymhealthtech.repository.PlanItemRepository;
 import com.thentrees.gymhealthtech.repository.SessionRepository;
 import com.thentrees.gymhealthtech.repository.SessionSetRepository;
 import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
-import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 import com.thentrees.gymhealthtech.service.UserService;
 
@@ -35,11 +34,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Slf4j
+@Slf4j(topic = "SESSION-SERVICE")
 @RequiredArgsConstructor
 public class SessionManagementServiceImpl implements SessionManagementService {
 
@@ -50,50 +51,34 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionSetRepository sessionSetRepository;
   private final ObjectMapper objectMapper;
 
-  public SessionResponse getSessionDetails(UUID userId, UUID sessionId) {
-    log.info("Getting session details for user: {} and session: {}", userId, sessionId);
-
+  public SessionResponse getSessionDetails(UUID sessionId) {
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserIdWithSets(sessionId, userId)
+            .findByIdAndUserIdWithSets(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
-
     return convertSessionToResponse(session, true);
   }
 
   @Transactional(readOnly = true)
   @Override
-  public SessionResponse getSummaryDay(UUID userId, UUID planDayId) {
-    log.info("Getting summary session day for user: {} and plan day: {}", userId, planDayId);
-
+  public SessionResponse getSummaryDay(UUID planDayId) {
+    User user = getCurrentUser();
     Session session =
       sessionRepository
-        .findByPlanDayIdAndUserIdWithSets(planDayId, userId)
+        .findByPlanDayIdAndUserIdWithSets(planDayId, user.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
-
     return convertSessionToResponse(session, true);
   }
 
-
-  /**
-   * Starts a new workout session for the user based on the specified plan day. business logic: -
-   * Check if user has an active session - Check if plan day exists and is associated with user -
-   * Create session entity - Create session sets based on plan items - Return session details
-   *
-   * @param userId
-   * @param request
-   * @return SessionResponse
-   */
   @Override
   @Transactional
-  public SessionResponse startSession(UUID userId, CreateStartSessionRequest request) {
-    log.info("Starting session for user {} with plan day {}", userId, request.getPlanDayId());
+  public SessionResponse startSession(CreateStartSessionRequest request) {
 
-    User user = userService.getUserById(userId);
-
+    User user = getCurrentUser();
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanUserId(request.getPlanDayId(), userId)
+            .findByIdAndPlanUserId(request.getPlanDayId(), user.getId())
             .orElseThrow(
                 () ->
                     new ResourceNotFoundException(
@@ -101,9 +86,9 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     // Check if there is already an active session for the user
     Optional<Session> activeSession =
-        sessionRepository.findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS);
+        sessionRepository.findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS);
     if (activeSession.isPresent()) {
-      log.error("Session already active for user {} with plan day {}", userId, planDay.getId());
+      log.error("Session already active for user {} with plan day {}", user.getId(), planDay.getId());
       throw new ValidationException(
           "You already have an active workout session. Complete it first.");
     }
@@ -158,21 +143,17 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     }
     session.setSessionSets(sessionSets);
 
-    log.info(
-        "Successfully started session {} with {} sets for user {}",
-        session.getId(),
-        sessionSets.size(),
-        userId);
     return convertSessionToResponse(session, true);
   }
 
   @Override
-  public SessionResponse getActiveSession(UUID userId) {
-    log.info("Getting active session for user: {}", userId);
+  public SessionResponse getActiveSession() {
+
+    User user = getCurrentUser();
 
     Session session =
         sessionRepository
-            .findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS)
+            .findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS)
             .orElseThrow(() -> new ResourceNotFoundException("No active workout session found"));
 
     return convertSessionToResponse(session, true);
@@ -181,12 +162,13 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   @Override
   @Transactional
   public SessionResponse completeSession(
-      UUID userId, UUID sessionId, CompleteSessionRequest request) {
-    log.info("Completing session {} for user {}", sessionId, userId);
+    UUID sessionId, CompleteSessionRequest request) {
+
+    User user = getCurrentUser();
 
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() != SessionStatus.IN_PROGRESS) {
@@ -222,12 +204,11 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   @Override
   @Transactional
   public SessionSetResponse updateSessionSet(
-      UUID userId, UUID sessionSetId, UpdateSessionSetRequest request) {
-    log.info("Updating session set {} for user {}", sessionSetId, userId);
-
+      UUID sessionSetId, UpdateSessionSetRequest request) {
+    User user = getCurrentUser();
     SessionSet sessionSet =
         sessionSetRepository
-            .findByIdAndSessionUserId(sessionSetId, userId)
+            .findByIdAndSessionUserId(sessionSetId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session set not found"));
 
     if (sessionSet.getSession().getStatus() != SessionStatus.IN_PROGRESS) {
@@ -269,12 +250,12 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Override
   @Transactional
-  public void cancelSession(UUID userId, UUID sessionId, String reason) {
-    log.info("Cancelling session {} for user {} - reason: {}", sessionId, userId, reason);
-
+  public void cancelSession(UUID sessionId, String reason) {
+    log.info("Cancelling session {} for user {} - reason: {}", sessionId, reason);
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() == SessionStatus.COMPLETED) {
@@ -299,12 +280,11 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Override
   @Transactional
-  public void pauseSession(UUID userId, UUID sessionId, String reason) {
-    log.info("Pausing session {} for user {} - reason: {}", sessionId, userId, reason);
-
+  public void pauseSession(UUID sessionId, String reason) {
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() != SessionStatus.IN_PROGRESS) {
@@ -328,11 +308,12 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Transactional
   @Override
-  public SessionResponse resumeSession(UUID userId, UUID sessionId) {
-    log.info("Resuming session {} for user {}", sessionId, userId);
+  public SessionResponse resumeSession(UUID sessionId) {
+    log.info("Resuming session {}", sessionId);
+    User user = getCurrentUser();
     Session session =
-        sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+          sessionRepository
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() != SessionStatus.PAUSED) {
@@ -348,10 +329,11 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   }
 
   @Override
-  public PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request) {
-    log.info("Getting all sessions for user: {}", userId);
+  public PagedResponse<SessionResponse> getAllSessions(SessionSearchRequest request) {
 
-    Specification<Session> spec = buildSessionSpecification(userId, request);
+    User user = getCurrentUser();
+
+    Specification<Session> spec = buildSessionSpecification(user.getId(), request);
 
     Pageable pageable =
         PageRequest.of(
@@ -368,14 +350,12 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Transactional(readOnly = true)
   @Override
-  public WeeklySummaryResponse getSummaryWeekSessions(UUID userId) {
-    log.info("Getting session week summary for user: {} and plan day", userId);
+  public WeeklySummaryResponse getSummaryWeekSessions() {
 
+    User user = getCurrentUser();
     LocalDate today = LocalDate.now();
     LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-
-    User user = userService.getUserById(userId);
 
     List<Session> sessions =
         sessionRepository.findByUserAndStartedAtBetween(
@@ -436,7 +416,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       .dailySummaries(
         sessionResponses.stream()
           .map(this::mapToDailySummary)
-          .collect(Collectors.toList()))
+          .toList())
       .build();
   }
 
@@ -617,5 +597,11 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     log.info(
         "Session completed - plan progression check completed for session: {}",
         completedSession.getId());
+  }
+
+
+  private User getCurrentUser(){
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return (User)authentication.getPrincipal();
   }
 }

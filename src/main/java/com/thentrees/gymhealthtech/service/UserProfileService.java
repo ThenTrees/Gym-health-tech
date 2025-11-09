@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserProfileService {
-  UserProfileResponse getUserProfile(String email);
+  UserProfileResponse getUserProfile();
 
   UserProfile getUserProfileById(UUID userId);
 

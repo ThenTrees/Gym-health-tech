@@ -15,7 +15,6 @@ import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
-import com.thentrees.gymhealthtech.service.CustomPlanService;
 import com.thentrees.gymhealthtech.service.RedisService;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
 import com.thentrees.gymhealthtech.service.UserService;
@@ -24,6 +23,8 @@ import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -254,23 +255,24 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
   @Transactional
   @Override
-  public void applyTemplateWorkout(UUID userId, UUID templateId) {
+  public void applyTemplateWorkout(UUID templateId) {
+
+    User user = getCurrentUser();
+
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(templateId)
       .orElseThrow(() -> new ResourceNotFoundException("TemplateWorkout", templateId.toString()));
 
     // pause existing plans/sessions...
-    List<Plan> plans = planRepository.findByUserId(userId);
+    List<Plan> plans = planRepository.findByUserId(user.getId());
     if (!plans.isEmpty()) {
       plans.forEach(plan -> plan.setStatus(PlanStatusType.PAUSE));
       planRepository.saveAll(plans);
     }
-    Session session = sessionRepository.findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS).orElse(null);
+    Session session = sessionRepository.findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS).orElse(null);
     if (session != null) {
       session.setStatus(SessionStatus.PAUSED);
       sessionRepository.save(session);
     }
-
-    User user = userService.getUserById(userId);
 
     Plan newPlan = Plan.builder()
       .user(user)
@@ -453,5 +455,10 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     node.put("reps", reps);
     node.put("restSeconds", restSeconds);
     return node;
+  }
+
+  private User getCurrentUser(){
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    return (User) auth.getPrincipal();
   }
 }

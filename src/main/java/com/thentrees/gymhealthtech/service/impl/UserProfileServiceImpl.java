@@ -36,18 +36,13 @@ public class UserProfileServiceImpl implements UserProfileService {
   private final FileValidator fileValidator;
 
   @Override
-  public UserProfileResponse getUserProfile(String email) {
-    log.info("Fetching user profile for email or phone: {}", email);
-    User userExist =
-        userRepository
-            .findByEmailOrPhone(email)
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException("User not found with email or phone: " + email));
+  public UserProfileResponse getUserProfile() {
+
+    User user = getCurrentUser();
 
     UserProfile profile =
         userProfileRepository
-            .findByUserId(userExist.getId())
+            .findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 
     return mapToResponse(profile);
@@ -111,20 +106,12 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   @Transactional
   public UserProfileResponse updateUserProfile(UpdateProfileRequest request) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-    log.info("Update user profile: {}", authentication.getName());
-    User userExist =
-        userRepository
-            .findByEmailOrPhone(authentication.getName())
-            .orElseThrow(
-                () ->
-                    new BusinessException(
-                        "User not found with email or phone: " + authentication.getName()));
+    User user = getCurrentUser();
 
     UserProfile profile =
         userProfileRepository
-            .findByUserId(userExist.getId())
+            .findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 
     // Update fields
@@ -182,18 +169,11 @@ public class UserProfileServiceImpl implements UserProfileService {
     try {
       fileUrl = s3Util.uploadFile(file, S3_AVATAR_FOLDER);
 
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-      User userExist =
-          userRepository
-              .findByEmailOrPhone(authentication.getName())
-              .orElseThrow(
-                  () ->
-                      new BusinessException(
-                          "User not found with email or phone: " + authentication.getName()));
+      User user = getCurrentUser();
 
       UserProfile profile =
           userProfileRepository
-              .findByUserId(userExist.getId())
+              .findByUserId(user.getId())
               .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 
       profile.setAvatarUrl(fileUrl);
@@ -230,5 +210,10 @@ public class UserProfileServiceImpl implements UserProfileService {
         .profileImageUrl(profile.getAvatarUrl())
         .fitnessLevel(profile.getFitnessLevel())
         .build();
+  }
+
+  private User getCurrentUser(){
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return (User)authentication.getPrincipal();
   }
 }

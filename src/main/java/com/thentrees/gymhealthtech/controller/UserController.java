@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.ForgotPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.ResetPasswordRequest;
@@ -10,9 +10,6 @@ import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.UserProfileService;
 import com.thentrees.gymhealthtech.service.UserService;
-import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
-import com.thentrees.gymhealthtech.util.S3Util;
-import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -21,7 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Map;
+
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,23 +28,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("${app.prefix}/users")
+@RequestMapping(AppConstants.API_V1 + "/users")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User", description = "Endpoints for user management")
 public class UserController {
 
   private final UserProfileService userProfileService;
-  private final ExtractValidationErrors extractValidationErrors;
-  private final ObjectMapper objectMapper;
-  private final S3Util s3Util;
   private final UserService userService;
-
   @Operation(
       method = "GET",
       summary = "Get profile for user",
@@ -88,19 +80,9 @@ public class UserController {
       })
   @GetMapping("/my-profile")
   public ResponseEntity<APIResponse<UserProfileResponse>> getUserProfile() {
-    try {
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-      log.info("Authenticated user: {}", authentication.getName()); // email
-
-      UserProfileResponse userProfile = userProfileService.getUserProfile(authentication.getName());
-
+      UserProfileResponse userProfile = userProfileService.getUserProfile();
       return ResponseEntity.ok(APIResponse.success(userProfile, SuccessMessages.GET_PROFILE));
-    } catch (JwtException ex) {
-      log.error("JWT error: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(APIResponse.error("Invalid or expired token"));
-    }
+
   }
 
   @Operation(method = "PUT", description = "Update user profile", summary = "Update user profile")
@@ -153,40 +135,10 @@ public class UserController {
       })
   @PatchMapping("/update-profile")
   public ResponseEntity<APIResponse<UserProfileResponse>> updateUserProfile(
-      @Valid @RequestBody UpdateProfileRequest request, BindingResult bindingResult) {
-    try {
-      if (bindingResult.hasErrors()) {
-        Map<String, String> errors = extractValidationErrors.extract(bindingResult);
-        ApiError apiError =
-            ApiError.builder()
-                .code("VALIDATION_ERROR")
-                .fieldErrors(
-                    errors.entrySet().stream()
-                        .map(
-                            entry ->
-                                FieldError.builder()
-                                    .field(entry.getKey())
-                                    .message(entry.getValue())
-                                    .build())
-                        .toList())
-                .build();
-        return ResponseEntity.badRequest()
-            .body(
-                APIResponse.error(
-                    "Validation failed", objectMapper.convertValue(apiError, ApiError.class)));
-      }
-
-      UserProfileResponse updatedProfile = userProfileService.updateUserProfile(request);
-
+      @Valid @RequestBody UpdateProfileRequest request) {
+            UserProfileResponse updatedProfile = userProfileService.updateUserProfile(request);
       return ResponseEntity.ok(
           APIResponse.success(updatedProfile, SuccessMessages.PROFILE_UPDATED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error updating user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to update profile"));
-    }
   }
 
   @Operation(
@@ -399,18 +351,13 @@ public class UserController {
   @PostMapping("/forgot-password")
   public ResponseEntity<APIResponse<String>> forgotPassword(
       @Valid @RequestBody ForgotPasswordRequest request) {
-    try {
       userService.forgotPassword(request);
       return ResponseEntity.ok(APIResponse.success("OTP code sent to email"));
-    } catch (BusinessException e) {
-      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
-    }
   }
 
   @PostMapping("/verify-otp")
   public ResponseEntity<APIResponse<String>> verifyOtp(
       @Valid @RequestBody VerifyOtpRequest request) {
-    log.info("Verify OTP request for email: {}", request.getEmail());
     String response = userService.verifyOtp(request);
     return ResponseEntity.ok(APIResponse.success(response));
   }
@@ -418,7 +365,7 @@ public class UserController {
   @PostMapping("/reset-password")
   public ResponseEntity<APIResponse<String>> resetPassword(
       @Valid @RequestBody ResetPasswordRequest request) {
-    log.info("Reset password request for email: {}", request.getEmail());
+
     userService.resetPassword(request);
     return ResponseEntity.status(HttpStatus.OK)
         .body(APIResponse.success("Password reset successfully"));

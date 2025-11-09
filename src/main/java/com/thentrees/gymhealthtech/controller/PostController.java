@@ -1,10 +1,11 @@
 package com.thentrees.gymhealthtech.controller;
 
+import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.service.PostService;
-import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,19 +18,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("${app.prefix}/posts")
+@RequestMapping(AppConstants.API_V1 + "/posts")
 @RequiredArgsConstructor
 @Slf4j
 public class PostController {
 
   private final PostService postService;
-  private final UserService userService;
 
   @Operation(
       summary = "Create a new post",
@@ -64,7 +63,6 @@ public class PostController {
   public ResponseEntity<APIResponse<PostResponse>> createPost(
       @RequestPart("post") CreatePostRequest request,
       @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-    log.info("Create Post Request: {}", request);
     PostResponse response = postService.createPost(request, files);
     return ResponseEntity.ok(APIResponse.success(response));
   }
@@ -100,7 +98,6 @@ public class PostController {
   @GetMapping("/{postId}")
   public ResponseEntity<APIResponse<PostResponse>> getPostDetail(
       @PathVariable("postId") String postId) {
-    log.info("Get Post Detail Request: {}", postId);
     PostResponse response = postService.getPostDetail(postId);
     return ResponseEntity.ok(APIResponse.success(response));
   }
@@ -142,11 +139,9 @@ public class PostController {
       })
   @DeleteMapping("/{postId}")
   public ResponseEntity<APIResponse<String>> deletePost(
-      @PathVariable("postId") String postId, @AuthenticationPrincipal UserDetails userDetails) {
-    log.info("Delete Post Request: {}", postId);
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    postService.deletePost(postId, userId);
-    return ResponseEntity.ok(APIResponse.success("Post deleted successfully"));
+    @PathVariable("postId") UUID postId, Authentication authentication) {
+    postService.deletePost(postId, authentication);
+    return ResponseEntity.ok(APIResponse.success(SuccessMessages.DELETE_POST_SUCCESS));
   }
 
   @Operation(
@@ -186,14 +181,12 @@ public class PostController {
       })
   @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<APIResponse<PostResponse>> updatePost(
-      @PathVariable("postId") String postId,
+      @PathVariable("postId") UUID postId,
       @Valid @RequestPart("post") CreatePostRequest request,
       @RequestPart(value = "files", required = false) List<MultipartFile> files,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    // Implementation for updating a post goes here
-    log.info("Update Post Request: {}", postId);
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-    PostResponse response = postService.updatePost(postId, request, files, userId);
+      Authentication authentication) {
+
+    PostResponse response = postService.updatePost(postId, request, files, authentication);
     return ResponseEntity.ok(APIResponse.success(response, "Post updated successfully"));
   }
 
@@ -220,7 +213,6 @@ public class PostController {
       })
   @GetMapping
   public ResponseEntity<APIResponse<List<PostResponse>>> getAllPosts() {
-    log.info("Get All Posts Request");
     List<PostResponse> responses = postService.getAllPosts();
     return ResponseEntity.ok(APIResponse.success(responses));
   }
@@ -255,11 +247,8 @@ public class PostController {
       })
   @PostMapping("/{postId}/like")
   public ResponseEntity<APIResponse<String>> toggleLike(
-      @PathVariable("postId") String postId, @AuthenticationPrincipal UserDetails userDetails) {
-    UUID userId = userService.getUserByUsername(userDetails.getUsername()).getId();
-
-    log.info("Toggle Like Request for post: {} by user: {}", postId, userId);
-    postService.toggleLike(UUID.fromString(postId), userId);
+      @PathVariable("postId") UUID postId, Authentication authentication) {
+    postService.toggleLike(postId, authentication);
     return ResponseEntity.ok(APIResponse.success("Like status toggled successfully"));
   }
 
@@ -293,9 +282,8 @@ public class PostController {
       })
   @PostMapping("/{postId}/save")
   public ResponseEntity<APIResponse<PostResponse>> toggleSave(
-      @PathVariable("postId") String postId, @RequestParam String userId) {
-    log.info("Toggle Save Request for post: {} by user: {}", postId, userId);
-    PostResponse response = postService.toggleSave(postId, userId);
+      @PathVariable("postId") UUID postId) {
+    PostResponse response = postService.toggleSave(postId);
     return ResponseEntity.ok(APIResponse.success(response));
   }
 
@@ -327,9 +315,8 @@ public class PostController {
       })
   @PostMapping("/{postId}/share")
   public ResponseEntity<APIResponse<PostResponse>> sharePost(
-      @PathVariable("postId") String postId, @RequestParam String userId) {
-    log.info("Share Post Request for post: {} by user: {}", postId, userId);
-    PostResponse response = postService.sharePost(postId, userId);
+      @PathVariable("postId") UUID postId) {
+    PostResponse response = postService.sharePost(postId);
     return ResponseEntity.ok(APIResponse.success(response));
   }
 
@@ -354,8 +341,7 @@ public class PostController {
                     schema = @Schema(implementation = APIResponse.class)))
       })
   @GetMapping("/plans/{planId}")
-  public ResponseEntity<APIResponse<Object>> getSharedPlanDetails(@PathVariable String planId) {
-    log.info("Get shared plan details for planId: {}", planId);
+  public ResponseEntity<APIResponse<Object>> getSharedPlanDetails(@PathVariable UUID planId) {
     Object planDetails = postService.getSharedPlanDetails(planId);
     return ResponseEntity.ok(APIResponse.success(planDetails));
   }
@@ -383,7 +369,6 @@ public class PostController {
   @PostMapping("/plans/{planId}/apply")
   public ResponseEntity<APIResponse<Object>> applySharedPlan(
       @PathVariable String planId, @RequestParam String userId) {
-    log.info("Apply shared plan {} for user: {}", planId, userId);
     Object result = postService.applySharedPlan(planId, userId);
     return ResponseEntity.ok(APIResponse.success(result));
   }
@@ -423,11 +408,8 @@ public class PostController {
   public ResponseEntity<Void> deletePostMedia(
       @PathVariable UUID postId,
       @RequestParam("url") String mediaUrl,
-      @AuthenticationPrincipal UserDetails userDetails) {
-
-    UUID currentUserId = userService.getUserByUsername(userDetails.getUsername()).getId();
-
-    postService.deletePostMedia(postId, mediaUrl, currentUserId);
+      Authentication authentication) {
+    postService.deletePostMedia(postId, mediaUrl, authentication);
     return ResponseEntity.noContent().build();
   }
 }

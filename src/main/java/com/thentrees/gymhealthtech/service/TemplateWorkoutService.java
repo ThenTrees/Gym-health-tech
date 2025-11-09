@@ -22,5 +22,5 @@ public interface TemplateWorkoutService {
   TemplateWorkoutDayResponse addTemplateItemToTemplateDay(UUID templateDayId, CreateTemplateItemRequest request);
   void removeTemplateItem(UUID templateItemId);
   void removeTemplateDay(UUID templateDayId);
-  void applyTemplateWorkout(UUID userId, UUID templateId);
+  void applyTemplateWorkout(UUID templateId);
 }
