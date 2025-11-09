@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,7 +23,7 @@ public class User extends BaseEntity implements UserDetails {
   @Column(name = "phone", unique = true, length = 20)
   private String phone;
 
-  @Column(name = "password_hash", nullable = false)
+  @Column(name = "password_hash", nullable = true)
   private String passwordHash;
 
   @Enumerated(EnumType.STRING)

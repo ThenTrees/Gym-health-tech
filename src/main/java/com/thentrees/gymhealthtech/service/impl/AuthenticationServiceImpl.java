@@ -20,12 +20,15 @@ import com.thentrees.gymhealthtech.service.JwtService;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -223,16 +226,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public AuthResponse loginWithFirebase(String idToken) {
     try {
       FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+
       String email = decodedToken.getEmail();
       String name = decodedToken.getName();
       String picture = decodedToken.getPicture();
       boolean emailVerify = decodedToken.isEmailVerified();
+
+      // Tạo hoặc lấy user trong DB
       User user = userRepository.findByEmail(email)
         .orElseGet(() -> createUser(email, name, picture, emailVerify));
+
+      // Tạo access token và refresh token của hệ thống riêng
       String accessToken = jwtService.generateTokenForUser(user);
-      RefreshToken refreshToken =
-        refreshTokenService.createRefreshToken(user, null, null);
+      RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, null, null);
+
+      List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+      UsernamePasswordAuthenticationToken authentication =
+        new UsernamePasswordAuthenticationToken(user, null, authorities);
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+
       return buildAuthResponse(user, accessToken, refreshToken.getTokenHash());
+
     } catch (Exception e) {
       throw new UnauthorizedException(e.getMessage());
     }
