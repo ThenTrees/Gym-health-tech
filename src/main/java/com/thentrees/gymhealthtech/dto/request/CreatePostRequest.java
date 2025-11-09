@@ -12,10 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreatePostRequest {
-
-  @NotBlank(message = "User ID cannot be blank")
-  private String userId;
-
   private String planId;
 
   @NotBlank(message = "Content cannot be blank")

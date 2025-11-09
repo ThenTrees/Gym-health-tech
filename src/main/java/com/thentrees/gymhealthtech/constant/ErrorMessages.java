@@ -12,6 +12,8 @@ public final class ErrorMessages {
   public static final String EQUIPMENT_ALREADY_EXISTS = "Equipment already exists!";
   public static final String UPLOAD_EQUIPMENT_IMAGE_FAILED = "Error uploading equipment image";
 
+  public static final String NOT_ALLOWED_DELETE_POST = "You are not allowed to delete this post";
+  public static final String NOT_ALLOWED_DELETE_MEDIA_POST = "You are not allowed to delete media from this post";
 
   private ErrorMessages() {
     throw new IllegalStateException("Utility class. Don't extended class!");

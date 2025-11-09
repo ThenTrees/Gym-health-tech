@@ -17,7 +17,6 @@ public final class SuccessMessages {
   public static final String GET_PLAN_SUCCESS = "User plans retrieved successfully";
   public static final String DELETE_PLAN_SUCCESS = "Plan deleted successfully";
 
-
   //DAY PLAN
   public static final String DELETE_PLAN_DAY_SUCCESS = "Day removed from plan successfully";
   public static final String UPDATE_PLAN_DAY_SUCCESS = "Day updated successfully";
@@ -26,6 +25,9 @@ public final class SuccessMessages {
   public static final String UPDATE_PLAN_ITEM_SUCCESS = "Item updated successfully";
   public static final String DELETE_PLAN_ITEM_SUCCESS = "Item removed successfully";
   public static final String CREATE_PLAN_ITEM_SUCCESS = "Items added successfully";
+
+  //POST
+  public static final String DELETE_POST_SUCCESS = "Post deleted successfully";
 
 
   // User Management
