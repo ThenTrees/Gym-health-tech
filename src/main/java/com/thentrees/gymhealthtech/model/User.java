@@ -37,8 +37,8 @@ public class User extends BaseEntity implements UserDetails {
   @Column(name = "email_verified", nullable = false)
   private Boolean emailVerified = false;
 
-  @Column(name = "profile_completed")
-  private boolean profileCompleted = false;
+  @Column(name = "profile_completed", nullable = false)
+  private Boolean profileCompleted = false;
 
   // One-to-One relationship with UserProfile
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
