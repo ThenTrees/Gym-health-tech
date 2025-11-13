@@ -30,4 +30,8 @@ public interface SessionManagementService {
   PagedResponse<SessionResponse> getAllSessions(SessionSearchRequest request);
 
   WeeklySummaryResponse getSummaryWeekSessions();
+
+  MonthlySummaryResponse getSummaryMonthSessions();
+
+  PlanSummaryResponse getPlanSummary(UUID planId);
 }
