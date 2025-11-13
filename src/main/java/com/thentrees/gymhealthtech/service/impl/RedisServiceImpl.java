@@ -13,7 +13,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class RedisServiceImpl implements RedisService {
-  @Autowired private final RedisTemplate<String, Object> redisTemplate;
+
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @Override
   public void set(String key, Object value, Duration timeout) {
