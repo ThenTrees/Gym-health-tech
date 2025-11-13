@@ -703,4 +703,23 @@ public class SessionController {
 
     return ResponseEntity.ok(APIResponse.success(session));
   }
+
+  @GetMapping("/summary/month/current")
+  public ResponseEntity<APIResponse<MonthlySummaryResponse>> getSummaryMonthSessions() {
+
+    MonthlySummaryResponse response  = sessionService.getSummaryMonthSessions();
+
+    return ResponseEntity.ok(APIResponse.success(response));
+  }
+
+  @GetMapping("/summary/plans/{planId}")
+  public ResponseEntity<APIResponse<PlanSummaryResponse>> getPlanSessionsSummary(
+    @PathVariable UUID planId) {
+
+    PlanSummaryResponse response = sessionService.getPlanSummary(planId);
+
+    return ResponseEntity.ok(APIResponse.success(response));
+  }
+
+
 }

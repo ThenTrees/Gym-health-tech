@@ -55,6 +55,16 @@ public interface SessionRepository
   Optional<Session> findByPlanDayIdAndUserIdWithSets(
     @Param("planDayId") UUID planDayId, @Param("userId") UUID userId);
 
-
   List<Session> findByUserAndStartedAtBetween(User user, LocalDateTime startedAt, LocalDateTime startedAt2);
+
+  List<Session> findByPlanDayPlanIdAndUserId(UUID planId, UUID userId);
+
+  @Query("""
+    SELECT s FROM Session s
+    WHERE s.startedAt BETWEEN :startOfMonth AND :endOfMonth
+      AND s.user.id = :userId
+""")
+  List<Session> findByUserAndAllSessionsInCurrentMonth(@Param("userId") UUID userId,
+                                                       @Param("startOfMonth") LocalDateTime startOfMonth,
+                                                       @Param("endOfMonth") LocalDateTime endOfMonth);
 }

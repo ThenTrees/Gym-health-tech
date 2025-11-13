@@ -585,7 +585,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
         List<PlanItemResponse> itemDtos =
             planDay.getPlanItems().stream()
                 .map(this::convertPlanItemToResponse)
-                .collect(Collectors.toList());
+                .toList();
         dto.setPlanItems(itemDtos);
       }
     }
@@ -635,7 +635,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       List<String> secondaryMuscles =
           exercise.getExerciseMuscles().stream()
               .map(em -> em.getMuscle().getName())
-              .collect(Collectors.toList());
+              .toList();
       dto.setSecondaryMuscles(secondaryMuscles);
     } else {
       dto.setSecondaryMuscles(Collections.emptyList());
@@ -666,7 +666,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     dto.setId(plan.getId());
     dto.setTitle(plan.getTitle());
     dto.setSource(plan.getSource());
-    dto.setCycleWeeks(plan.getCycleWeeks());
+    dto.setTotalWeeks(plan.getCycleWeeks());
     dto.setStatus(plan.getStatus());
 
     // Calculate computed fields
@@ -683,7 +683,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     dto.setCompletedSessions(completedSessions);
 
     if (dto.getTotalDays() != null && dto.getTotalDays() > 0) {
-      dto.setProgressPercentage((double) completedSessions / dto.getTotalDays() * 100);
+      dto.setTimelineProgressPercentage((double) completedSessions / dto.getTotalDays() * 100);
     }
 
     return dto;
