@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +16,7 @@ import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
+import com.thentrees.gymhealthtech.service.RedisService;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
 
 import java.math.BigDecimal;
@@ -27,6 +29,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -50,6 +53,8 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionSetRepository sessionSetRepository;
   private final ObjectMapper objectMapper;
   private final PlanRepository planRepository;
+  private final CacheKeyUtils cacheKeyUtils;
+  private final RedisService redisService;
 
   public SessionResponse getSessionDetails(UUID sessionId) {
     User user = getCurrentUser();
@@ -64,11 +69,30 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   @Override
   public SessionResponse getSummaryDay(UUID planDayId) {
     User user = getCurrentUser();
+    String cacheKey = cacheKeyUtils.buildKey("dailySummary:", planDayId);
+    try {
+      Object cached = redisService.get(cacheKey);
+      if (cached != null) {
+        SessionResponse cachedResult =
+          objectMapper.convertValue(cached, new TypeReference<>() {});
+        if (cachedResult != null) {
+          log.debug("Cache hit for key: {}", cacheKey);
+          return cachedResult;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to read from cache: {}", e.getMessage());
+    }
+
     Session session =
       sessionRepository
         .findByPlanDayIdAndUserIdWithSets(planDayId, user.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
-    return convertSessionToResponse(session, true);
+
+    SessionResponse response = convertSessionToResponse(session, true);
+    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 1 hour
+
+    return response;
   }
 
   @Override
@@ -356,6 +380,23 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
+    String key = "weeklySummary:" + user.getId() + ":" + startOfWeek.toString() + ":" + endOfWeek.toString();
+
+    String cacheKey = cacheKeyUtils.buildKey(key, null);
+    try {
+      Object cached = redisService.get(cacheKey);
+      if (cached != null) {
+        WeeklySummaryResponse cachedResult =
+          objectMapper.convertValue(cached, new TypeReference<WeeklySummaryResponse>() {});
+        if (cachedResult != null) {
+          log.debug("Cache hit for key: {}", cacheKey);
+          return cachedResult;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to read from cache: {}", e.getMessage());
+    }
+
     List<Session> sessions =
         sessionRepository.findByUserAndStartedAtBetween(
             user,
@@ -377,19 +418,23 @@ public class SessionManagementServiceImpl implements SessionManagementService {
             .map(SessionResponse::getPlanDayName)
             .orElse(null);
 
-    return WeeklySummaryResponse.builder()
-        .weekStart(startOfWeek)
-        .weekEnd(endOfWeek)
-        .totalSessions(statistics.totalSessions())
-        .completedSessions(statistics.completedSessions())
-        .totalSets(statistics.totalSets())
-        .completedSets(statistics.completedSets())
-        .avgCompletionPercentage(statistics.avgCompletionPercentage())
-        .totalVolume(statistics.totalVolume())
-        .totalDurationMinutes(statistics.totalDurationMinutes())
-        .mostTrainedDayName(mostTrainedDayName)
-        .dailySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
-        .build();
+    WeeklySummaryResponse response = WeeklySummaryResponse.builder()
+      .weekStart(startOfWeek)
+      .weekEnd(endOfWeek)
+      .totalSessions(statistics.totalSessions())
+      .completedSessions(statistics.completedSessions())
+      .totalSets(statistics.totalSets())
+      .completedSets(statistics.completedSets())
+      .avgCompletionPercentage(statistics.avgCompletionPercentage())
+      .totalVolume(statistics.totalVolume())
+      .totalDurationMinutes(statistics.totalDurationMinutes())
+      .mostTrainedDayName(mostTrainedDayName)
+      .dailySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
+      .build();
+
+    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 2 hours
+
+    return response;
   }
 
   @Override
@@ -397,6 +442,24 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     User user = getCurrentUser();
     LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
     LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+    String key = "monthlySummary:" + user.getId() + ":" + startOfMonth.toString() + ":" + endOfMonth.toString();
+    String cacheKey = cacheKeyUtils.buildKey(key, null);
+
+    try {
+      Object cached = redisService.get(cacheKey);
+      if (cached != null) {
+        MonthlySummaryResponse cachedResult =
+          objectMapper.convertValue(cached, new TypeReference<MonthlySummaryResponse>() {});
+        if (cachedResult != null) {
+          log.debug("Cache hit for key: {}", cacheKey);
+          return cachedResult;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to read from cache: {}", e.getMessage());
+    }
+
     List<Session> sessions = sessionRepository.findByUserAndAllSessionsInCurrentMonth(
       user.getId(), startOfMonth, endOfMonth
     );
@@ -417,22 +480,26 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     String feedback = generateFeedback(completionRate, avgRpe, avgCompletionPercentage);
 
-    return MonthlySummaryResponse.builder()
-        .month(startOfMonth.toLocalDate())
-        .totalSessions(statistics.totalSessions())
-        .completedSessions(statistics.completedSessions())
-        .completionRate(completionRate)
-        .totalSets(statistics.totalSets())
-        .completedSets(statistics.completedSets())
-        .avgCompletionPercentage(avgCompletionPercentage)
-        .totalVolume(statistics.totalVolume())
-        .avgVolumePerSession(avgVolumePerSession)
-        .totalDurationMinutes(statistics.totalDurationMinutes())
-        .avgDurationPerSession(avgDurationPerSession)
-        .avgRpe(avgRpe)
-        .weeklySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
-        .feedback(feedback)
-        .build();
+    MonthlySummaryResponse response = MonthlySummaryResponse.builder()
+      .month(startOfMonth.toLocalDate())
+      .totalSessions(statistics.totalSessions())
+      .completedSessions(statistics.completedSessions())
+      .completionRate(completionRate)
+      .totalSets(statistics.totalSets())
+      .completedSets(statistics.completedSets())
+      .avgCompletionPercentage(avgCompletionPercentage)
+      .totalVolume(statistics.totalVolume())
+      .avgVolumePerSession(avgVolumePerSession)
+      .totalDurationMinutes(statistics.totalDurationMinutes())
+      .avgDurationPerSession(avgDurationPerSession)
+      .avgRpe(avgRpe)
+      .weeklySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
+      .feedback(feedback)
+      .build();
+
+    redisService.set(cacheKey, response, Duration.ofHours(1));
+
+    return response;
   }
 
   @Override
