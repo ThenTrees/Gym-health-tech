@@ -262,8 +262,6 @@
       <artifactId>spring-boot-starter-aop</artifactId>
     </dependency>
 
-
-
   </dependencies>
 
   <build>
@@ -317,10 +315,20 @@
         <version>3.3.0</version>
       </plugin>
 
+<!--      <plugin>-->
+<!--        <groupId>org.flywaydb</groupId>-->
+<!--        <artifactId>flyway-maven-plugin</artifactId>-->
+<!--        <version>11.7.2</version>-->
+<!--      </plugin>-->
       <plugin>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-maven-plugin</artifactId>
         <version>11.7.2</version>
+        <configuration>
+          <url>jdbc:postgresql://localhost:5432/gymhealthtech</url>
+          <user>postgres</user>
+          <password>root</password>
+        </configuration>
       </plugin>
     </plugins>
   </build>

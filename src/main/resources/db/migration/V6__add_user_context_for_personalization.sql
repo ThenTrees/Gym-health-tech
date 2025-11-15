@@ -1,5 +1,5 @@
 
--- V10__add_user_context_for_personalization.sql
+-- V8__add_user_context_for_personalization.sql
 -- Thêm context cho personalized recommendations
 
 -- Bảng lưu user exercise preferences và feedback

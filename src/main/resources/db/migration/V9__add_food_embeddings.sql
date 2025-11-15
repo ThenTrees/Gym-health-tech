@@ -1,5 +1,5 @@
 -- ============================================
--- V13__add_food_embeddings.sql
+-- V9__add_food_embeddings.sql
 -- RAG Vector Search
 -- ============================================
 

@@ -1,4 +1,4 @@
--- V7__add_exercise_embeddings_table.sql
+-- V3__add_exercise_embeddings_table.sql
 -- Tạo bảng lưu trữ embeddings cho RAG service
 
 CREATE EXTENSION IF NOT EXISTS vector;

@@ -79,6 +79,7 @@ CREATE TABLE user_profiles (
                              unit_weight   varchar(8) NOT NULL DEFAULT 'kg' CHECK (unit_weight IN ('kg','lb')),
                              unit_length   varchar(8) NOT NULL DEFAULT 'cm' CHECK (unit_length IN ('cm','in')),
                              object_key    varchar(255),
+                             experience_level VARCHAR(50),
                              created_at    timestamp NOT NULL DEFAULT now(),
                              updated_at    timestamp NOT NULL DEFAULT now(),
                              version       int NOT NULL DEFAULT 0,
@@ -90,20 +91,6 @@ CREATE TABLE user_profiles (
 
 CREATE TRIGGER trg_user_profiles_updated_at BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_user_profiles_version BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE FUNCTION bump_version();
-
--- User measurements
-CREATE TABLE user_measurements (
-                                 id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                                 user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                 measured_at date NOT NULL,
-                                 weight_kg   numeric(5,2),
-                                 bodyfat_pct numeric(4,1) CHECK (bodyfat_pct IS NULL OR (bodyfat_pct BETWEEN 2 AND 70)),
-                                 waist_cm    numeric(5,2),
-                                 hip_cm      numeric(5,2),
-                                 chest_cm    numeric(5,2),
-                                 notes       text,
-                                 UNIQUE(user_id, measured_at)
-);
 
 -- Refresh tokens
 CREATE TABLE refresh_tokens (
@@ -195,7 +182,8 @@ CREATE TABLE muscles (
 -- Equipment types
 CREATE TABLE equipments (
                                code varchar(32) PRIMARY KEY,
-                               name varchar(64) NOT NULL
+                               name varchar(64) NOT NULL,
+                               image_url VARCHAR(255)
 );
 
 -- Exercise categories
@@ -217,6 +205,7 @@ CREATE TABLE exercises (
                          thumbnail_url    text,
                          body_part        varchar(32),
                          exercise_category varchar(32) NOT NULL REFERENCES exercise_categories(code),
+                         exercise_type VARCHAR(20),
                          created_at       timestamp NOT NULL DEFAULT now(),
                          updated_at       timestamptz NOT NULL DEFAULT now(),
                          version          int NOT NULL DEFAULT 0,
@@ -253,6 +242,8 @@ CREATE TABLE plans (
                      source       plan_source_type NOT NULL DEFAULT 'AI',
                      cycle_weeks  int NOT NULL DEFAULT 4 CHECK (cycle_weeks BETWEEN 1 AND 16),
                      status       plan_status_type NOT NULL DEFAULT 'ACTIVE',
+                     description  TEXT,
+                     end_date TIMESTAMP,
                      created_at   timestamp NOT NULL DEFAULT now(),
                      updated_at   timestamp NOT NULL DEFAULT now(),
                      version      int NOT NULL DEFAULT 0
@@ -325,9 +316,11 @@ CREATE TABLE session_sets (
                             created_by   uuid,
                             updated_by   uuid,
                             UNIQUE (session_id, exercise_id, set_index),
+                            plan_item_id uuid NULL REFERENCES plan_items(id) ON DELETE SET NULL,
                             CONSTRAINT actual_obj_chk CHECK (actual IS NULL OR jsonb_typeof(actual)='object'),
                             CONSTRAINT actual_rpe_chk CHECK (actual IS NULL OR ((actual ? 'rpe') = false OR ((actual->>'rpe')::numeric BETWEEN 0 AND 10)))
 );
+CREATE INDEX idx_session_sets_plan_item ON session_sets(plan_item_id);
 
 CREATE TRIGGER trg_session_sets_updated_at BEFORE UPDATE ON session_sets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_session_sets_version BEFORE UPDATE ON session_sets FOR EACH ROW EXECUTE FUNCTION bump_version();
@@ -352,33 +345,6 @@ CREATE TABLE notifications (
                              status        notification_status NOT NULL DEFAULT 'SCHEDULED',
                              payload       jsonb,
                              created_at    timestamp NOT NULL DEFAULT now()
-);
-
--- Chatbot
-CREATE TABLE chatbot_threads (
-                               id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                               user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                               created_at  timestamp NOT NULL DEFAULT now()
-);
-
-CREATE TABLE chatbot_messages (
-                                id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                                thread_id   uuid NOT NULL REFERENCES chatbot_threads(id) ON DELETE CASCADE,
-                                user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                role        varchar(16) NOT NULL CHECK (role IN ('USER','ASSISTANT','SYSTEM')),
-                                content     text NOT NULL,
-                                created_at  timestamp NOT NULL DEFAULT now()
-);
-
--- Reports cache
-CREATE TABLE reports_cache (
-                             id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                             user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                             scope         varchar(16) NOT NULL CHECK (scope IN ('week','month')),
-                             period_start  date NOT NULL,
-                             payload       jsonb NOT NULL,
-                             generated_at  timestamp NOT NULL DEFAULT now(),
-                             UNIQUE (user_id, scope, period_start)
 );
 
 -- Subscriptions
@@ -448,6 +414,10 @@ CREATE TABLE nutrition_targets (
                                  protein_g     int NOT NULL CHECK (protein_g BETWEEN 30 AND 400),
                                  fat_g         int NOT NULL CHECK (fat_g BETWEEN 20 AND 200),
                                  carbs_g       int NOT NULL CHECK (carbs_g BETWEEN 0 AND 800),
+                                 suggestion_calories_for_breakfast numeric,
+                                 suggestion_calories_for_lunch numeric,
+                                suggestion_calories_for_dinner numeric,
+                                is_training boolean DEFAULT false,
                                  created_at    timestamp NOT NULL DEFAULT now(),
                                  UNIQUE (user_id, goal_id)
 );
@@ -461,29 +431,9 @@ CREATE TABLE meal_plans (
                           UNIQUE (user_id, plan_date)
 );
 
--- Challenges
-CREATE TABLE challenges (
-                          id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                          title       varchar(120) NOT NULL,
-                          start_date  date NOT NULL,
-                          end_date    date NOT NULL,
-                          rules       jsonb,
-                          created_at  timestamp NOT NULL DEFAULT now(),
-                          CONSTRAINT challenges_end_ge_start CHECK (end_date >= start_date)
-);
-
-CREATE TABLE challenge_participants (
-                                      challenge_id uuid NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
-                                      user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                      joined_at    timestamp NOT NULL DEFAULT now(),
-                                      progress     jsonb,
-                                      PRIMARY KEY (challenge_id, user_id)
-);
-
 -- Indexes
 CREATE INDEX idx_users_email_not_deleted ON users(email) WHERE is_deleted = false;
 CREATE INDEX idx_users_not_deleted ON users(id) WHERE is_deleted = false;
-CREATE INDEX idx_measurements_user_time ON user_measurements(user_id, measured_at DESC);
 CREATE INDEX idx_refresh_user_active ON refresh_tokens(user_id) WHERE revoked_at IS NULL;
 CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 CREATE INDEX idx_vt_user_type ON verification_tokens(user_id, type);
@@ -514,8 +464,6 @@ CREATE INDEX idx_session_sets_actual_gin ON session_sets USING GIN (actual);
 CREATE INDEX idx_notifications_user_time ON notifications(user_id, scheduled_at);
 CREATE INDEX idx_notifications_status ON notifications(status);
 CREATE INDEX idx_notifications_user_status_time ON notifications(user_id, status, scheduled_at);
-CREATE INDEX idx_chat_threads_user ON chatbot_threads(user_id, created_at DESC);
-CREATE INDEX idx_chatbot_user_time ON chatbot_messages(user_id, created_at);
 CREATE INDEX idx_payments_user_time ON payments(user_id, created_at DESC);
 CREATE INDEX idx_entitlements_user_feature ON entitlements(user_id, feature_key);
 CREATE INDEX idx_entitlements_expires_at ON entitlements(user_id, expires_at);

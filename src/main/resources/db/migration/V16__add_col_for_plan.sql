@@ -1,2 +1,0 @@
-ALTER TABLE plans
-  ADD COLUMN end_date TIMESTAMP;

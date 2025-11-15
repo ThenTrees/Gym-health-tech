@@ -1,4 +1,4 @@
--- V8__add_plan_generation_metadata.sql
+-- V4__add_plan_generation_metadata.sql
 -- Thêm metadata cho plan generation và AI context
 
 -- Thêm cột AI metadata vào plans

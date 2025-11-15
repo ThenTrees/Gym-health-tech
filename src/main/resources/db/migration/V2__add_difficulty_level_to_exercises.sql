@@ -1,4 +1,4 @@
--- V5__add_difficulty_level_to_exercises.sql
+-- V2__add_difficulty_level_to_exercises.sql
 
 -- Thêm cột difficulty_level vào bảng exercises
 ALTER TABLE exercises

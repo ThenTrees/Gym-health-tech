@@ -1,5 +1,5 @@
 
--- V11__add_exercise_analytics_for_rag.sql
+-- V7__add_exercise_analytics_for_rag.sql
 -- Analytics để improve RAG recommendations
 
 -- Bảng track exercise usage trong plans

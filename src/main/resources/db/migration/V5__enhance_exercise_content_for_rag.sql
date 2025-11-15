@@ -1,4 +1,4 @@
--- V9__enhance_exercise_content_for_rag.sql
+-- V5__enhance_exercise_content_for_rag.sql
 -- Tăng cường content cho exercises để RAG hiệu quả hơn
 
 -- Thêm các cột content phong phú
