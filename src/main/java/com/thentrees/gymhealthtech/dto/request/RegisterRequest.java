@@ -2,7 +2,6 @@ package com.thentrees.gymhealthtech.dto.request;
 
 import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
 
-import com.thentrees.gymhealthtech.constant.ValidationMessages;
 import com.thentrees.gymhealthtech.custom.StrongPassword;
 import com.thentrees.gymhealthtech.enums.FitnessLevel;
 import com.thentrees.gymhealthtech.enums.GenderType;
@@ -26,7 +25,6 @@ public class RegisterRequest {
 
   @NotBlank(message = PASSWORD_REQUIRED)
   @StrongPassword
-  @Min(value = 6, message = PASSWORD_TOO_SHORT)
   @Schema(description = "User password", example = "MySecurePass123!")
   private String password;
 

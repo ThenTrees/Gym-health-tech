@@ -55,6 +55,8 @@ CREATE TABLE users (
                      version        int NOT NULL DEFAULT 0,
                      is_deleted     boolean NOT NULL DEFAULT false,
                      deleted_at     timestamptz,
+                     is_premium     BOOLEAN DEFAULT false,
+                     premium_expires_at TIMESTAMP NULL,
                      created_by     uuid,
                      updated_by     uuid
 );

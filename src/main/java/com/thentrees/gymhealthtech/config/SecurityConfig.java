@@ -66,6 +66,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/admin/nutrition/foods/import")
                     .permitAll()
+                  .requestMatchers("/api/v1/payments/sep-pay-webhook")
+                  .permitAll()
                   .anyRequest()
                     .authenticated())
         .authenticationProvider(authenticationProvider());

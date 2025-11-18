@@ -1,11 +1,11 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.thentrees.gymhealthtech.enums.FitnessLevel;
 import com.thentrees.gymhealthtech.enums.GenderType;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Objects;
 import lombok.*;
 
 @Getter
@@ -20,6 +20,7 @@ public class UserProfile extends BaseEntity implements Serializable {
   @OneToOne(fetch = FetchType.LAZY)
   @MapsId
   @JoinColumn(name = "user_id")
+  @JsonIgnore
   private User user;
 
   @Column(name = "full_name", length = 120)

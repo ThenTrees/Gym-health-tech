@@ -161,7 +161,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
       ExerciseCategory exerciseCategory = getOrCreateCategory(dto.getExerciseCategory());
 
-      ex.setLevel(difficultyLevelForExercise(dto.getEquipmentTypeCode()));
+      ex.setDifficultyLevel(difficultyLevelForExercise(dto.getEquipmentTypeCode()));
       ex.setExerciseCategory(exerciseCategory);
       ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType()));
       ex.setInstructions(dto.getInstructions().toString());
@@ -283,13 +283,13 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
         muscles.stream()
             .filter(em -> "PRIMARY".equals(em.getRole()))
             .map(em -> em.getMuscle().getName())
-            .collect(Collectors.toList());
+            .toList();
 
     List<String> secondaryMuscles =
         muscles.stream()
             .filter(em -> "SECONDARY".equals(em.getRole()))
             .map(em -> em.getMuscle().getName())
-            .collect(Collectors.toList());
+            .toList();
 
     return ExerciseListResponse.builder()
         .id(exercise.getId())
@@ -326,7 +326,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
                         .muscleName(em.getMuscle().getName())
                         .role(em.getRole())
                         .build())
-            .collect(Collectors.toList());
+            .toList();
 
     return ExerciseDetailResponse.builder()
         .id(exercise.getId())
@@ -377,7 +377,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     List<String> muscleCodes =
         muscleRequests.stream()
             .map(ExerciseMuscleRequest::getMuscleCode)
-            .collect(Collectors.toList());
+          .toList();
 
     List<Muscle> muscles = muscleRepository.findByCodes(muscleCodes);
     if (muscles.size() != muscleCodes.size()) {

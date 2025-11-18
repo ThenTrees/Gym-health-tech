@@ -193,7 +193,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     Session session =
         sessionRepository
             .findByIdAndUserId(sessionId, user.getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
 
     if (session.getStatus() != SessionStatus.IN_PROGRESS) {
       throw new ValidationException("Session is not in progress");
@@ -255,7 +255,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     if (request.getSetDurationSeconds() != null) {
       actualNode.put("setDurationSeconds", request.getSetDurationSeconds());
     }
-    if (request.getIsSkipped()) {
+    if (Boolean.TRUE.equals(request.getIsSkipped())) {
       actualNode.put("isSkipped", true);
     } else {
       actualNode.put("completedAt", LocalDateTime.now().toString());
@@ -671,7 +671,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
             .flatMap(List::stream)
             .map(PlanItem::getExercise)
             .filter(Objects::nonNull)
-            .map(Exercise::getLevel)
+            .map(Exercise::getDifficultyLevel)
             .filter(Objects::nonNull)
             .mapToInt(Integer::intValue)
             .average()
