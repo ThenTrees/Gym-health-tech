@@ -379,7 +379,7 @@ CREATE TABLE payments (
                         provider_txn_id  varchar(128) NOT NULL,
                         amount_cents     int NOT NULL CHECK (amount_cents >= 0),
                         currency         varchar(8) NOT NULL DEFAULT 'USD',
-                        status           varchar(16) NOT NULL CHECK (status IN ('PENDING','SUCCEEDED','FAILED','REFUNDED')),
+                        status           varchar(16) NOT NULL,
                         meta             jsonb,
                         created_at       timestamp NOT NULL DEFAULT now(),
                         updated_at       timestamp NOT NULL DEFAULT now(),

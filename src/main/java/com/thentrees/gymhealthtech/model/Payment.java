@@ -28,7 +28,7 @@ public class Payment extends BaseEntity {
   @Column(name = "amount_cents", nullable = false)
   private Long amount; // in VND (e.g., 99000)
 
-  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
   private PaymentStatus status; // PENDING, SUCCESS, FAILED
 
   @Column(name = "transaction_code")
