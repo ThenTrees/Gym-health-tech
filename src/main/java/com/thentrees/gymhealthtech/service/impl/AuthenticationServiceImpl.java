@@ -166,14 +166,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         .findByEmail(request.getEmail())
         .orElseThrow(() -> new ResourceNotFoundException("User", request.getEmail()));
 
-    if (user.getEmailVerified()) {
+    if (Boolean.TRUE.equals(user.getEmailVerified())) {
       throw new BusinessException("Email already verified");
     }
 
     // Check if there's an active token
     Optional<VerificationToken> existingToken =
       verificationTokenRepository.findActiveTokenByUserAndType(
-        user.getId(), VerificationType.EMAIL, OffsetDateTime.now());
+        user.getId(), VerificationType.EMAIL, LocalDateTime.now());
 
     if (existingToken.isPresent()) {
       throw new BusinessException(
@@ -192,7 +192,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         .findByEmail(currentUserEmail)
         .orElseThrow(() -> new BusinessException("User not found"));
 
-    if (request.getLogoutFromAllDevices()) {
+    if (Boolean.TRUE.equals(request.getLogoutFromAllDevices())) {
       refreshTokenService.revokeAllUserTokens(user);
       log.info("Logged out from all devices for user: {}", currentUserEmail);
     } else if (request.getRefreshToken() != null) {

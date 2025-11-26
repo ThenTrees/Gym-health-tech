@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.controller;
 
 import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
+import com.thentrees.gymhealthtech.custom.PremiumOnly;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
@@ -346,6 +347,7 @@ public class PostController {
     return ResponseEntity.ok(APIResponse.success(planDetails));
   }
 
+  @PremiumOnly
   @Operation(
       summary = "Apply/Copy a shared workout plan",
       description = "Copy a shared plan to the authenticated user's plans")
@@ -404,6 +406,7 @@ public class PostController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = APIResponse.class)))
       })
+
   @DeleteMapping("/{postId}/media")
   public ResponseEntity<Void> deletePostMedia(
       @PathVariable UUID postId,

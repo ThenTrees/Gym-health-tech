@@ -2,7 +2,8 @@ package com.thentrees.gymhealthtech.repository;
 
 import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.model.VerificationToken;
-import java.time.OffsetDateTime;
+
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,7 +21,7 @@ public interface VerificationTokenRepository extends JpaRepository<VerificationT
   Optional<VerificationToken> findActiveTokenByUserAndType(
       @Param("userId") UUID userId,
       @Param("type") VerificationType type,
-      @Param("now") OffsetDateTime now);
+      @Param("now") LocalDateTime now);
 
   void deleteByUserIdAndType(UUID userId, VerificationType type);
 }

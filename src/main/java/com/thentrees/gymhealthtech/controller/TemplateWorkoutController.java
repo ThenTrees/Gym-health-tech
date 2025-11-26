@@ -1,6 +1,7 @@
 package com.thentrees.gymhealthtech.controller;
 
 import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.custom.PremiumOnly;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateDayRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateItemRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateTemplateRequest;
@@ -105,6 +106,7 @@ public class TemplateWorkoutController {
     return ResponseEntity.ok(APIResponse.success("Delete template Day successfully!"));
   }
 
+  @PremiumOnly
   @GetMapping("/{templateId}/apply")
   public ResponseEntity<APIResponse<String>> applyTemplate(
     @PathVariable("templateId") UUID templateId

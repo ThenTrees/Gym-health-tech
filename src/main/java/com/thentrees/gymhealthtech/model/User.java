@@ -3,6 +3,8 @@ package com.thentrees.gymhealthtech.model;
 import com.thentrees.gymhealthtech.enums.UserRole;
 import com.thentrees.gymhealthtech.enums.UserStatus;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +41,12 @@ public class User extends BaseEntity implements UserDetails {
 
   @Column(name = "profile_completed", nullable = false)
   private Boolean profileCompleted = false;
+
+  @Column(name = "is_premium", nullable = false)
+  private Boolean isPremium = false;
+
+  @Column(name = "premium_expires_at")
+  private LocalDateTime premiumExpiresAt;
 
   // One-to-One relationship with UserProfile
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)

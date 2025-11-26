@@ -53,7 +53,7 @@ public final class ValidationMessages {
   public static final String CURRENT_PASSWORD_REQUIRED = "Current password is required";
   public static final String NEW_PASSWORD_REQUIRED = "New password is required";
   public static final String CONFIRM_PASSWORD_REQUIRED = "Confirm password is required";
-  public static final String PASSWORD_TOO_SHORT = "Password must be at least 8 characters long";
+  public static final String PASSWORD_TOO_SHORT = "Password must be at least 6 characters long";
   public static final String PASSWORD_TOO_WEAK =
       "Password must contain at least one uppercase letter, one lowercase letter, and one number";
   public static final String PASSWORDS_DO_NOT_MATCH = "Passwords do not match";

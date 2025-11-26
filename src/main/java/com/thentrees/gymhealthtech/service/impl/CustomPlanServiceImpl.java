@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   private final ExerciseRepository exerciseRepository;
   private final SessionRepository sessionRepository;
   private final ObjectMapper objectMapper;
+
 
   @Override
   public PagedResponse<PlanSummaryResponse> getAllPlansForUser(
@@ -266,7 +268,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     PlanDay planDay =
         planDayRepository
             .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Plan", planDayId.toString()));
 
     // Check if day has any completed sessions
     boolean hasCompletedSessions =
