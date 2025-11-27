@@ -375,7 +375,7 @@ CREATE TRIGGER trg_subscriptions_version BEFORE UPDATE ON subscriptions FOR EACH
 CREATE TABLE payments (
                         id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                         user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        provider         varchar(16) NOT NULL CHECK (provider IN ('stripe','apple','google')),
+                        provider         varchar(16) NULL,
                         provider_txn_id  varchar(128) NOT NULL,
                         amount_cents     int NOT NULL CHECK (amount_cents >= 0),
                         currency         varchar(8) NOT NULL DEFAULT 'USD',

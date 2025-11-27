@@ -151,7 +151,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       Exercise ex = exerciseRepository.findBySlug(slug).orElseGet(Exercise::new);
       ex.setSlug(slug);
       ex.setName(dto.getName().trim());
-      ex.setBodyPart(dto.getBodyParts().toString());
+      ex.setBodyPart(dto.getBodyParts().toString().replace("[", "").replace("]", ""));
       Equipment equipment = null;
       if (StringUtils.hasText(dto.getEquipmentTypeCode())) {
         equipment = getOrCreateEquipment(dto.getEquipmentTypeCode());
