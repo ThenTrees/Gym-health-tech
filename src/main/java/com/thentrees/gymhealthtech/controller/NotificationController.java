@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationController {
-
-  private final UserService userService;
   private final NotificationService notificationService;
 
   @PostMapping("/push-token")

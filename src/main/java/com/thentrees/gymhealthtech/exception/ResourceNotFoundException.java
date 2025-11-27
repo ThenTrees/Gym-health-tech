@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.exception;
 
+import com.thentrees.gymhealthtech.constant.ErrorCodes;
 import lombok.Getter;
 
 @Getter
@@ -9,13 +10,13 @@ public class ResourceNotFoundException extends BaseException {
 
   public ResourceNotFoundException(String resourceType, String resourceId) {
     super(
-        String.format("%s with id '%s' not found", resourceType, resourceId), "RESOURCE_NOT_FOUND");
+        String.format("%s with id '%s' not found", resourceType, resourceId), ErrorCodes.RESOURCE_NOT_FOUND);
     this.resourceType = resourceType;
     this.resourceId = resourceId;
   }
 
   public ResourceNotFoundException(String message) {
-    super(message, "RESOURCE_NOT_FOUND");
+    super(message, ErrorCodes.RESOURCE_NOT_FOUND);
     this.resourceType = null;
     this.resourceId = null;
   }

@@ -6,31 +6,40 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-@Component
-@Order(3) // Sau Jwt filter, trước DispatcherServlet
-public class LoggingFilter implements Filter {
+import org.springframework.web.filter.OncePerRequestFilter;
 
-  private static final Logger log = LoggerFactory.getLogger(LoggingFilter.class);
+@Component
+@Order(3)
+public class LoggingFilter extends OncePerRequestFilter {
+
+  private static final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
+  private static final long SLOW_REQUEST_THRESHOLD_MS = 1000; // 1 giây
 
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-    throws IOException, ServletException {
+  protected void doFilterInternal(HttpServletRequest request,
+                                  HttpServletResponse response,
+                                  FilterChain filterChain) throws ServletException, IOException {
+    long startTime = System.currentTimeMillis();
 
-    HttpServletRequest httpReq = (HttpServletRequest) request;
-    HttpServletResponse httpRes = (HttpServletResponse) response;
+    try {
+      logger.info("Incoming request: method={}, uri={}", request.getMethod(), request.getRequestURI());
+      filterChain.doFilter(request, response);
+    } finally {
+      long duration = System.currentTimeMillis() - startTime;
+      String traceId = MDC.get("traceId");
+      String userId = MDC.get("userId");
 
-    long start = System.currentTimeMillis();
-
-    log.info("Incoming request: method={}, uri={}",
-      httpReq.getMethod(), httpReq.getRequestURI());
-
-    chain.doFilter(request, response);
-
-    long duration = System.currentTimeMillis() - start;
-
-    log.info("Response: status={}, duration={}ms",
-      httpRes.getStatus(), duration);
+      if (duration > SLOW_REQUEST_THRESHOLD_MS) {
+        logger.warn("traceId={} userId={} Slow request detected: method={} uri={} duration={}ms",
+          traceId, userId,
+          request.getMethod(), request.getRequestURI(), duration);
+      } else {
+        logger.info("Request completed: method={} uri={} duration={}ms",
+          request.getMethod(), request.getRequestURI(), duration);
+      }
+    }
   }
 }

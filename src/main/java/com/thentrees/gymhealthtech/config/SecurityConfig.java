@@ -1,6 +1,7 @@
 package com.thentrees.gymhealthtech.config;
 
 import com.thentrees.gymhealthtech.filter.JwtAuthenticationFilter;
+import com.thentrees.gymhealthtech.filter.MDCFilter;
 import com.thentrees.gymhealthtech.service.impl.UserDetailsServiceImpl;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthFilter;
+  private final MDCFilter mdcFilter;
   private final UserDetailsServiceImpl userDetailsService;
 
   @Bean
@@ -40,6 +42,7 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .addFilterBefore(mdcFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->

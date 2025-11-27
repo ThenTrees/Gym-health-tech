@@ -1,6 +1,7 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
@@ -8,8 +9,10 @@ import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
+@Builder
 public class GeneratorMealPlanResponse {
   private boolean success;
+  private String message;
   private MealData data;
 
   @Data
