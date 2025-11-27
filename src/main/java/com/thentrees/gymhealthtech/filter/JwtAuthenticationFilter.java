@@ -9,6 +9,8 @@ import java.io.IOException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 @RequiredArgsConstructor
+@Order(2)
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -58,6 +61,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
+        String userId = jwtService.extractUserId(jwt).toString();
+        if (userId != null) {
+          MDC.put("userId", userId);
+        }
         log.debug("Authenticated user: {}", userEmail);
       } else {
         log.warn("Invalid JWT token for user: {}", userEmail);

@@ -255,6 +255,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       Boolean emailVerified = payload.getEmailVerified();
 
       if (email == null || email.isEmpty()) {
+        log.error("Email not found in token");
         throw new UnauthorizedException("Email not found in token");
       }
 

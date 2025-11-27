@@ -12,6 +12,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -103,6 +104,20 @@ public class JwtServiceImpl implements JwtService {
       log.error("Invalid JWT token: {}", e.getMessage());
       return false;
     }
+  }
+
+  @Override
+  public UUID extractUserId(String token) {
+    try {
+      Claims claims = extractAllClaims(token);
+      String userIdStr = claims.get("userId", String.class);
+      if (userIdStr != null) {
+        return UUID.fromString(userIdStr);
+      }
+    } catch (Exception e) {
+      log.error("Error extracting userId from token: {}", e.getMessage());
+    }
+    return null;
   }
 
   private boolean isTokenExpired(String token) {

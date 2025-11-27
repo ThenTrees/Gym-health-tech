@@ -3,6 +3,7 @@ package com.thentrees.gymhealthtech.service;
 import com.thentrees.gymhealthtech.model.User;
 import io.jsonwebtoken.Claims;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -22,4 +23,6 @@ public interface JwtService {
   boolean isTokenValid(String token, UserDetails userDetails);
 
   boolean isTokenValid(String token);
+
+  UUID extractUserId(String token);
 }
