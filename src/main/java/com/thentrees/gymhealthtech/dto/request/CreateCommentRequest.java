@@ -14,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CreateCommentRequest {
   @NotBlank(message = "Post ID cannot be blank")
-  private UUID postId;
+  private String postId;
 
   @NotBlank(message = "User ID cannot be blank")
   private String userId;

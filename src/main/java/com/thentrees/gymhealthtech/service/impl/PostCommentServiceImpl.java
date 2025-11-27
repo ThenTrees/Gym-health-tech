@@ -43,9 +43,9 @@ public class PostCommentServiceImpl implements PostCommentService {
   @Transactional
   @Override
   public PostCommentResponse createPostComment(CreateCommentRequest request, MultipartFile file) {
-    Optional<Post> post = postRepository.findById(request.getPostId());
+    Optional<Post> post = postRepository.findById(UUID.fromString(request.getPostId()));
     if (post.isEmpty()) {
-      throw new ResourceNotFoundException("Post", request.getPostId().toString());
+      throw new ResourceNotFoundException("Post", request.getPostId());
     }
 
     PostComment comment = postCommentMapper.toEntity(request, postRepository);
