@@ -37,14 +37,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 
   @Override
   public UserProfileResponse getUserProfile() {
-
     User user = getCurrentUser();
-
     UserProfile profile =
         userProfileRepository
             .findByUserId(user.getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
-
+            .orElseThrow(() -> new ResourceNotFoundException("Profile", user.getId().toString()));
     return mapToResponse(profile);
   }
 
@@ -58,12 +55,11 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   @Transactional
   public void deleteProfile(UUID userId) {
-
     User userExist =
         userRepository
             .findById(userId)
             .orElseThrow(
-                () -> new BusinessException("User not found with email or phone: " + userId));
+                () -> new ResourceNotFoundException("User", userId.toString()));
 
     UserProfile userProfile =
         userProfileRepository
@@ -76,6 +72,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     userRepository.save(userExist);
     userProfileRepository.save(userProfile);
+    log.info("UserProfile with userId {} has been deleted", userId);
   }
 
   @Override

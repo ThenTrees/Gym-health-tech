@@ -4,12 +4,14 @@ package com.thentrees.gymhealthtech.dto.response;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.thentrees.gymhealthtech.model.PlanDay;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Builder
 public class GeneratorWorkoutPlanResponse {
   private String message;
   private String status;

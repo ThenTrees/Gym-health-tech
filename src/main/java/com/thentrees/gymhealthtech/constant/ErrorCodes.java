@@ -12,6 +12,17 @@ public final class ErrorCodes {
   public static final String RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
   public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
+  // Infrastructure errors
+  public static final String INFRA_REDIS_ERROR = "INFRA_REDIS_ERROR";
+  public static final String INFRA_FEIGN_ERROR = "INFRA_FEIGN_ERROR";
+  public static final String INFRA_WEBCLIENT_ERROR = "INFRA_WEBCLIENT_ERROR";
+  public static final String INFRA_RATE_LIMIT = "INFRA_RATE_LIMIT";
+  public static final String INFRA_SERVICE_UNAVAILABLE = "INFRA_SERVICE_UNAVAILABLE";
+  public static final String INFRA_IO_ERROR = "INFRA_IO_ERROR";
+  public static final String INFRA_TIMEOUT = "INFRA_TIMEOUT";
+  public static final String INFRA_DATABASE_ERROR = "INFRA_DATABASE_ERROR";
+
+
   // Authentication & Authorization
   public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
   public static final String TOKEN_EXPIRED = "TOKEN_EXPIRED";

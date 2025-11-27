@@ -1,45 +1,45 @@
 package com.thentrees.gymhealthtech.filter;
 
-import com.thentrees.gymhealthtech.util.GenerateTraceId;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@Order(1)
-@RequiredArgsConstructor
-public class LoggingFilter implements Filter {
+@Order(3)
+public class LoggingFilter extends OncePerRequestFilter {
 
-  private static final Logger log = LoggerFactory.getLogger(LoggingFilter.class);
-  private final GenerateTraceId generateTraceId;
+  private static final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
+  private static final long SLOW_REQUEST_THRESHOLD_MS = 1000; // 1 giây
 
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-      throws IOException, ServletException {
-
-    HttpServletRequest httpReq = (HttpServletRequest) request;
-    HttpServletResponse httpRes = (HttpServletResponse) response;
-
+  protected void doFilterInternal(HttpServletRequest request,
+                                  HttpServletResponse response,
+                                  FilterChain filterChain) throws ServletException, IOException {
     long startTime = System.currentTimeMillis();
-    String requestId = generateTraceId.generate();
-    MDC.put("requestId", requestId); // generateTraceId
 
     try {
-      log.info("Incoming request: method={}, uri={}", httpReq.getMethod(), httpReq.getRequestURI());
-
-      chain.doFilter(request, response);
-
+      logger.info("Incoming request: method={}, uri={}", request.getMethod(), request.getRequestURI());
+      filterChain.doFilter(request, response);
     } finally {
       long duration = System.currentTimeMillis() - startTime;
-      log.info("Response: status={}, duration={}ms", httpRes.getStatus(), duration);
-      MDC.clear();
+      String traceId = MDC.get("traceId");
+      String userId = MDC.get("userId");
+
+      if (duration > SLOW_REQUEST_THRESHOLD_MS) {
+        logger.warn("traceId={} userId={} Slow request detected: method={} uri={} duration={}ms",
+          traceId, userId,
+          request.getMethod(), request.getRequestURI(), duration);
+      } else {
+        logger.info("Request completed: method={} uri={} duration={}ms",
+          request.getMethod(), request.getRequestURI(), duration);
+      }
     }
   }
 }

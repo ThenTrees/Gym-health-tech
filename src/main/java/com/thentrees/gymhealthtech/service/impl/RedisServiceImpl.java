@@ -1,8 +1,11 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.thentrees.gymhealthtech.exception.InfraRedisException;
 import com.thentrees.gymhealthtech.service.RedisService;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.lettuce.core.RedisException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "REDIS-SERVICE")
 public class RedisServiceImpl implements RedisService {
 
   private final RedisTemplate<String, Object> redisTemplate;
@@ -21,9 +24,9 @@ public class RedisServiceImpl implements RedisService {
     try {
       redisTemplate.opsForValue().set(key, value, timeout);
       log.info("Stored key: {} with TTL: {} seconds", key, timeout.getSeconds());
-    } catch (Exception e) {
+    } catch (Exception e) { // RedisException hoặc bất kỳ lỗi runtime
       log.error("Error storing key: {} in Redis", key, e);
-      throw new RuntimeException("Lỗi lưu trữ dữ liệu", e);
+      throw new InfraRedisException("Lỗi lưu trữ dữ liệu Redis", e);
     }
   }
 
@@ -34,7 +37,7 @@ public class RedisServiceImpl implements RedisService {
       log.info("Stored key: {}", key);
     } catch (Exception e) {
       log.error("Error storing key: {} in Redis", key, e);
-      throw new RuntimeException("Lỗi lưu trữ dữ liệu", e);
+      throw new InfraRedisException("Lỗi lưu trữ dữ liệu Redis", e);
     }
   }
 
@@ -44,7 +47,7 @@ public class RedisServiceImpl implements RedisService {
       return redisTemplate.opsForValue().get(key);
     } catch (Exception e) {
       log.error("Error getting key: {} from Redis", key, e);
-      return null;
+      throw new InfraRedisException("Lỗi đọc dữ liệu Redis", e);
     }
   }
 
@@ -56,42 +59,40 @@ public class RedisServiceImpl implements RedisService {
       return result != null && result;
     } catch (Exception e) {
       log.error("Error deleting key: {} from Redis", key, e);
-      return false;
+      throw new InfraRedisException("Lỗi xóa dữ liệu Redis", e);
     }
-  }
-
-  @Override
-  public String getOtpKey(String email) {
-    return "otp:" + email;
   }
 
   @Override
   public void deletePattern(String pattern) {
     try {
       ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-
       AtomicInteger deletedCount = new AtomicInteger();
 
-      redisTemplate.execute(
-          (RedisCallback<Object>)
-              connection -> {
-                try (Cursor<byte[]> cursor = connection.scan(options)) {
-                  while (cursor.hasNext()) {
-                    byte[] keyBytes = cursor.next();
-                    String key = redisTemplate.getStringSerializer().deserialize(keyBytes);
-                    if (key != null) {
-                      redisTemplate.delete(key);
-                      deletedCount.getAndIncrement();
-                    }
-                  }
-                }
-                return null;
-              });
+      redisTemplate.execute((RedisCallback<Object>) connection -> {
+        try (Cursor<byte[]> cursor = connection.scan(options)) {
+          while (cursor.hasNext()) {
+            byte[] keyBytes = cursor.next();
+            String key = redisTemplate.getStringSerializer().deserialize(keyBytes);
+            if (key != null) {
+              redisTemplate.delete(key);
+              deletedCount.getAndIncrement();
+            }
+          }
+        }
+        return null;
+      });
 
       log.info("Deleted {} keys matching pattern: {}", deletedCount, pattern);
 
     } catch (Exception e) {
       log.error("Error deleting keys with pattern: {} from Redis", pattern, e);
+      throw new InfraRedisException("Lỗi xóa dữ liệu Redis theo pattern", e);
     }
+  }
+
+  @Override
+  public String getOtpKey(String email) {
+    return "otp:" + email;
   }
 }

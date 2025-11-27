@@ -26,8 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -173,25 +171,8 @@ public class UserController {
       })
   @DeleteMapping("/delete-profile")
   public ResponseEntity<APIResponse<Void>> deleteProfile() {
-    try {
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-      log.info("Authenticated user: {}", authentication.getName()); // email
-
-      String email = authentication.getName();
-
       userProfileService.deleteProfile();
-      log.info("Deleting profile for user with email: {}", email);
-      log.info("Profile deleted successfully for user with email: {}", email);
-
       return ResponseEntity.ok(APIResponse.success(null, SuccessMessages.PROFILE_DELETED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error deleting user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to delete profile"));
-    }
   }
 
   @Operation(
@@ -231,19 +212,9 @@ public class UserController {
   @DeleteMapping("/admin/delete-profile")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<Void>> deleteProfile(@RequestParam("userId") UUID userId) {
-    try {
       userProfileService.deleteProfile(userId);
-      log.info("Admin Deleting profile for user with ID: {}", userId);
-
-      return ResponseEntity.ok( // nen tra ve 204 => no content
+      return ResponseEntity.ok(
           APIResponse.success(null, SuccessMessages.PROFILE_DELETED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error deleting user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to delete profile"));
-    }
   }
 
   /** Upload user avatar */
