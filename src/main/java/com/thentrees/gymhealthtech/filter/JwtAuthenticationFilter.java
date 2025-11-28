@@ -39,6 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     HttpServletResponse response,
     FilterChain filterChain) throws ServletException, IOException {
 
+    String path = request.getRequestURI();
+    if (path.startsWith("/actuator")) {
+      filterChain.doFilter(request, response); // bypass JWT cho actuator
+      return;
+    }
+
     final String authHeader = request.getHeader("Authorization");
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
