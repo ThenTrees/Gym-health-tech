@@ -24,7 +24,14 @@ public class LoggingFilter extends OncePerRequestFilter {
                                   FilterChain filterChain) throws ServletException, IOException {
     long startTime = System.currentTimeMillis();
 
+    String uri = request.getRequestURI();
     try {
+
+      // Bỏ qua log cho prometheus scrape
+      if (uri.startsWith("/actuator/prometheus")) {
+        filterChain.doFilter(request, response);
+        return;
+      }
       logger.info("Incoming request: method={}, uri={}", request.getMethod(), request.getRequestURI());
       filterChain.doFilter(request, response);
     } finally {
@@ -37,8 +44,10 @@ public class LoggingFilter extends OncePerRequestFilter {
           traceId, userId,
           request.getMethod(), request.getRequestURI(), duration);
       } else {
-        logger.info("Request completed: method={} uri={} duration={}ms",
-          request.getMethod(), request.getRequestURI(), duration);
+        if (!uri.startsWith("/actuator/prometheus")) {
+          logger.info("Request completed: method={} uri={} duration={}ms",
+            request.getMethod(), request.getRequestURI(), duration);
+        }
       }
     }
   }

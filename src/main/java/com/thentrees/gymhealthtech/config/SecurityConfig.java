@@ -54,7 +54,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
                     .permitAll()
-                    .requestMatchers("/actuator/health", "/actuator/info")
+                    .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus")
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()

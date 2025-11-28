@@ -93,8 +93,10 @@ aws:
     region: ${S3_REGION}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
   metrics:
-    enable:
-      system: false
-      process: false
-      jvm: false
+    tags:
+      application: gym-health-tech
