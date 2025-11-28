@@ -69,20 +69,20 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   @Override
   public SessionResponse getSummaryDay(UUID planDayId) {
     User user = getCurrentUser();
-    String cacheKey = cacheKeyUtils.buildKey("dailySummary:", planDayId);
-    try {
-      Object cached = redisService.get(cacheKey);
-      if (cached != null) {
-        SessionResponse cachedResult =
-          objectMapper.convertValue(cached, new TypeReference<>() {});
-        if (cachedResult != null) {
-          log.debug("Cache hit for key: {}", cacheKey);
-          return cachedResult;
-        }
-      }
-    } catch (Exception e) {
-      log.warn("Failed to read from cache: {}", e.getMessage());
-    }
+//    String cacheKey = cacheKeyUtils.buildKey("dailySummary:", planDayId);
+//    try {
+//      Object cached = redisService.get(cacheKey);
+//      if (cached != null) {
+//        SessionResponse cachedResult =
+//          objectMapper.convertValue(cached, new TypeReference<>() {});
+//        if (cachedResult != null) {
+//          log.debug("Cache hit for key: {}", cacheKey);
+//          return cachedResult;
+//        }
+//      }
+//    } catch (Exception e) {
+//      log.warn("Failed to read from cache: {}", e.getMessage());
+//    }
 
     Session session =
       sessionRepository
@@ -90,7 +90,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
         .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
 
     SessionResponse response = convertSessionToResponse(session, true);
-    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 1 hour
+//    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 1 hour
 
     return response;
   }
@@ -380,22 +380,22 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
-    String key = "weeklySummary:" + user.getId() + ":" + startOfWeek.toString() + ":" + endOfWeek.toString();
-
-    String cacheKey = cacheKeyUtils.buildKey(key, null);
-    try {
-      Object cached = redisService.get(cacheKey);
-      if (cached != null) {
-        WeeklySummaryResponse cachedResult =
-          objectMapper.convertValue(cached, new TypeReference<WeeklySummaryResponse>() {});
-        if (cachedResult != null) {
-          log.debug("Cache hit for key: {}", cacheKey);
-          return cachedResult;
-        }
-      }
-    } catch (Exception e) {
-      log.warn("Failed to read from cache: {}", e.getMessage());
-    }
+//    String key = "weeklySummary:" + user.getId() + ":" + startOfWeek.toString() + ":" + endOfWeek.toString();
+//
+//    String cacheKey = cacheKeyUtils.buildKey(key, null);
+//    try {
+//      Object cached = redisService.get(cacheKey);
+//      if (cached != null) {
+//        WeeklySummaryResponse cachedResult =
+//          objectMapper.convertValue(cached, new TypeReference<WeeklySummaryResponse>() {});
+//        if (cachedResult != null) {
+//          log.debug("Cache hit for key: {}", cacheKey);
+//          return cachedResult;
+//        }
+//      }
+//    } catch (Exception e) {
+//      log.warn("Failed to read from cache: {}", e.getMessage());
+//    }
 
     List<Session> sessions =
         sessionRepository.findByUserAndStartedAtBetween(
@@ -432,7 +432,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       .dailySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
       .build();
 
-    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 2 hours
+//    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 2 hours
 
     return response;
   }
@@ -443,22 +443,22 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
     LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
 
-    String key = "monthlySummary:" + user.getId() + ":" + startOfMonth.toString() + ":" + endOfMonth.toString();
-    String cacheKey = cacheKeyUtils.buildKey(key, null);
-
-    try {
-      Object cached = redisService.get(cacheKey);
-      if (cached != null) {
-        MonthlySummaryResponse cachedResult =
-          objectMapper.convertValue(cached, new TypeReference<MonthlySummaryResponse>() {});
-        if (cachedResult != null) {
-          log.debug("Cache hit for key: {}", cacheKey);
-          return cachedResult;
-        }
-      }
-    } catch (Exception e) {
-      log.warn("Failed to read from cache: {}", e.getMessage());
-    }
+//    String key = "monthlySummary:" + user.getId() + ":" + startOfMonth.toString() + ":" + endOfMonth.toString();
+//    String cacheKey = cacheKeyUtils.buildKey(key, null);
+//
+//    try {
+//      Object cached = redisService.get(cacheKey);
+//      if (cached != null) {
+//        MonthlySummaryResponse cachedResult =
+//          objectMapper.convertValue(cached, new TypeReference<MonthlySummaryResponse>() {});
+//        if (cachedResult != null) {
+//          log.debug("Cache hit for key: {}", cacheKey);
+//          return cachedResult;
+//        }
+//      }
+//    } catch (Exception e) {
+//      log.warn("Failed to read from cache: {}", e.getMessage());
+//    }
 
     List<Session> sessions = sessionRepository.findByUserAndAllSessionsInCurrentMonth(
       user.getId(), startOfMonth, endOfMonth
@@ -497,7 +497,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       .feedback(feedback)
       .build();
 
-    redisService.set(cacheKey, response, Duration.ofHours(1));
+//    redisService.set(cacheKey, response, Duration.ofHours(1));
 
     return response;
   }
