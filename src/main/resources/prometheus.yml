@@ -10,3 +10,11 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['host.docker.internal:9093']
+
+rule_files:
+  - "server_alerts.yml"

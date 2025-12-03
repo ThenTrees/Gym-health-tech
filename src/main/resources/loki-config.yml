@@ -2,16 +2,37 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
+  log_level: info
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
 
 ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s
   wal:
     enabled: true
-    dir: /loki/wal
-  max_chunk_age: 1h
+    dir: ./loki/wal
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: ./loki/index
+    cache_location: ./loki/cache
+    shared_store: filesystem
+  filesystem:
+    directory: ./loki/chunks
 
 schema_config:
   configs:
-    - from: 2023-01-01
+    - from: 2020-10-24
       store: boltdb-shipper
       object_store: filesystem
       schema: v11
@@ -19,12 +40,18 @@ schema_config:
         prefix: index_
         period: 24h
 
-storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/index
-    cache_location: /loki/boltdb-cache
-  filesystem:
-    directory: /loki/chunks
+compactor:
+  working_directory: ./loki/compactor
+  shared_store: filesystem
 
 limits_config:
-  max_query_length: 0
+  enforce_metric_name: false
+  ingestion_rate_mb: 0
+  max_streams_per_user: 0
+  split_queries_by_interval: 15m
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: ./loki/rules
