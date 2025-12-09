@@ -7,7 +7,6 @@ import com.thentrees.gymhealthtech.dto.request.ResetPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
 import com.thentrees.gymhealthtech.dto.request.VerifyOtpRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
-import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.UserProfileService;
 import com.thentrees.gymhealthtech.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -340,5 +339,22 @@ public class UserController {
     userService.resetPassword(request);
     return ResponseEntity.status(HttpStatus.OK)
         .body(APIResponse.success("Password reset successfully"));
+  }
+
+  @GetMapping()
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<PagedResponse<UserResponse>>> getAllUserProfile(
+      @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+      @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+      @RequestParam(
+              value = "sortDirection",
+              defaultValue = AppConstants.DEFAULT_SORT_DIRECTION)
+          String sortDirection
+  ) {
+
+      PagedResponse<UserResponse> userSummary = userService.getAllUsers(page, size, sortBy, sortDirection);
+
+    return ResponseEntity.ok(APIResponse.success(userSummary, SuccessMessages.GET_PROFILE));
   }
 }

@@ -347,7 +347,6 @@ public class PostController {
     return ResponseEntity.ok(APIResponse.success(planDetails));
   }
 
-  @PremiumOnly
   @Operation(
       summary = "Apply/Copy a shared workout plan",
       description = "Copy a shared plan to the authenticated user's plans")

@@ -18,11 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(AppConstants.API_V1 + "/ai")
 @RequiredArgsConstructor
-@PremiumOnly
+
 public class AIController {
 
   private final AIService aiService;
 
+  @PremiumOnly
   @PostMapping("/generate-plan")
   public ResponseEntity<APIResponse<GeneratorWorkoutPlanResponse>> generateWorkoutPlan(@RequestBody GeneratorWorkoutPlanRequest request) {
     GeneratorWorkoutPlanResponse planResponse = aiService.createGeneratorWorkoutPlan(request);

@@ -3,6 +3,8 @@ package com.thentrees.gymhealthtech.service.impl;
 import com.thentrees.gymhealthtech.dto.request.ForgotPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.ResetPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.VerifyOtpRequest;
+import com.thentrees.gymhealthtech.dto.response.PagedResponse;
+import com.thentrees.gymhealthtech.dto.response.UserResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.RateLimitExceededException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
@@ -14,10 +16,15 @@ import com.thentrees.gymhealthtech.service.UserService;
 import com.thentrees.gymhealthtech.util.RateLimitService;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -152,6 +159,28 @@ public class UserServiceImpl implements UserService {
     userRepository.save(user);
 
     log.info("Password reset successfully for email: {}", email);
+  }
+
+  @Override
+  public PagedResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDirection) {
+    Pageable pageable =
+      PageRequest.of(page, size, Sort.Direction.fromString(sortDirection),sortBy);
+    Page<User> users =
+        userRepository.findAll(pageable);
+    Page<UserResponse> pagedResponse = users.map(this::fromEntity);
+    return PagedResponse.of(pagedResponse);
+  }
+
+  private UserResponse fromEntity(User user) {
+    return UserResponse.builder()
+        .id(user.getId().toString())
+        .email(user.getEmail())
+        .fullName(user.getProfile().getFullName())
+        .phone(user.getPhone())
+        .status(user.getStatus())
+        .isPremium(user.getIsPremium())
+        .avatarUrl(user.getProfile().getAvatarUrl())
+        .build();
   }
 
   private String generateOtp() {
