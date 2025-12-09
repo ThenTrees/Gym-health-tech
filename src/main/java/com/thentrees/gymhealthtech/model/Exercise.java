@@ -1,6 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.thentrees.gymhealthtech.enums.ExerciseType;
 import jakarta.persistence.*;
 import java.util.List;
@@ -12,6 +13,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "exercises")
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Exercise extends BaseEntity {
 
   @Column(name = "slug", unique = true, nullable = false, length = 80)

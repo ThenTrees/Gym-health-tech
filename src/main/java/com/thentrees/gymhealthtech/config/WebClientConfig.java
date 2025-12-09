@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,10 @@ import java.time.Duration;
 
 @Configuration
 public class WebClientConfig {
+
+  @Value("${app.aiUrl}")
+  private String aiServiceBaseUrl;
+
   @Bean
   public WebClient webClient(WebClient.Builder webClientBuilder) {
     // config connectionProvider for timeout
@@ -26,7 +31,7 @@ public class WebClientConfig {
     // set Read and Write timeout
       .responseTimeout(Duration.ofSeconds(40));
 
-    return webClientBuilder.baseUrl("http://localhost:8081/api/v1/ai")
+    return webClientBuilder.baseUrl(aiServiceBaseUrl)
       .clientConnector(new ReactorClientHttpConnector(httpClient))
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build();

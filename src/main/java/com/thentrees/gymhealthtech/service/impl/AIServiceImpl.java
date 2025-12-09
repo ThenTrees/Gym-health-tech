@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.service.impl;
 
-import com.thentrees.gymhealthtech.constant.ErrorCodes;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.dto.request.GeneratorWorkoutPlanRequest;
 import com.thentrees.gymhealthtech.dto.response.GeneratorMealPlanResponse;
 import com.thentrees.gymhealthtech.dto.response.GeneratorWorkoutPlanResponse;
@@ -22,23 +22,28 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AIServiceImpl implements AIService {
   private final WebClient webClient;
+  private final ObjectMapper mapper;
   @Override
-  public GeneratorWorkoutPlanResponse createGeneratorWorkoutPlan(Authentication authentication) {
+  public GeneratorWorkoutPlanResponse createGeneratorWorkoutPlan(GeneratorWorkoutPlanRequest genPlanRequest) {
     log.info("Creating workout plan via AI Service ...");
-    User user = (User) authentication.getPrincipal();
-
-    GeneratorWorkoutPlanRequest request = new GeneratorWorkoutPlanRequest();
-    request.setUserId(user.getId());
 
     return webClient.post()
       .uri("/generate-plan")
-      .bodyValue(request)
+      .bodyValue(genPlanRequest)
       .retrieve()
-      .bodyToMono(GeneratorWorkoutPlanResponse.class)
-      .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)) // Retry up to 3 times with exponential backoff -> 2 -> 8 -> 16
-        .filter(throwable -> throwable instanceof WebClientRequestException)) // Retry only for network-related exceptions
+      .bodyToMono(String.class)   // STEP 1: đọc raw response
+      .flatMap(raw -> {
+        try {
+          return Mono.just(mapper.readValue(raw, GeneratorWorkoutPlanResponse.class));
+        } catch (Exception e) {
+          log.error("Cannot parse AI response", e);
+          return Mono.error(e);
+        }
+      })
+      .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+        .filter(ex -> ex instanceof WebClientRequestException))
       .onErrorResume(ex -> {
-        log.error("AI Service fallback triggered due to: {}",ex.getMessage());
+        log.error("AI Service fallback triggered due to: {}", ex.getMessage());
         return Mono.just(
           GeneratorWorkoutPlanResponse.builder()
             .status("error")
@@ -48,6 +53,7 @@ public class AIServiceImpl implements AIService {
       })
       .block();
   }
+
 
   @Override
   public GeneratorMealPlanResponse createGeneratorMealPlan(Authentication authentication) {

@@ -1,5 +1,7 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
@@ -16,6 +18,8 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PlanItem {
 
   @Id

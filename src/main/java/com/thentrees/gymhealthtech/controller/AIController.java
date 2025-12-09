@@ -2,7 +2,7 @@ package com.thentrees.gymhealthtech.controller;
 
 import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.custom.PremiumOnly;
-import com.thentrees.gymhealthtech.dto.request.ChatRequest;
+import com.thentrees.gymhealthtech.dto.request.GeneratorWorkoutPlanRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.GeneratorMealPlanResponse;
 import com.thentrees.gymhealthtech.dto.response.GeneratorWorkoutPlanResponse;
@@ -24,14 +24,8 @@ public class AIController {
   private final AIService aiService;
 
   @PostMapping("/generate-plan")
-  public ResponseEntity<APIResponse<GeneratorWorkoutPlanResponse>> generateWorkoutPlan(Authentication authentication) {
-    GeneratorWorkoutPlanResponse planResponse = aiService.createGeneratorWorkoutPlan(authentication);
-    return ResponseEntity.ok(APIResponse.success(planResponse));
-  }
-
-  @PostMapping("/chatbot/chat")
-  public ResponseEntity<APIResponse<GeneratorWorkoutPlanResponse>> chatBot(@RequestBody ChatRequest request, Authentication authentication) {
-    GeneratorWorkoutPlanResponse planResponse = aiService.createGeneratorWorkoutPlan(authentication);
+  public ResponseEntity<APIResponse<GeneratorWorkoutPlanResponse>> generateWorkoutPlan(@RequestBody GeneratorWorkoutPlanRequest request) {
+    GeneratorWorkoutPlanResponse planResponse = aiService.createGeneratorWorkoutPlan(request);
     return ResponseEntity.ok(APIResponse.success(planResponse));
   }
 
