@@ -3,8 +3,6 @@ package com.thentrees.gymhealthtech.dto.response;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.thentrees.gymhealthtech.model.Exercise;
-import com.thentrees.gymhealthtech.model.PlanDay;
 import com.thentrees.gymhealthtech.model.PlanItem;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,7 +44,7 @@ public class GeneratorWorkoutPlanResponse {
       private String createdAt;
       private String endDate;
 
-      private List<PlanDay> planDays;
+      private List<WorkoutPlan.PlanDay> planDays;
 
       @JsonIgnore
       private Object aiMetadata;
