@@ -7,5 +7,5 @@ public interface SePayService {
 
   String createPendingTransaction(Authentication authentication);
   boolean handleWebhook(SePayResponse payload);
-
+  boolean checkPremiumStatus(Authentication authentication);
 }

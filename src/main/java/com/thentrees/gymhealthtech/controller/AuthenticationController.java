@@ -277,12 +277,8 @@ public class AuthenticationController {
   @PostMapping("/resend-verification")
   public ResponseEntity<APIResponse<String>> resendVerification(
       @Valid @RequestBody ResendVerificationRequest request) {
-    try {
       authenticationService.resendVerificationEmail(request);
       return ResponseEntity.ok(APIResponse.success("Verification email sent"));
-    } catch (BusinessException e) {
-      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
-    }
   }
 
   @Operation(

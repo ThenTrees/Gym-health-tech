@@ -98,6 +98,13 @@ public class SePayServiceImpl implements SePayService {
     return true;
   }
 
+  @Override
+  public boolean checkPremiumStatus(Authentication authentication) {
+    User user = (User) authentication.getPrincipal();
+    Optional<User> userOpt = userRepository.findById(user.getId());
+    return userOpt.map(User::getIsPremium).orElse(false);
+  }
+
   private long parseAmount(Object amountObj) {
     if (amountObj instanceof Number n) {
       return n.longValue();
