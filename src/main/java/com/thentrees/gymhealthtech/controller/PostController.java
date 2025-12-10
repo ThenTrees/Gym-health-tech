@@ -2,7 +2,6 @@ package com.thentrees.gymhealthtech.controller;
 
 import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
-import com.thentrees.gymhealthtech.custom.PremiumOnly;
 import com.thentrees.gymhealthtech.dto.request.CreatePostRequest;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;

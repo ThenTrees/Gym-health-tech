@@ -2,28 +2,21 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import static com.thentrees.gymhealthtech.constant.ValidationMessages.*;
 
-import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.ErrorMessages;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.RegisterRequest;
 import com.thentrees.gymhealthtech.dto.response.RegisterResponse;
 import com.thentrees.gymhealthtech.enums.UserRole;
 import com.thentrees.gymhealthtech.enums.UserStatus;
-import com.thentrees.gymhealthtech.enums.VerificationType;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.UserProfile;
-import com.thentrees.gymhealthtech.model.VerificationToken;
 import com.thentrees.gymhealthtech.repository.UserRepository;
-import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
-import com.thentrees.gymhealthtech.service.EmailService;
 import com.thentrees.gymhealthtech.service.UserRegistrationService;
+import com.thentrees.gymhealthtech.service.VerificationTokenService;
 import com.thentrees.gymhealthtech.util.ResourceAlreadyExists;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,10 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j(topic = "USER_REGISTER-SERVICE")
 public class UserRegistrationServiceImpl implements UserRegistrationService {
   private final UserRepository userRepository;
-  private final VerificationTokenRepository verificationTokenRepository;
   private final PasswordEncoder passwordEncoder;
-  private final EmailService emailService;
-  private final SecureRandom secureRandom = new SecureRandom();
+  private final VerificationTokenService verificationTokenService;
 
   @Transactional
   @Override
@@ -62,7 +53,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     user = userRepository.save(user);
 
     // Generate and send verification token
-    generateAndSendVerificationToken(user);
+    verificationTokenService.generateAndSendVerificationToken(user);
     return buildRegisterResponse(user);
   }
 
@@ -113,28 +104,6 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     BigDecimal heightM = heightCm.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
     BigDecimal heightSquared = heightM.multiply(heightM);
     return weightKg.divide(heightSquared, 2, RoundingMode.HALF_UP);
-  }
-
-  private void generateAndSendVerificationToken(User user) {
-    // Generate secure token
-    byte[] tokenBytes = new byte[32];
-    secureRandom.nextBytes(tokenBytes);
-    String token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
-    String tokenHash = passwordEncoder.encode(token);
-
-    // Create verification token
-    VerificationToken verificationToken = new VerificationToken();
-    verificationToken.setUser(user);
-    verificationToken.setType(VerificationType.EMAIL);
-    verificationToken.setTokenHash(tokenHash);
-    verificationToken.setExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours expiry
-
-    verificationTokenRepository.save(verificationToken);
-    try {
-      emailService.sendEmailVerification(user.getEmail(), user.getProfile().getFullName(), token);
-    } catch (Exception e) {
-      log.error(ErrorMessages.SEND_MAIL_VERIFICATION_FAILED + user.getEmail());
-    }
   }
 
   private RegisterResponse buildRegisterResponse(User user) {

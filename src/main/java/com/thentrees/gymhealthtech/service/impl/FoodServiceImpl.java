@@ -150,7 +150,7 @@ public class FoodServiceImpl implements FoodService {
         : foodRepository.findAllWithFoodNameVi(normalizedKeyword, pageable);
     }
 
-    Page<FoodResponse> foodResponses = foodsPage.map(this::mapToResponse);
+    Page<FoodResponse> foodResponses = foodsPage.map(foodMapper::toResponse);
     PagedResponse<FoodResponse> response = PagedResponse.of(foodResponses);
 
     // Cache result
@@ -175,7 +175,7 @@ public class FoodServiceImpl implements FoodService {
     Food food = mapToEntity(request);
     food.setImageUrl(fileUrl);
     Food savedFood = foodRepository.save(food);
-    return mapToResponse(savedFood);
+    return foodMapper.toResponse(savedFood);
   }
 
   @Override
@@ -183,7 +183,7 @@ public class FoodServiceImpl implements FoodService {
     return
         foodRepository
             .findByIdAndIsActiveTrue(foodId)
-            .map(this::mapToResponse)
+            .map(foodMapper::toResponse)
             .orElseThrow(() -> new ResourceNotFoundException("Food", foodId.toString()));
   }
 
@@ -243,32 +243,6 @@ public class FoodServiceImpl implements FoodService {
     redisService.deletePattern("food:*");
   }
 
-  private FoodResponse mapToResponse(Food food) {
-    return FoodResponse.builder()
-        .id(food.getId())
-        .foodName(food.getFoodName())
-        .foodNameVi(food.getFoodNameVi())
-        .description(food.getDescription())
-        .servingWeightGrams(food.getServingWeightGrams())
-        .calories(food.getCalories())
-        .protein(food.getProtein())
-        .carbs(food.getCarbs())
-        .fat(food.getFat())
-        .fiber(food.getFiber())
-        .vitaminA(food.getVitaminA())
-        .vitaminC(food.getVitaminC())
-        .vitaminD(food.getVitaminD())
-        .category(food.getCategory())
-        .mealTime(food.getMealTime())
-        .imageUrl(food.getImageUrl())
-        .tags(food.getTags())
-        .detailedBenefits(food.getDetailedBenefits())
-        .commonCombinations(food.getCommonCombinations())
-        .contraindications(food.getContraindications())
-        .alternativeFoods(food.getAlternativeFoods())
-        .isActive(food.getIsActive())
-        .build();
-  }
 
   private Food mapToEntity(FoodRequest dto) {
     Food food = new Food();

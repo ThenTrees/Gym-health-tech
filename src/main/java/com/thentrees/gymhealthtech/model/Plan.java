@@ -4,6 +4,7 @@ import com.thentrees.gymhealthtech.enums.PlanSourceType;
 import com.thentrees.gymhealthtech.enums.PlanStatusType;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.*;
@@ -17,11 +18,11 @@ import lombok.*;
 @AllArgsConstructor
 public class Plan extends BaseEntity {
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "goal_id")
   private Goal goal;
 
@@ -40,7 +41,8 @@ public class Plan extends BaseEntity {
   private PlanStatusType status = PlanStatusType.DRAFT;
 
   @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-  private List<PlanDay> planDays;
+  @OrderColumn(name = "day_index")
+  private List<PlanDay> planDays = new ArrayList<>();
 
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;

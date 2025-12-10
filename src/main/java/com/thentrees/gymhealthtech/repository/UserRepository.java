@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-  Optional<User> findByEmail(String email);
+  @Query("SELECT u FROM User u LEFT JOIN FETCH u.profile WHERE u.email = :email")
+  Optional<User> findByEmail(@Param("email") String email);
 
   Optional<User> findByPhone(String phone);
 
@@ -23,7 +24,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByPhone(String phone);
 
   @Query(
-      "SELECT u FROM User u WHERE u.email = :identifier OR u.phone = :identifier And u.status = 'ACTIVE'")
+      "SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile WHERE (u.email = :identifier OR u.phone = :identifier) AND u.status = 'ACTIVE'")
   Optional<User> findByEmailOrPhone(@Param("identifier") String identifier);
 
   @Query("""

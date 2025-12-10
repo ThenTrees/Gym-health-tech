@@ -4,8 +4,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.AuthResponse;
 import com.thentrees.gymhealthtech.enums.UserStatus;
@@ -22,8 +20,8 @@ import com.thentrees.gymhealthtech.repository.VerificationTokenRepository;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import com.thentrees.gymhealthtech.service.JwtService;
 import com.thentrees.gymhealthtech.service.RefreshTokenService;
+import com.thentrees.gymhealthtech.service.VerificationTokenService;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -49,8 +47,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
-  private final EmailServiceImpl emailService;
   private final RefreshTokenService refreshTokenService;
+  private final VerificationTokenService verificationTokenService;
 
   @Value("${app.jwt.expiration}")
   private long jwtExpiration;
@@ -181,7 +179,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     // Generate and send new verification token
-    generateAndSendVerificationToken(user);
+    verificationTokenService.generateAndSendVerificationToken(user);
   }
 
   @Transactional
@@ -306,40 +304,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       case INACTIVE, DELETED -> throw new BusinessException("identifier or password is incorrect");
       case SUSPENDED -> throw new BusinessException("Account is suspended");
       case PENDING_VERIFICATION -> throw new BusinessException("Account is pending verification");
-    }
-  }
-
-  /**
-   * Generate and send email verification token
-   *
-   * @param user The user to send the verification email to
-   */
-  private void generateAndSendVerificationToken(User user) {
-    // Generate secure token
-    java.security.SecureRandom secureRandom = new java.security.SecureRandom();
-    byte[] tokenBytes = new byte[32];
-    secureRandom.nextBytes(tokenBytes);
-    String token = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
-    String tokenHash = passwordEncoder.encode(token);
-
-    // Delete existing verification tokens for this user
-    verificationTokenRepository.deleteByUserIdAndType(user.getId(), VerificationType.EMAIL);
-
-    // Create verification token
-    VerificationToken verificationToken = new VerificationToken();
-    verificationToken.setUser(user);
-    verificationToken.setType(VerificationType.EMAIL);
-    verificationToken.setTokenHash(tokenHash);
-    verificationToken.setExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours expiry
-
-    verificationTokenRepository.save(verificationToken);
-
-    // Send verification email (async)
-    try {
-      emailService.sendEmailVerification(user.getEmail(), user.getProfile().getFullName(), token);
-    } catch (Exception e) {
-      log.error("Failed to send verification email to: {}", user.getEmail(), e);
-      // Don't fail the operation if email fails
+      case ACTIVE -> {
+        // Active users are valid, no action needed
+      }
     }
   }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,6 +42,7 @@ public class PlanDay {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt = OffsetDateTime.now();
 
-  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-  private List<PlanItem> planItems;
+  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+  @OrderColumn(name = "item_index")
+  private List<PlanItem> planItems = new ArrayList<>();
 }

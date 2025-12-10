@@ -24,7 +24,7 @@ public class RateLimiterServiceImpl implements RateLimiterService {
   }
 
   private Bucket newBucket(String key) {
-    Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofSeconds(10)));
+    Bandwidth limit = Bandwidth.classic(5, Refill.greedy(500, Duration.ofSeconds(10)));
     // 5 request mỗi 10 giây
     return Bucket4j.builder().addLimit(limit).build();
   }

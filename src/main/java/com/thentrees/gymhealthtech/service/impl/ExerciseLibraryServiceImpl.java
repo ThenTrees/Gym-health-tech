@@ -15,7 +15,6 @@ import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
 import com.thentrees.gymhealthtech.service.RedisService;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +24,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -49,6 +46,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private final RedisService redisService;
   private final CacheKeyUtils cacheKeyUtils;
 
+  @Transactional(readOnly = true)
   @Override
   public PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request) {
 
@@ -87,6 +85,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     return response;
   }
 
+  @Transactional(readOnly = true)
   @Override
   public ExerciseDetailResponse getExerciseById(UUID id) {
     return exerciseRepository
@@ -122,6 +121,8 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     exercise.setInstructions(request.getInstructions().toString());
     exercise.setSafetyNotes(request.getSafetyNotes());
     exercise.setThumbnailUrl(request.getThumbnailUrl());
+    exercise.setDifficultyLevel(request.getDifficultyLevel());
+    exercise.setExerciseType(ExerciseType.valueOf(request.getExerciseType()));
     Exercise savedExercise = exerciseRepository.save(exercise);
 
     // Add muscles
@@ -163,7 +164,7 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
       ex.setDifficultyLevel(difficultyLevelForExercise(dto.getEquipmentTypeCode()));
       ex.setExerciseCategory(exerciseCategory);
-      ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType()));
+      ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType().toUpperCase()));
       ex.setInstructions(dto.getInstructions().toString());
       ex.setSafetyNotes(dto.getSafetyNotes());
       ex.setThumbnailUrl(dto.getThumbnailUrl());
@@ -337,12 +338,12 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
             muscleResponses.stream()
                 .filter(e -> e.getRole().equalsIgnoreCase("primary"))
                 .map(em -> em.getMuscleName())
-                .toList())
+                .findFirst().get())
         .equipment(
             exercise.getEquipment() != null
                 ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
                 : null)
-        .instructions(Arrays.stream(exercise.getInstructions().split(",")).toList())
+        .instructions(exercise.getInstructions())
         .safetyNotes(exercise.getSafetyNotes())
         .thumbnailUrl(exercise.getThumbnailUrl())
         .exerciseCategory(exercise.getExerciseCategory().getName())

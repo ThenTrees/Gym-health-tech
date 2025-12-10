@@ -18,7 +18,7 @@ public class Post extends BaseEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "plan_id")
   private Plan plan;
 
@@ -49,6 +49,6 @@ public class Post extends BaseEntity {
       mappedBy = "post",
       cascade = CascadeType.ALL,
       orphanRemoval = true,
-      fetch = FetchType.EAGER)
+      fetch = FetchType.LAZY)
   private List<PostComment> comments;
 }

@@ -1,9 +1,7 @@
 package com.thentrees.gymhealthtech.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.TemplateItemResponse;
 import com.thentrees.gymhealthtech.dto.response.TemplateWorkoutDayResponse;
@@ -14,6 +12,8 @@ import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.*;
+import com.thentrees.gymhealthtech.mapper.TemplateWorkoutMapper;
+import com.thentrees.gymhealthtech.mapper.common.PrescriptionMapper;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.service.RedisService;
 import com.thentrees.gymhealthtech.service.TemplateWorkoutService;
@@ -48,8 +48,9 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   private final FileValidator fileValidator;
   private final TemplateDayRepository templateDayRepository;
   private final TemplateItemRepository templateItemRepository;
-  private final UserService userService;
   private final ObjectMapper objectMapper;
+  private final PrescriptionMapper prescriptionMapper;
+  private final TemplateWorkoutMapper templateWorkoutMapper;
   private final PlanRepository planRepository;
   private final SessionRepository sessionRepository;
   private final RedisService redisService;
@@ -98,7 +99,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
     WorkoutTemplate saved = templateWorkoutRepository.save(workoutTemplate);
 
-    return mapToTemplateWorkoutResponse(saved);
+    return templateWorkoutMapper.toResponse(saved);
   }
 
   @Transactional(readOnly = true)
@@ -115,7 +116,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     WorkoutTemplate workoutTemplate = templateWorkoutRepository.findByIdAndIsActiveTrue(id).orElseThrow(
       ()-> new ResourceNotFoundException("TemplateWorkout", id.toString()));
 
-    TemplateWorkoutResponse res = mapToTemplateWorkoutResponse(workoutTemplate);
+    TemplateWorkoutResponse res = templateWorkoutMapper.toResponse(workoutTemplate);
 
     redisService.set(cacheKey, res);
 
@@ -139,7 +140,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
     List<WorkoutTemplate> templateWorkouts = templateWorkoutRepository.findAll();
 
-    List<TemplateWorkoutResponse> res = templateWorkouts.stream().map(this::mapToTemplateWorkoutResponse).toList();
+    List<TemplateWorkoutResponse> res = templateWorkouts.stream().map(templateWorkoutMapper::toResponse).toList();
 
     redisService.set(cacheKey, res);
 
@@ -167,7 +168,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
     WorkoutTemplate saved = templateWorkoutRepository.save(workoutTemplate);
 
-    return mapToTemplateWorkoutResponse(saved);
+    return templateWorkoutMapper.toResponse(saved);
   }
 
   @Override
@@ -230,7 +231,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     templateItem.setTemplateDay(templateDay);
     templateDay.getTemplateItems().add(templateItem);
     templateDayRepository.save(templateDay);
-    return mapToTemplateWorkoutDayResponse(templateDay);
+    return templateWorkoutMapper.toTemplateDayResponse(templateDay);
   }
 
   @Override
@@ -326,7 +327,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
             .exercise(templateItem.getExercise())
             .itemIndex(templateItem.getItemOrder())
             .notes(templateItem.getNotes())
-            .prescription(convertPrescriptionToJson(
+            .prescription(prescriptionMapper.toJsonNode(
               templateItem.getSets(),
               templateItem.getReps(),
               templateItem.getRestSeconds()))
@@ -344,30 +345,6 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
   }
 
 
-  private TemplateWorkoutResponse mapToTemplateWorkoutResponse(WorkoutTemplate entity){
-
-    List<TemplateWorkoutDayResponse> templateWorkoutDays = entity.getTemplateDays().stream().map(
-      this::mapToTemplateWorkoutDayResponse
-    ).toList();
-
-    int totalExercise = templateWorkoutDays.stream()
-      .mapToInt(TemplateWorkoutDayResponse::getTotalExercises)
-      .sum();
-
-    return TemplateWorkoutResponse.builder()
-      .id(entity.getId())
-      .name(entity.getName())
-      .description(entity.getDescription())
-      .goal(entity.getObjective().toString())
-      .totalWeek(entity.getDurationWeeks())
-      .sessionPerWeek(entity.getSessionsPerWeek())
-      .thumbnailUrl(entity.getThumbnailUrl())
-      .totalUsed(entity.getTotalUsed())
-      .totalExercise(totalExercise)
-      .isActive(entity.getIsActive())
-      .templateWorkoutDay(templateWorkoutDays)
-      .build();
-  }
 
   private WorkoutTemplate mapToEntity(CreateTemplateRequest request, String file){
     return WorkoutTemplate.builder()
@@ -418,18 +395,43 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
     }
   }
 
+  private TemplateWorkoutResponse mapToTemplateWorkoutResponse(WorkoutTemplate entity){
+
+    List<TemplateWorkoutDayResponse> templateWorkoutDays = entity.getTemplateDays().stream().map(
+      this::mapToTemplateWorkoutDayResponse
+    ).toList();
+
+    int totalExercise = templateWorkoutDays.stream()
+      .mapToInt(TemplateWorkoutDayResponse::getTotalExercises)
+      .sum();
+
+    return TemplateWorkoutResponse.builder()
+      .id(entity.getId())
+      .name(entity.getName())
+      .description(entity.getDescription())
+      .goal(entity.getObjective().toString())
+      .totalWeek(entity.getDurationWeeks())
+      .sessionPerWeek(entity.getSessionsPerWeek())
+      .thumbnailUrl(entity.getThumbnailUrl())
+      .totalUsed(entity.getTotalUsed())
+      .totalExercise(totalExercise)
+      .isActive(entity.getIsActive())
+      .templateWorkoutDay(templateWorkoutDays)
+      .build();
+  }
+
   private TemplateWorkoutDayResponse mapToTemplateWorkoutDayResponse(TemplateDay templateDay){
     List<TemplateItemResponse> templateItemResponses =
       templateDay.getTemplateItems().stream().map(this::mapToTemplateItemResponse).toList();
-      return TemplateWorkoutDayResponse.builder()
-        .dayName(templateDay.getDayName())
-        .dayOrder(templateDay.getDayOrder())
-        .durationMinutes(templateDay.getDurationMinutes())
-        .dayOfWeek(templateDay.getDayOfWeek())
-        .notes(templateDay.getNotes())
-        .totalExercises(templateItemResponses.size())
-        .templateItems(templateItemResponses)
-        .build();
+    return TemplateWorkoutDayResponse.builder()
+      .dayName(templateDay.getDayName())
+      .dayOrder(templateDay.getDayOrder())
+      .durationMinutes(templateDay.getDurationMinutes())
+      .dayOfWeek(templateDay.getDayOfWeek())
+      .notes(templateDay.getNotes())
+      .totalExercises(templateItemResponses.size())
+      .templateItems(templateItemResponses)
+      .build();
   }
 
   private TemplateItemResponse mapToTemplateItemResponse(TemplateItem templateItem){
@@ -446,15 +448,6 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
       .bodyPart(templateItem.getExercise().getBodyPart())
       .thumbnailUrl(templateItem.getExercise().getThumbnailUrl())
       .build();
-  }
-
-  private JsonNode convertPrescriptionToJson(
-    Integer sets, Integer reps, Integer restSeconds) {
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("sets", sets);
-    node.put("reps", reps);
-    node.put("restSeconds", restSeconds);
-    return node;
   }
 
   private User getCurrentUser(){

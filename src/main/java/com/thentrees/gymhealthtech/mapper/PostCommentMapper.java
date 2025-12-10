@@ -2,7 +2,7 @@ package com.thentrees.gymhealthtech.mapper;
 
 import com.thentrees.gymhealthtech.dto.request.CreateCommentRequest;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
-import com.thentrees.gymhealthtech.dto.response.UserSummaryDTO;
+import com.thentrees.gymhealthtech.dto.response.UserSummaryResponse;
 import com.thentrees.gymhealthtech.mapper.helper.PostCommentMapperHelper;
 import com.thentrees.gymhealthtech.model.PostComment;
 import com.thentrees.gymhealthtech.model.User;
@@ -28,9 +28,9 @@ public interface PostCommentMapper {
   @Mapping(target = "parentComment", source = "parentCommentId", qualifiedByName = "mapParent")
   PostComment toEntity(CreateCommentRequest dto, @Context PostRepository postRepository);
 
-  default UserSummaryDTO toUserSummary(User user) {
+  default UserSummaryResponse toUserSummary(User user) {
     if (user == null) return null;
-    return UserSummaryDTO.builder()
+    return UserSummaryResponse.builder()
         .id(user.getId().toString())
         .username(user.getProfile().getFullName())
         .avatarUrl(user.getProfile().getAvatarUrl())
@@ -39,6 +39,6 @@ public interface PostCommentMapper {
 
   default List<PostCommentResponse> toReplyList(List<PostComment> replies) {
     if (replies == null) return List.of();
-    return replies.stream().map(this::toDto).collect(Collectors.toList());
+    return replies.stream().map(this::toDto).toList();
   }
 }

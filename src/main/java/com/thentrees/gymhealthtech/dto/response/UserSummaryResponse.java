@@ -5,8 +5,9 @@ import lombok.Data;
 
 @Data
 @Builder
-public class UserSummaryDTO {
+public class UserSummaryResponse {
   private String id;
   private String username;
   private String avatarUrl;
 }
+

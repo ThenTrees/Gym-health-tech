@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class PostResponse {
   private String postId;
-  private UserSummaryDTO user;
+  private UserSummaryResponse user;
   private String planId;
-  private PlanSummaryDTO plan; // Add plan details
+  private PlanSummaryResponse plan; // Add plan details
   private String content;
   private List<String> tags;
   private List<String> mediaUrls;

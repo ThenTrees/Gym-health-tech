@@ -16,7 +16,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class MealPlanItem extends BaseEntity {
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "meal_plan_id", nullable = false)
   private MealPlan mealPlan;
 

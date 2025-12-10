@@ -49,7 +49,7 @@ public class User extends BaseEntity implements UserDetails {
   private LocalDateTime premiumExpiresAt;
 
   // One-to-One relationship with UserProfile
-  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private UserProfile profile;
 
   @Override

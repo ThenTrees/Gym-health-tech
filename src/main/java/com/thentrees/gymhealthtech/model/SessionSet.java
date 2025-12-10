@@ -13,18 +13,18 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "session_sets")
 public class SessionSet extends BaseEntity {
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "session_id", nullable = false)
   private Session session;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "exercise_id", nullable = false)
   private Exercise exercise;
 
   @Column(name = "set_index", nullable = false)
   private Integer setIndex;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "plan_item_id")
   private PlanItem planItem;
 

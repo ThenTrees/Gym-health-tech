@@ -5,6 +5,7 @@ import static com.thentrees.gymhealthtech.constant.S3Constant.*;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
 import com.thentrees.gymhealthtech.dto.response.UserProfileResponse;
 import com.thentrees.gymhealthtech.enums.UserStatus;
+import com.thentrees.gymhealthtech.mapper.UserProfileMapper;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.User;
@@ -34,6 +35,7 @@ public class UserProfileServiceImpl implements UserProfileService {
   private final UserProfileRepository userProfileRepository;
   private final S3Util s3Util;
   private final FileValidator fileValidator;
+  private final UserProfileMapper userProfileMapper;
 
   @Override
   public UserProfileResponse getUserProfile() {
@@ -42,7 +44,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         userProfileRepository
             .findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Profile", user.getId().toString()));
-    return mapToResponse(profile);
+    return userProfileMapper.toResponse(profile);
   }
 
   @Override
@@ -155,7 +157,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     UserProfile savedProfile = userProfileRepository.save(profile);
 
-    return mapToResponse(savedProfile);
+    return userProfileMapper.toResponse(savedProfile);
   }
 
   @Transactional
@@ -187,26 +189,6 @@ public class UserProfileServiceImpl implements UserProfileService {
   private BigDecimal calculateBMI(BigDecimal heightCm, BigDecimal weightKg) {
     BigDecimal heightM = heightCm.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
     return weightKg.divide(heightM.multiply(heightM), 2, RoundingMode.HALF_UP);
-  }
-
-  private UserProfileResponse mapToResponse(UserProfile profile) {
-    return UserProfileResponse.builder()
-        .userId(profile.getUser().getId())
-        .fullName(profile.getFullName())
-        .gender(profile.getGender())
-        .age(profile.getAge())
-        .heightCm(profile.getHeightCm())
-        .weightKg(profile.getWeightKg())
-        .bmi(profile.getBmi())
-        .healthNotes(profile.getHealthNotes())
-        .timezone(profile.getTimezone())
-        .unitWeight(profile.getUnitWeight())
-        .unitLength(profile.getUnitLength())
-        .createdAt(profile.getCreatedAt())
-        .updatedAt(profile.getUpdatedAt())
-        .profileImageUrl(profile.getAvatarUrl())
-        .fitnessLevel(profile.getFitnessLevel())
-        .build();
   }
 
   private User getCurrentUser(){

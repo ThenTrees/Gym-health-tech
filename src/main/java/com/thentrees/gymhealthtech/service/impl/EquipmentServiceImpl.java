@@ -7,6 +7,7 @@ import com.thentrees.gymhealthtech.dto.request.UpdateEquipmentRequest;
 import com.thentrees.gymhealthtech.dto.response.EquipmentResponse;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
+import com.thentrees.gymhealthtech.mapper.EquipmentMapper;
 import com.thentrees.gymhealthtech.model.Equipment;
 import com.thentrees.gymhealthtech.repository.EquipmentRepository;
 import com.thentrees.gymhealthtech.service.EquipmentService;
@@ -37,6 +38,7 @@ public class EquipmentServiceImpl implements EquipmentService {
   private final RedisService redisService;
   private final CacheKeyUtils cacheKeyUtils;
   private final ObjectMapper objectMapper;
+  private final EquipmentMapper equipmentMapper;
 
   @Override
   public List<EquipmentResponse> getAllEquipment(String name) {
@@ -65,7 +67,7 @@ public class EquipmentServiceImpl implements EquipmentService {
       : equipmentRepository.findByName(name);
 
     List<EquipmentResponse> result = equipments.stream()
-      .map(this::mapToResponse)
+      .map(equipmentMapper::toResponse)
       .toList();
 
     // 4. Ghi lại cache (nếu có data)
@@ -107,7 +109,7 @@ public class EquipmentServiceImpl implements EquipmentService {
       throw new BusinessException(UPLOAD_EQUIPMENT_IMAGE_FAILED, e.getMessage());
     }
     equipmentRepository.save(equipmentExist);
-    return mapToResponse(equipmentExist);
+    return equipmentMapper.toResponse(equipmentExist);
   }
 
   @Override
@@ -154,13 +156,6 @@ public class EquipmentServiceImpl implements EquipmentService {
 
   @Override
   public EquipmentResponse getEquipment(String code) {
-    return mapToResponse(equipmentRepository.findById(code).orElseThrow(()->new ResourceNotFoundException("Equipment", code)));
-  }
-
-  private EquipmentResponse mapToResponse(Equipment equipment) {
-    return EquipmentResponse.builder()
-        .name(equipment.getName())
-        .imageUrl(equipment.getImageUrl())
-        .build();
+    return equipmentMapper.toResponse(equipmentRepository.findById(code).orElseThrow(()->new ResourceNotFoundException("Equipment", code)));
   }
 }

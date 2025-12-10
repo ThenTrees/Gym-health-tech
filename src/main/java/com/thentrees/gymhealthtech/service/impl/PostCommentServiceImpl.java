@@ -16,6 +16,8 @@ import com.thentrees.gymhealthtech.repository.PostRepository;
 import com.thentrees.gymhealthtech.service.PostCommentService;
 import com.thentrees.gymhealthtech.util.FileValidator;
 import com.thentrees.gymhealthtech.util.S3Util;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,6 +64,8 @@ public class PostCommentServiceImpl implements PostCommentService {
     comment.setRepliesCount(0);
     comment.setIsActive(true);
     comment.setIsPinned(false);
+    comment.setPost(post.get());
+    comment.setCreatedAt(LocalDateTime.now());
 
     if (file != null && !file.isEmpty()) {
       String fileUrl = null;
