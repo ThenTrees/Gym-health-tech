@@ -1,21 +1,23 @@
 package com.thentrees.gymhealthtech.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
-import java.util.UUID;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GeneratorMealPlanResponse {
   private boolean success;
   private String message;
   private MealData data;
 
   @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static class MealData {
     private String mealPlanId;
@@ -26,6 +28,8 @@ public class GeneratorMealPlanResponse {
     private TargetNutrition targetNutrition;
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Meals {
       private List<FoodInfo> breakfast;
@@ -34,67 +38,76 @@ public class GeneratorMealPlanResponse {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class FoodInfo {
-      private UUID mealPlanItemId;
-      private UUID mealTimeId;
-      private double servings;
+      private String mealPlanItemId;
+      private String mealTimeId;
+      private String servings;
       private boolean completed;
       private int displayOrder;
-
       private Nutrition nutrition;
       private Food food;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Nutrition {
-      private double calories;
-      private double protein;
-      private double carbs;
-      private double fat;
+      private String calories;
+      private String protein;
+      private String carbs;
+      private String fat;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Food {
-      private UUID id;
+      private String id;
       private String name;
       private String nameVi;
       private String description;
       private String commonCombinations;
 
-      private double calories;
-      private double protein;
-      private double carbs;
-      private double fat;
-      private double fiber;
+      private String calories;
+      private String protein;
+      private String carbs;
+      private String fat;
+      private String fiber;
 
       private String category;
       private String image;
       private String benefits;
     }
 
-
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ActualNutrition {
-      private double calories;
-      private double protein;
-      private double carbs;
-      private double fats;
+      private String calories;
+      private String protein;
+      private String carbs;
+      private String fats;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TargetNutrition {
-      private double calories;
-      private double protein;
-      private double carbs;
-      private double fats;
-      private double caloriesForBreakfast;
-      private double caloriesForLunch;
-      private double caloriesForDinner;
+      private String calories;
+      private String protein;
+      private String carbs;
+      private String fats;
+
+      private String caloriesForBreakfast;
+      private String caloriesForLunch;
+      private String caloriesForDinner;
     }
   }
 }
