@@ -289,6 +289,7 @@ public class TemplateWorkoutServiceImpl implements TemplateWorkoutService {
 
     // ensure templateDays are in expected order (dayOrder ascending)
     List<TemplateDay> templateDays = workoutTemplate.getTemplateDays().stream()
+      .filter(Objects::nonNull)
       .sorted(Comparator.comparingInt(TemplateDay::getDayOrder))
       .toList();
 

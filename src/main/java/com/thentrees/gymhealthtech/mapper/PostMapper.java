@@ -6,6 +6,7 @@ import com.thentrees.gymhealthtech.dto.response.PostResponse;
 import com.thentrees.gymhealthtech.dto.response.UserSummaryResponse;
 import com.thentrees.gymhealthtech.model.*;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -52,6 +53,7 @@ public interface PostMapper {
       dto.setTotalDays(plan.getPlanDays().size());
       int totalExercises =
           plan.getPlanDays().stream()
+            .filter(Objects::nonNull)
               .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
               .sum();
       dto.setTotalExercises(totalExercises);

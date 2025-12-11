@@ -7,6 +7,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -65,6 +67,7 @@ public interface PlanMapper {
 
     if (plan.getPlanDays() != null) {
       response.setPlanDays(plan.getPlanDays().stream()
+          .filter(Objects::nonNull)
           .map(day -> {
             Integer estimatedMinutes = estimatedDurationCalculator != null
                 ? estimatedDurationCalculator.apply(day) : null;
@@ -76,6 +79,7 @@ public interface PlanMapper {
             // Map plan items with exercise and timesCompleted
             if (day.getPlanItems() != null && exerciseMapper != null && timesCompletedCalculator != null) {
               dayResponse.setPlanItems(day.getPlanItems().stream()
+                  .filter(Objects::nonNull)
                   .map(item -> toPlanItemResponseWithDetails(
                       item,
                       exerciseMapper.apply(item),
@@ -109,6 +113,7 @@ public interface PlanMapper {
 
   default PlanDayResponse toPlanDayResponse(PlanDay planDay, boolean includeItems,
       Integer estimatedDurationMinutes, Boolean isCompleted) {
+
     PlanDayResponse response = toPlanDayResponse(planDay);
 
     if (planDay.getPlanItems() != null) {
@@ -135,6 +140,7 @@ public interface PlanMapper {
       return Collections.emptyList();
     }
     return planDays.stream()
+      .filter(Objects::nonNull)
         .map(day -> toPlanDayResponse(day, includeItems, null, null))
         .toList();
   }
@@ -166,7 +172,7 @@ public interface PlanMapper {
       .exerciseCategory(exercise.getExerciseCategory() != null ? exercise.getExerciseCategory().getName() : null)
       .exerciseType(exercise.getExerciseType() != null ? exercise.getExerciseType().name() : null)
       .bodyPart(exercise.getBodyPart())
-      .secondaryMuscles(exercise.getExerciseMuscles().stream().map(em -> em.getMuscle().getName()).toList())
+      .secondaryMuscles(exercise.getExerciseMuscles().stream().filter(Objects::nonNull).map(em -> em.getMuscle().getName()).toList())
       .createdAt(exercise.getCreatedAt())
       .updatedAt(exercise.getUpdatedAt())
       .createdBy(exercise.getCreatedBy())
@@ -191,6 +197,7 @@ public interface PlanMapper {
       return Collections.emptyList();
     }
     return planItems.stream()
+        .filter(Objects::nonNull)
         .map(this::toPlanItemResponse)
         .toList();
   }
@@ -229,8 +236,9 @@ public interface PlanMapper {
       return 0;
     }
     return plan.getPlanDays().stream()
-        .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
-        .sum();
+      .filter(Objects::nonNull)
+      .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
+      .sum();
   }
 }
 

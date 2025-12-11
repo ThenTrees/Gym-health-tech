@@ -70,11 +70,11 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     Specification<Exercise> spec = buildSearchSpecification(request);
 
     Pageable pageable =
-        PageRequest.of(
-            request.getPage(),
-            request.getSize(),
-            Sort.Direction.fromString(request.getSortDirection()),
-            request.getSortBy());
+      PageRequest.of(
+        request.getPage(),
+        request.getSize(),
+        Sort.Direction.fromString(request.getSortDirection()),
+        request.getSortBy());
 
     Page<Exercise> exercises = exerciseRepository.findAll(spec, pageable);
     Page<ExerciseListResponse> exerciseListResponsePage = exercises.map(this::mapToListResponse);
@@ -89,9 +89,9 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   public ExerciseDetailResponse getExerciseById(UUID id) {
     return exerciseRepository
-        .findByIdAndIsDeletedFalse(id)
-        .map(this::mapToDetailResponse)
-        .orElseThrow(() -> new ResourceNotFoundException("Exercise", id.toString()));
+      .findByIdAndIsDeletedFalse(id)
+      .map(this::mapToDetailResponse)
+      .orElseThrow(() -> new ResourceNotFoundException("Exercise", id.toString()));
   }
 
   @Override
@@ -140,8 +140,8 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
     // đọc mảng ExerciseDTO từ JSON upload
     List<CreateExerciseRequest> dtos =
-        objectMapper.readValue(
-            file.getInputStream(), new TypeReference<List<CreateExerciseRequest>>() {});
+      objectMapper.readValue(
+        file.getInputStream(), new TypeReference<List<CreateExerciseRequest>>() {});
 
     int imported = 0;
     for (CreateExerciseRequest dto : dtos) {
@@ -162,18 +162,18 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
 
       ExerciseCategory exerciseCategory = getOrCreateCategory(dto.getExerciseCategory());
 
-      ex.setDifficultyLevel(difficultyLevelForExercise(dto.getEquipmentTypeCode()));
+      ex.setDifficultyLevel(dto.getDifficultyLevel());
       ex.setExerciseCategory(exerciseCategory);
       ex.setExerciseType(ExerciseType.valueOf(dto.getExerciseType().toUpperCase()));
       ex.setInstructions(dto.getInstructions().toString());
       ex.setSafetyNotes(dto.getSafetyNotes());
       ex.setThumbnailUrl(dto.getThumbnailUrl());
       ex.setPrimaryMuscle(
-          dto.getMuscles().stream()
-              .filter(muscle -> muscle.getRole().equals("PRIMARY"))
-              .findFirst()
-              .map(ExerciseMuscleRequest::toMuscle)
-              .orElse(null));
+        dto.getMuscles().stream()
+          .filter(muscle -> muscle.getRole().equals("PRIMARY"))
+          .findFirst()
+          .map(ExerciseMuscleRequest::toMuscle)
+          .orElse(null));
       Exercise savedExercise = exerciseRepository.save(ex);
       // Add muscles
       if (dto.getMuscles() != null && !dto.getMuscles().isEmpty()) {
@@ -199,27 +199,27 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   @Override
   public void updateExercise(UUID exerciseId, UpdateExerciseRequest request) {
     redisService.deletePattern("exercise:*");
-      Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
-        () -> new ResourceNotFoundException("Exercise", exerciseId.toString())
-      );
+    Exercise exercise = exerciseRepository.findByIdAndIsDeletedFalse(exerciseId).orElseThrow(
+      () -> new ResourceNotFoundException("Exercise", exerciseId.toString())
+    );
 
-      if (!request.getName().equals(exercise.getName())){
-        exercise.setName(request.getName());
-        String newSlug = generateSlug(request.getName());
-        exercise.setSlug(newSlug);
-      }
+    if (!request.getName().equals(exercise.getName())){
+      exercise.setName(request.getName());
+      String newSlug = generateSlug(request.getName());
+      exercise.setSlug(newSlug);
+    }
 
-      if(!request.getSafetyNotes().equals(exercise.getSafetyNotes())){
-        exercise.setSafetyNotes(request.getSafetyNotes());
-      }
+    if(!request.getSafetyNotes().equals(exercise.getSafetyNotes())){
+      exercise.setSafetyNotes(request.getSafetyNotes());
+    }
 
-      if(!request.getBodyPart().equals(exercise.getBodyPart())){
-        exercise.setBodyPart(request.getBodyPart());
-      }
+    if(!request.getBodyPart().equals(exercise.getBodyPart())){
+      exercise.setBodyPart(request.getBodyPart());
+    }
 
-      if (!request.getInstructions().equals(exercise.getInstructions())){
-        exercise.setInstructions(request.getInstructions());
-      }
+    if (!request.getInstructions().equals(exercise.getInstructions())){
+      exercise.setInstructions(request.getInstructions());
+    }
     exercise.setExerciseType(ExerciseType.valueOf(request.getExerciseType()));
   }
 
@@ -232,153 +232,110 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     redisService.deletePattern("exercise:*");
   }
 
-  private Integer difficultyLevelForExercise(String equipmentCode) {
-
-    switch (equipmentCode) {
-      case "body_weight":
-      case "assisted":
-      case "band":
-      case "resistance_band":
-        return 1;
-
-      case "dumbbell":
-      case "kettlebell":
-      case "medicine_ball":
-      case "stability_ball":
-      case "bosu_ball":
-      case "stationary_bike":
-      case "elliptical_machine":
-      case "roller":
-      case "wheel_roller":
-        return 2;
-
-      case "barbell":
-      case "ez_barbell":
-      case "cable":
-      case "rope":
-      case "hammer":
-      case "stepmill_machine":
-      case "skierg_machine":
-      case "upper_body_ergometer":
-        return 3;
-
-      case "olympic_barbell":
-      case "trap_bar":
-      case "smith_machine":
-      case "leverage_machine":
-      case "sled_machine":
-      case "tire":
-      case "weighted":
-        return 4;
-      default:
-        return 2;
-    }
-  }
-
   private ExerciseListResponse mapToListResponse(Exercise exercise) {
     // Get secondary muscles
     List<ExerciseMuscle> muscles =
-        exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
+      exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
 
     List<String> primaryMuscles =
-        muscles.stream()
-            .filter(em -> "PRIMARY".equals(em.getRole()))
-            .map(em -> em.getMuscle().getName())
-            .toList();
+      muscles.stream()
+        .filter(em -> "PRIMARY".equals(em.getRole()))
+        .map(em -> em.getMuscle().getName())
+        .toList();
 
     List<String> secondaryMuscles =
-        muscles.stream()
-            .filter(em -> "SECONDARY".equals(em.getRole()))
-            .map(em -> em.getMuscle().getName())
-            .toList();
+      muscles.stream()
+        .filter(em -> "SECONDARY".equals(em.getRole()))
+        .map(em -> em.getMuscle().getName())
+        .toList();
 
     return ExerciseListResponse.builder()
-        .id(exercise.getId())
-        .slug(exercise.getSlug())
-        .name(exercise.getName())
-        .level(null)
-        .primaryMuscle(primaryMuscles)
-        .equipment(
-            exercise.getEquipment() != null
-                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
-                : null)
-        .instructions(Arrays.stream(exercise.getInstructions().split(",")).toList())
-        .safetyNotes(exercise.getSafetyNotes())
-        .thumbnailUrl(exercise.getThumbnailUrl())
-        .exerciseCategory(exercise.getExerciseCategory().getName())
-        .exerciseType(exercise.getExerciseType().toString())
-        .bodyPart(exercise.getBodyPart())
-        .secondaryMuscles(secondaryMuscles)
-        .createdAt(exercise.getCreatedAt())
-        .updatedAt(exercise.getUpdatedAt())
-        .build();
+      .id(exercise.getId())
+      .slug(exercise.getSlug())
+      .name(exercise.getName())
+      .level(null)
+      .primaryMuscle(primaryMuscles)
+      .equipment(
+        exercise.getEquipment() != null
+          ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
+          : null)
+      .instructions(Arrays.stream(exercise.getInstructions().split(",")).toList())
+      .safetyNotes(exercise.getSafetyNotes())
+      .thumbnailUrl(exercise.getThumbnailUrl())
+      .exerciseCategory(exercise.getExerciseCategory().getName())
+      .exerciseType(exercise.getExerciseType().toString())
+      .bodyPart(exercise.getBodyPart())
+      .secondaryMuscles(secondaryMuscles)
+      .createdAt(exercise.getCreatedAt())
+      .updatedAt(exercise.getUpdatedAt())
+      .build();
   }
 
   private ExerciseDetailResponse mapToDetailResponse(Exercise exercise) {
     // Get muscles
     List<ExerciseMuscle> muscles =
-        exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
+      exerciseMuscleRepository.findByExerciseIdOrderByRole(exercise.getId());
     List<ExerciseMuscleResponse> muscleResponses =
-        muscles.stream()
-            .map(
-                em ->
-                    ExerciseMuscleResponse.builder()
-                        .muscleCode(em.getMuscle().getCode())
-                        .muscleName(em.getMuscle().getName())
-                        .role(em.getRole())
-                        .build())
-            .toList();
+      muscles.stream()
+        .map(
+          em ->
+            ExerciseMuscleResponse.builder()
+              .muscleCode(em.getMuscle().getCode())
+              .muscleName(em.getMuscle().getName())
+              .role(em.getRole())
+              .build())
+        .toList();
 
     return ExerciseDetailResponse.builder()
-        .id(exercise.getId())
-        .slug(exercise.getSlug())
-        .name(exercise.getName())
-        .level(null)
-        .primaryMuscle(
-            muscleResponses.stream()
-                .filter(e -> e.getRole().equalsIgnoreCase("primary"))
-                .map(em -> em.getMuscleName())
-                .findFirst().get())
-        .equipment(
-            exercise.getEquipment() != null
-                ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
-                : null)
-        .instructions(exercise.getInstructions())
-        .safetyNotes(exercise.getSafetyNotes())
-        .thumbnailUrl(exercise.getThumbnailUrl())
-        .exerciseCategory(exercise.getExerciseCategory().getName())
-        .exerciseType(exercise.getExerciseType().toString())
-        .bodyPart(exercise.getBodyPart())
-        .secondaryMuscles(
-            muscleResponses.stream()
-                .filter(e -> e.getRole().equalsIgnoreCase("secondary"))
-                .map(em -> em.getMuscleName())
-                .toList())
-        .bodyPart(exercise.getBodyPart())
-        .createdAt(exercise.getCreatedAt())
-        .updatedAt(exercise.getUpdatedAt())
-        .createdBy(exercise.getCreatedBy())
-        .updatedBy(exercise.getUpdatedBy())
-        .build();
+      .id(exercise.getId())
+      .slug(exercise.getSlug())
+      .name(exercise.getName())
+      .level(null)
+      .primaryMuscle(
+        muscleResponses.stream()
+          .filter(e -> e.getRole().equalsIgnoreCase("primary"))
+          .map(em -> em.getMuscleName())
+          .findFirst().get())
+      .equipment(
+        exercise.getEquipment() != null
+          ? exerciseMapper.toEquipmentTypeResponse(exercise.getEquipment()).getName()
+          : null)
+      .instructions(exercise.getInstructions())
+      .safetyNotes(exercise.getSafetyNotes())
+      .thumbnailUrl(exercise.getThumbnailUrl())
+      .exerciseCategory(exercise.getExerciseCategory().getName())
+      .exerciseType(exercise.getExerciseType().toString())
+      .bodyPart(exercise.getBodyPart())
+      .secondaryMuscles(
+        muscleResponses.stream()
+          .filter(e -> e.getRole().equalsIgnoreCase("secondary"))
+          .map(em -> em.getMuscleName())
+          .toList())
+      .bodyPart(exercise.getBodyPart())
+      .createdAt(exercise.getCreatedAt())
+      .updatedAt(exercise.getUpdatedAt())
+      .createdBy(exercise.getCreatedBy())
+      .updatedBy(exercise.getUpdatedBy())
+      .build();
   }
 
   private Specification<Exercise> buildSearchSpecification(ExerciseSearchRequest request) {
     return ExerciseSpecification.hasKeyword(request.getKeyword())
-        .and(ExerciseSpecification.hasLevel(request.getLevel()))
-        .and(ExerciseSpecification.hasPrimaryMuscle(request.getPrimaryMuscle()))
-        .and(ExerciseSpecification.hasEquipment(request.getEquipmentType()))
-        .and(ExerciseSpecification.hasMuscles(request.getMusclesCodes()))
-        .and(ExerciseSpecification.hasExerciseType(request.getExerciseType()));
+      .and(ExerciseSpecification.hasLevel(request.getLevel()))
+      .and(ExerciseSpecification.hasPrimaryMuscle(request.getPrimaryMuscle()))
+      .and(ExerciseSpecification.hasEquipment(request.getEquipmentType()))
+      .and(ExerciseSpecification.hasMuscles(request.getMusclesCodes()))
+      .and(ExerciseSpecification.hasExerciseType(request.getExerciseType()));
   }
 
   // Private helper methods
   private void saveMusclesForExercise(
-      Exercise exercise, List<ExerciseMuscleRequest> muscleRequests) {
+    Exercise exercise, List<ExerciseMuscleRequest> muscleRequests) {
     // Validate all muscles exist
     List<String> muscleCodes =
-        muscleRequests.stream()
-            .map(ExerciseMuscleRequest::getMuscleCode)
-          .toList();
+      muscleRequests.stream()
+        .map(ExerciseMuscleRequest::getMuscleCode)
+        .toList();
 
     List<Muscle> muscles = muscleRepository.findByCodes(muscleCodes);
     if (muscles.size() != muscleCodes.size()) {
@@ -396,10 +353,10 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
       exerciseMuscle.setId(id);
       exerciseMuscle.setExercise(exercise);
       exerciseMuscle.setMuscle(
-          muscles.stream()
-              .filter(m -> m.getCode().equals(muscleReq.getMuscleCode()))
-              .findFirst()
-              .orElseThrow());
+        muscles.stream()
+          .filter(m -> m.getCode().equals(muscleReq.getMuscleCode()))
+          .findFirst()
+          .orElseThrow());
       exerciseMuscle.setRole(muscleReq.getRole());
 
       exerciseMuscleRepository.save(exerciseMuscle);
@@ -409,9 +366,9 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
   private void saveEquipmentForExercise(Exercise exercise, String exerciseEquipment) {
 
     Equipment equipment =
-        equipmentRepository
-            .findById(exerciseEquipment)
-            .orElseThrow(() -> new ResourceNotFoundException("Equipment not found"));
+      equipmentRepository
+        .findById(exerciseEquipment)
+        .orElseThrow(() -> new ResourceNotFoundException("Equipment not found"));
 
     ExerciseEquipment exerciseEquipmentEntity = new ExerciseEquipment();
 
@@ -432,26 +389,26 @@ public class ExerciseLibraryServiceImpl implements ExerciseLibraryService {
     }
     String finalCategoryCode = categoryCode;
     return exerciseCategoryRepository
-        .findByCodeWithExercises(categoryCode)
-        .orElseGet(
-            () -> {
-              ExerciseCategory newCategory = new ExerciseCategory();
-              newCategory.setCode(finalCategoryCode);
-              newCategory.setName(StringUtils.capitalize(finalCategoryCode.toLowerCase()));
-              return exerciseCategoryRepository.save(newCategory);
-            });
+      .findByCodeWithExercises(categoryCode)
+      .orElseGet(
+        () -> {
+          ExerciseCategory newCategory = new ExerciseCategory();
+          newCategory.setCode(finalCategoryCode);
+          newCategory.setName(StringUtils.capitalize(finalCategoryCode.toLowerCase()));
+          return exerciseCategoryRepository.save(newCategory);
+        });
   }
 
   private Equipment getOrCreateEquipment(String equipmentCode) {
     return equipmentRepository
-        .findById(equipmentCode)
-        .orElseGet(
-            () -> {
-              Equipment newEquipment = new Equipment();
-              newEquipment.setCode(equipmentCode.toLowerCase());
-              newEquipment.setName(StringUtils.capitalize(equipmentCode.toLowerCase()));
-              return equipmentRepository.save(newEquipment);
-            });
+      .findById(equipmentCode)
+      .orElseGet(
+        () -> {
+          Equipment newEquipment = new Equipment();
+          newEquipment.setCode(equipmentCode.toLowerCase());
+          newEquipment.setName(StringUtils.capitalize(equipmentCode.toLowerCase()));
+          return equipmentRepository.save(newEquipment);
+        });
   }
 
   private String generateSlug(String name) {
