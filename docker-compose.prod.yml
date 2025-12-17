@@ -2,10 +2,7 @@ version: '3.8'
 services:
   backend:
     container_name: backend
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: backend:prod
+    image: tnydevdocs/gymhealthtech:latest
     restart: always
     ports:
       - "8080:8080"
@@ -23,7 +20,7 @@ services:
     image: grafana/agent:latest
     container_name: grafana-agent
     volumes:
-      - ./src/main/resources/grafana-agent.yml:/etc/agent/grafana-agent.yml:ro
+      - ./grafana-agent.yml:/etc/agent/grafana-agent.yml:ro
       - ./logs:/logs
     command: --config.file=/etc/agent/grafana-agent.yml
     restart: always

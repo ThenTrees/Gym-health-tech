@@ -36,3 +36,4 @@ build/
 logs/
 *.log
 /loki
+NT_GymMate.pem
