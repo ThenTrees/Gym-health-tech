@@ -1,11 +1,10 @@
 package com.thentrees.gymhealthtech.filter;
 
-import com.thentrees.gymhealthtech.util.GenerateTraceId;
+import com.thentrees.gymhealthtech.util.TraceIdGenerator;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -15,10 +14,7 @@ import java.io.IOException;
 
 @Component
 @Order(1)
-@RequiredArgsConstructor
 public class MDCFilter extends OncePerRequestFilter {
-
-  private final GenerateTraceId generateTraceId;
 
   @Override
   protected void doFilterInternal(HttpServletRequest request,
@@ -26,7 +22,7 @@ public class MDCFilter extends OncePerRequestFilter {
                                   FilterChain filterChain)
     throws ServletException, IOException {
 
-    String traceId = generateTraceId.generate();
+    String traceId = TraceIdGenerator.generate();
     MDC.put("traceId", traceId);
 
     try {

@@ -2,11 +2,23 @@ package com.thentrees.gymhealthtech.util;
 
 import com.thentrees.gymhealthtech.constant.ErrorCodes;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 
-@Component
-public class DetermineHttpStatus {
-  public HttpStatus determineHttpStatus(String errorCode) {
+/**
+ * Utility class for resolving HTTP status codes from error codes.
+ */
+public final class HttpStatusResolver {
+
+  private HttpStatusResolver() {
+    // Utility class - prevent instantiation
+  }
+
+  /**
+   * Resolves the appropriate HTTP status code for a given error code.
+   *
+   * @param errorCode the error code
+   * @return the corresponding HTTP status code
+   */
+  public static HttpStatus resolve(String errorCode) {
     return switch (errorCode) {
       case ErrorCodes.RESOURCE_NOT_FOUND,
           ErrorCodes.USER_NOT_FOUND,
@@ -31,3 +43,4 @@ public class DetermineHttpStatus {
     };
   }
 }
+

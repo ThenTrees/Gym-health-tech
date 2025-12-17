@@ -14,6 +14,7 @@ import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
+import com.thentrees.gymhealthtech.mapper.SessionMapper;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
 import com.thentrees.gymhealthtech.service.RedisService;
@@ -53,43 +54,28 @@ public class SessionManagementServiceImpl implements SessionManagementService {
   private final SessionSetRepository sessionSetRepository;
   private final ObjectMapper objectMapper;
   private final PlanRepository planRepository;
-  private final CacheKeyUtils cacheKeyUtils;
-  private final RedisService redisService;
+  private final SessionMapper sessionMapper;
 
+  @Transactional(readOnly = true)
   public SessionResponse getSessionDetails(UUID sessionId) {
     User user = getCurrentUser();
     Session session =
         sessionRepository
             .findByIdAndUserIdWithSets(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
   @Transactional(readOnly = true)
   @Override
   public SessionResponse getSummaryDay(UUID planDayId) {
     User user = getCurrentUser();
-//    String cacheKey = cacheKeyUtils.buildKey("dailySummary:", planDayId);
-//    try {
-//      Object cached = redisService.get(cacheKey);
-//      if (cached != null) {
-//        SessionResponse cachedResult =
-//          objectMapper.convertValue(cached, new TypeReference<>() {});
-//        if (cachedResult != null) {
-//          log.debug("Cache hit for key: {}", cacheKey);
-//          return cachedResult;
-//        }
-//      }
-//    } catch (Exception e) {
-//      log.warn("Failed to read from cache: {}", e.getMessage());
-//    }
-
     Session session =
       sessionRepository
         .findByPlanDayIdAndUserIdWithSets(planDayId, user.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
 
-    SessionResponse response = convertSessionToResponse(session, true);
+    SessionResponse response = sessionMapper.toResponse(session, true);
 //    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 1 hour
 
     return response;
@@ -167,9 +153,10 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     }
     session.setSessionSets(sessionSets);
 
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public SessionResponse getActiveSession() {
 
@@ -180,7 +167,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
             .findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS)
             .orElseThrow(() -> new ResourceNotFoundException("No active workout session found"));
 
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
   @Override
@@ -222,7 +209,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     updatePlanProgression(session);
 
     log.info("Successfully completed session: {}", sessionId);
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
   @Override
@@ -269,7 +256,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     sessionSet = sessionSetRepository.save(sessionSet);
 
     log.info("Successfully updated session set: {}", sessionSetId);
-    return convertSessionSetToResponse(sessionSet);
+    return sessionMapper.toSessionSetResponseWithComputed(sessionSet);
   }
 
   @Override
@@ -349,9 +336,10 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     session.setNotes(currentNotes + (currentNotes.isEmpty() ? "" : "\n") + resumeNote);
     session = sessionRepository.save(session);
     log.info("Successfully resumed session: {}", sessionId);
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PagedResponse<SessionResponse> getAllSessions(SessionSearchRequest request) {
 
@@ -368,7 +356,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     Page<Session> sessionPage = sessionRepository.findAll(spec, pageable);
     Page<SessionResponse> response =
-        sessionPage.map(session -> convertSessionToResponse(session, false));
+        sessionPage.map(session -> sessionMapper.toResponse(session, false));
     return PagedResponse.of(response);
   }
 
@@ -379,23 +367,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     LocalDate today = LocalDate.now();
     LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-
-//    String key = "weeklySummary:" + user.getId() + ":" + startOfWeek.toString() + ":" + endOfWeek.toString();
-//
-//    String cacheKey = cacheKeyUtils.buildKey(key, null);
-//    try {
-//      Object cached = redisService.get(cacheKey);
-//      if (cached != null) {
-//        WeeklySummaryResponse cachedResult =
-//          objectMapper.convertValue(cached, new TypeReference<WeeklySummaryResponse>() {});
-//        if (cachedResult != null) {
-//          log.debug("Cache hit for key: {}", cacheKey);
-//          return cachedResult;
-//        }
-//      }
-//    } catch (Exception e) {
-//      log.warn("Failed to read from cache: {}", e.getMessage());
-//    }
 
     List<Session> sessions =
         sessionRepository.findByUserAndStartedAtBetween(
@@ -432,33 +403,15 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       .dailySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
       .build();
 
-//    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 2 hours
-
     return response;
   }
 
+  @Transactional
   @Override
   public MonthlySummaryResponse getSummaryMonthSessions() {
     User user = getCurrentUser();
     LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
     LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
-
-//    String key = "monthlySummary:" + user.getId() + ":" + startOfMonth.toString() + ":" + endOfMonth.toString();
-//    String cacheKey = cacheKeyUtils.buildKey(key, null);
-//
-//    try {
-//      Object cached = redisService.get(cacheKey);
-//      if (cached != null) {
-//        MonthlySummaryResponse cachedResult =
-//          objectMapper.convertValue(cached, new TypeReference<MonthlySummaryResponse>() {});
-//        if (cachedResult != null) {
-//          log.debug("Cache hit for key: {}", cacheKey);
-//          return cachedResult;
-//        }
-//      }
-//    } catch (Exception e) {
-//      log.warn("Failed to read from cache: {}", e.getMessage());
-//    }
 
     List<Session> sessions = sessionRepository.findByUserAndAllSessionsInCurrentMonth(
       user.getId(), startOfMonth, endOfMonth
@@ -496,8 +449,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       .weeklySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
       .feedback(feedback)
       .build();
-
-//    redisService.set(cacheKey, response, Duration.ofHours(1));
 
     return response;
   }
@@ -680,41 +631,26 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     DifficultyLevel difficultyLevel =
         avgExerciseLevel > 0 ? resolveDifficultyLevel(avgExerciseLevel) : null;
 
-    return PlanSummaryResponse.builder()
-        .id(plan.getId())
-        .title(plan.getTitle())
-        .source(plan.getSource())
-        .status(plan.getStatus())
-        .totalWeeks(plan.getCycleWeeks())
-        .createdAt(plan.getCreatedAt())
-        .startedAt(startedAt != null ? startedAt : plan.getCreatedAt())
-        .endedAt(
-            plan.getEndDate() != null
-                ? plan.getEndDate().atStartOfDay()
-                : (lastEndedAt != null ? lastEndedAt : null))
-        .totalCalories(totalCalories)
-        .totalDurationMinutes(totalDurationMinutes)
-        .totalSessions(totalSessions)
-        .completionRate(completionRate)
-        .avgCaloriesPerSession(avgCaloriesPerSession)
-        .avgDurationPerSession(avgDurationPerSession)
-        .totalExercises(totalExercises)
-        .totalDays(totalDays)
-        .completedSessions((int) completedSessions)
-        .timelineProgressPercentage(timelineProgressPercentage)
-        .lastWorkoutDate(lastWorkoutDate)
-        .nextScheduledDate(nextScheduledDate)
-        .skippedSessions((int) cancelledSessions)
-        .missedDays(missedDays)
-        .mainMuscleGroups(mainMuscleGroups)
-        .estimatedWeeklyHours(estimatedWeeklyHours)
-        .difficultyLevel(difficultyLevel)
-        .build();
+    // Note: PlanSummaryResponse only has basic fields for sharing in posts
+    // This method returns a simple summary - complex stats would need a different DTO
+    PlanSummaryResponse summary = new PlanSummaryResponse();
+    summary.setId(plan.getId().toString());
+    summary.setTitle(plan.getTitle());
+    summary.setDescription(plan.getDescription());
+    summary.setSource(plan.getSource());
+    summary.setStatus(plan.getStatus());
+    summary.setCycleWeeks(plan.getCycleWeeks());
+    summary.setTotalDays(totalDays);
+    summary.setTotalExercises(totalExercises);
+    if (plan.getGoal() != null && plan.getGoal().getObjective() != null) {
+      summary.setGoalName(plan.getGoal().getObjective().name());
+    }
+    return summary;
   }
 
   private List<SessionResponse> buildSessionResponses(List<Session> sessions, boolean includeSessionSets) {
     return sessions.stream()
-        .map(session -> convertSessionToResponse(session, includeSessionSets))
+        .map(session -> sessionMapper.toResponse(session, includeSessionSets))
         .toList();
   }
 
@@ -806,77 +742,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     return session;
   }
 
-  // Helper methods
-  private SessionResponse convertSessionToResponse(Session session, boolean includeSessionSets) {
-    SessionResponse dto = new SessionResponse();
-    dto.setId(session.getId());
-    dto.setPlanDayId(session.getPlanDay().getId());
-    dto.setPlanDayName(session.getPlanDay().getSplitName());
-    dto.setStartedAt(session.getStartedAt());
-    dto.setEndedAt(session.getEndedAt());
-    dto.setStatus(session.getStatus());
-    dto.setNotes(session.getNotes());
-    dto.setCreatedAt(session.getCreatedAt());
-
-    // Calculate duration
-    if (session.getEndedAt() != null) {
-      long minutes =
-          java.time.Duration.between(session.getStartedAt(), session.getEndedAt()).toMinutes();
-      dto.setDurationMinutes((int) minutes);
-    }
-
-    if (includeSessionSets && session.getSessionSets() != null) {
-      List<SessionSetResponse> sessionSetDtos =
-          session.getSessionSets().stream().map(this::convertSessionSetToResponse).toList();
-      dto.setSessionSets(sessionSetDtos);
-
-      // Calculate summary stats
-      dto.setTotalSets(sessionSetDtos.size());
-      dto.setCompletedSets(
-          (int) sessionSetDtos.stream().filter(SessionSetResponse::getIsCompleted).count());
-      dto.setCompletionPercentage(
-          dto.getTotalSets() > 0
-              ? (double) dto.getCompletedSets() / dto.getTotalSets() * 100
-              : 0.0);
-      dto.setTotalVolume(
-          sessionSetDtos.stream().mapToInt(s -> s.getVolume() != null ? s.getVolume() : 0).sum());
-    }
-
-    return dto;
-  }
-
-  private SessionSetResponse convertSessionSetToResponse(SessionSet sessionSet) {
-    SessionSetResponse dto = new SessionSetResponse();
-    dto.setId(sessionSet.getId());
-    dto.setSessionId(sessionSet.getSession().getId());
-    dto.setExerciseId(sessionSet.getExercise().getId());
-    dto.setExerciseName(sessionSet.getExercise().getName());
-    dto.setSetIndex(sessionSet.getSetIndex());
-    dto.setPlanned(sessionSet.getPlanned());
-    dto.setActual(sessionSet.getActual());
-    dto.setCreatedAt(sessionSet.getCreatedAt());
-
-    // Determine completion status
-    JsonNode actual = sessionSet.getActual();
-    dto.setIsSkipped(actual.has("isSkipped") && actual.get("isSkipped").asBoolean());
-    dto.setIsCompleted(actual.has("completedAt") && !dto.getIsSkipped());
-
-    if (dto.getIsCompleted() && actual.has("completedAt")) {
-      dto.setCompletedAt(LocalDateTime.parse(actual.get("completedAt").asText()));
-    }
-
-    // Calculate volume
-    if (actual.has("reps") && actual.has("weight")) {
-      int reps = actual.get("reps").asInt();
-      double weight = actual.get("weight").asDouble();
-      dto.setVolume((int) (reps * weight));
-    }
-
-    // Performance comparison
-    dto.setPerformanceComparison(calculatePerformanceComparison(sessionSet.getPlanned(), actual));
-
-    return dto;
-  }
 
   private SessionStatistics computeSessionStatistics(List<SessionResponse> sessionResponses) {
     int totalSessions = sessionResponses.size();

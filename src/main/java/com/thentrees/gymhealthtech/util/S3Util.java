@@ -42,7 +42,6 @@ public class S3Util {
         s3Client.putObject(
             putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
       }
-      //      return getFileUrl(s3Key);
       return s3Key;
     } catch (S3Exception e) {
       log.error("AWS S3 error: {}", e.awsErrorDetails().errorMessage());

@@ -37,7 +37,14 @@ public interface SessionRepository
   boolean existsByPlanDayIdAndStatusAndEndedAtGreaterThanEqualAndEndedAtLessThan(
       UUID planDayId, SessionStatus status, LocalDateTime from, LocalDateTime to);
 
-  Optional<Session> findByIdAndUserId(UUID sessionId, UUID userId);
+  @Query("""
+      SELECT DISTINCT s FROM Session s
+      LEFT JOIN FETCH s.user
+      LEFT JOIN FETCH s.planDay pd
+      LEFT JOIN FETCH pd.plan
+      WHERE s.id = :sessionId AND s.user.id = :userId
+      """)
+  Optional<Session> findByIdAndUserId(@Param("sessionId") UUID sessionId, @Param("userId") UUID userId);
 
   @Query(
       "SELECT s FROM Session s "
@@ -60,11 +67,15 @@ public interface SessionRepository
   List<Session> findByPlanDayPlanIdAndUserId(UUID planId, UUID userId);
 
   @Query("""
-    SELECT s FROM Session s
-    WHERE s.startedAt BETWEEN :startOfMonth AND :endOfMonth
-      AND s.user.id = :userId
-""")
-  List<Session> findByUserAndAllSessionsInCurrentMonth(@Param("userId") UUID userId,
-                                                       @Param("startOfMonth") LocalDateTime startOfMonth,
-                                                       @Param("endOfMonth") LocalDateTime endOfMonth);
+      SELECT DISTINCT s FROM Session s
+      LEFT JOIN FETCH s.user u
+      LEFT JOIN FETCH u.profile
+      LEFT JOIN FETCH s.planDay pd
+      WHERE s.startedAt BETWEEN :startOfMonth AND :endOfMonth
+        AND s.user.id = :userId
+      """)
+  List<Session> findByUserAndAllSessionsInCurrentMonth(
+      @Param("userId") UUID userId,
+      @Param("startOfMonth") LocalDateTime startOfMonth,
+      @Param("endOfMonth") LocalDateTime endOfMonth);
 }

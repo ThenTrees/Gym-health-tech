@@ -3,10 +3,9 @@ package com.thentrees.gymhealthtech.controller;
 import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
-import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.AuthenticationService;
 import com.thentrees.gymhealthtech.service.UserRegistrationService;
-import com.thentrees.gymhealthtech.util.GetClientIp;
+import com.thentrees.gymhealthtech.util.ClientIpExtractor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
   private final UserRegistrationService userRegistrationService;
   private final AuthenticationService authenticationService;
-  private final GetClientIp getClientIpAddress;
 
   @PostMapping("/firebase")
   public ResponseEntity<APIResponse<AuthResponse>> loginWithFirebase(@RequestBody Map<String, String> body) {
@@ -213,7 +211,7 @@ public class AuthenticationController {
       @Valid @RequestBody LoginRequest request,
       HttpServletRequest httpRequest) {
       String userAgent = httpRequest.getHeader("User-Agent");
-      String ipAddress = getClientIpAddress.getClientIp(httpRequest);
+      String ipAddress = ClientIpExtractor.extract(httpRequest);
 
       AuthResponse response = authenticationService.authenticate(request, userAgent, ipAddress);
 
@@ -227,7 +225,7 @@ public class AuthenticationController {
   public ResponseEntity<APIResponse<AuthResponse>> refreshToken(
       @Valid @RequestBody RefreshTokenRequest request, HttpServletRequest httpRequest) {
       String userAgent = httpRequest.getHeader("User-Agent");
-      String ipAddress = getClientIpAddress.getClientIp(httpRequest);
+      String ipAddress = ClientIpExtractor.extract(httpRequest);
       AuthResponse response = authenticationService.refreshToken(request, userAgent, ipAddress);
       return ResponseEntity.ok(APIResponse.success(response, "Token refreshed successfully"));
   }

@@ -2,7 +2,6 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.thentrees.gymhealthtech.dto.request.*;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.PlanSourceType;
@@ -12,6 +11,9 @@ import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
+import com.thentrees.gymhealthtech.mapper.ExerciseMapper;
+import com.thentrees.gymhealthtech.mapper.PlanMapper;
+import com.thentrees.gymhealthtech.mapper.common.PrescriptionMapper;
 import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.service.CustomPlanService;
 import java.time.LocalDate;
@@ -24,7 +26,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
@@ -35,10 +36,14 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   private final PlanItemRepository planItemRepository;
   private final ExerciseRepository exerciseRepository;
   private final SessionRepository sessionRepository;
-  private final ObjectMapper objectMapper;
+  private final PlanMapper planMapper;
+  private final ExerciseMapper exerciseMapper;
+  private final PrescriptionMapper prescriptionMapper;
+  private final GoalRepository goalRepository;
 
 
   @Override
+  @Transactional(readOnly = true)
   public PagedResponse<PlanSummaryResponse> getAllPlansForUser(
     Authentication authentication, PlanSearchRequest searchCriteria, Pageable pageable) {
 
@@ -46,7 +51,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
     // This would use a custom repository method with dynamic query building
     Page<Plan> plans = planRepository.findPlansWithCriteria(user.getId(), searchCriteria, pageable);
-    Page<PlanSummaryResponse> planResponses = plans.map(this::convertPlanToSummaryResponse);
+    Page<PlanSummaryResponse> planResponses = plans.map(plan -> planMapper.toSummaryResponse(plan));
     return PagedResponse.of(planResponses);
   }
 
@@ -71,17 +76,22 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     if (exerciseMap.size() != exerciseIds.size()) {
       throw new ValidationException("Some exercises not found");
     }
-
+    Goal goal = null;
     LocalDate currentDate = LocalDate.now();
+    if (request.getGoalId() != null) {
+      goal = goalRepository.findById(request.getGoalId()).orElse(null);
+    }
 
     // Create the plan
     Plan plan = new Plan();
     plan.setUser(user);
+    plan.setGoal(goal);
     plan.setTitle(request.getTitle());
     plan.setSource(PlanSourceType.CUSTOM);
     plan.setCycleWeeks(request.getCycleWeeks());
     plan.setStatus(PlanStatusType.DRAFT); // New plans are DRAFT by default
     plan.setEndDate(currentDate.plusWeeks(request.getCycleWeeks()));
+    plan.setNotes(request.getNotes());
     plan = planRepository.save(plan);
 
     // Create plan days
@@ -104,7 +114,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
         planItem.setPlanDay(planDay);
         planItem.setExercise(exercise);
         planItem.setItemIndex(itemRequest.getItemIndex());
-        planItem.setPrescription(convertPrescriptionToJson(itemRequest.getPrescription()));
+        planItem.setPrescription(prescriptionMapper.toJsonNode(itemRequest.getPrescription()));
         planItem.setNotes(itemRequest.getNotes());
 
         planItems.add(planItemRepository.save(planItem));
@@ -114,7 +124,8 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       planDays.add(planDay);
     }
     plan.setPlanDays(planDays);
-    return convertPlanToResponse(plan, true);
+    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
+    return planMapper.toResponseWithDetails(plan, completedSessions, true);
   }
 
   @Override
@@ -124,7 +135,10 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     User user = (User) authentication.getPrincipal();
     List<Plan> plans = planRepository.findByUserId(user.getId());
     return plans.stream()
-        .map(plan -> convertPlanToResponse(plan, true))
+        .map(plan -> {
+          int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
+          return planMapper.toResponseWithDetails(plan, completedSessions, true);
+        })
       .toList();
   }
 
@@ -135,7 +149,8 @@ public class CustomPlanServiceImpl implements CustomPlanService {
         planRepository
             .findById(planId)
             .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
-    return convertPlanToResponse(plan, true);
+    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
+    return planMapper.toResponseWithDetails(plan, completedSessions, true);
   }
 
   @Transactional
@@ -170,7 +185,8 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     plan = planRepository.save(plan);
 
     log.info("Successfully updated plan: {}", planId);
-    return convertPlanToResponse(plan, true);
+    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
+    return planMapper.toResponseWithDetails(plan, completedSessions, true);
   }
 
   @Transactional
@@ -208,11 +224,9 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   public PlanDayResponse addDayToPlan(
       Authentication authentication, UUID planId, CreateCustomPlanDayRequest request) {
 
-    User user = (User) authentication.getPrincipal();
-
     Plan plan =
         planRepository
-            .findByIdAndUserId(planId, user.getId())
+            .findById(planId)
             .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
 
     // Validate exercises
@@ -247,7 +261,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       planItem.setPlanDay(planDay);
       planItem.setExercise(exercise);
       planItem.setItemIndex(itemRequest.getItemIndex());
-      planItem.setPrescription(convertPrescriptionToJson(itemRequest.getPrescription()));
+      planItem.setPrescription(prescriptionMapper.toJsonNode(itemRequest.getPrescription()));
       planItem.setNotes(itemRequest.getNotes());
 
       planItems.add(planItemRepository.save(planItem));
@@ -256,7 +270,11 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     planDay.setPlanItems(planItems);
 
     log.info("Successfully added day to plan: {}", planId);
-    return convertPlanDayToResponse(planDay, true);
+    int estimatedMinutes = planDay.getPlanItems() != null
+        ? planDay.getPlanItems().stream().mapToInt(this::estimateExerciseDuration).sum()
+        : 0;
+    boolean isCompleted = sessionRepository.existsByPlanDayIdAndStatus(planDay.getId(), SessionStatus.COMPLETED);
+    return planMapper.toPlanDayResponse(planDay, true, estimatedMinutes, isCompleted);
   }
 
   @Transactional
@@ -265,20 +283,24 @@ public class CustomPlanServiceImpl implements CustomPlanService {
 
     User user = (User) authentication.getPrincipal();
 
+    Plan plan = planRepository.findById(planId).orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+
+
     PlanDay planDay =
-        planDayRepository
-            .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Plan", planDayId.toString()));
+      planDayRepository
+        .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
+        .orElseThrow(() -> new ResourceNotFoundException("Plan", planDayId.toString()));
 
     // Check if day has any completed sessions
     boolean hasCompletedSessions =
-        sessionRepository.existsByPlanDayIdAndStatus(planDayId, SessionStatus.COMPLETED);
+      sessionRepository.existsByPlanDayIdAndStatus(planDayId, SessionStatus.COMPLETED);
 
     if (hasCompletedSessions) {
       throw new ValidationException("Cannot delete day with completed sessions");
     }
-
+    plan.getPlanDays().remove(planDay);
     planDayRepository.delete(planDay);
+
     log.info("Successfully removed day from plan: {}", planDayId);
   }
 
@@ -293,7 +315,11 @@ public class CustomPlanServiceImpl implements CustomPlanService {
             .findByIdAndPlanIdAndPlanUserId(planDayId, planId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Plan day not found"));
 
-    return convertPlanDayToResponse(planDay, true);
+    int estimatedMinutes = planDay.getPlanItems() != null
+        ? planDay.getPlanItems().stream().mapToInt(this::estimateExerciseDuration).sum()
+        : 0;
+    boolean isCompleted = sessionRepository.existsByPlanDayIdAndStatus(planDay.getId(), SessionStatus.COMPLETED);
+    return planMapper.toPlanDayResponse(planDay, true, estimatedMinutes, isCompleted);
   }
 
   @Transactional
@@ -323,7 +349,11 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     planDay = planDayRepository.save(planDay);
 
     log.info("Successfully updated plan day: {}", planDayId);
-    return convertPlanDayToResponse(planDay, true);
+    int estimatedMinutes = planDay.getPlanItems() != null
+        ? planDay.getPlanItems().stream().mapToInt(this::estimateExerciseDuration).sum()
+        : 0;
+    boolean isCompleted = sessionRepository.existsByPlanDayIdAndStatus(planDay.getId(), SessionStatus.COMPLETED);
+    return planMapper.toPlanDayResponse(planDay, true, estimatedMinutes, isCompleted);
   }
 
   @Transactional
@@ -347,13 +377,17 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     planItem.setPlanDay(planDay);
     planItem.setExercise(exercise);
     planItem.setItemIndex(request.getItemIndex());
-    planItem.setPrescription(convertPrescriptionToJson(request.getPrescription()));
+    planItem.setPrescription(prescriptionMapper.toJsonNode(request.getPrescription()));
     planItem.setNotes(request.getNotes());
 
     planItem = planItemRepository.save(planItem);
 
     log.info("Successfully added item to plan day: {}", planDayId);
-    return convertPlanItemToResponse(planItem);
+    ExerciseDetailResponse exerciseDetail = planItem.getExercise() != null
+        ? exerciseMapper.toExerciseDetailResponse(planItem.getExercise())
+        : null;
+    int timesCompleted = sessionRepository.countCompletedSessionsByPlanItemId(planItem.getId());
+    return planMapper.toPlanItemResponseWithDetails(planItem, exerciseDetail, timesCompleted);
   }
 
   @Transactional
@@ -382,7 +416,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     }
 
     if (request.getPrescription() != null) {
-      planItem.setPrescription(convertPrescriptionToJson(request.getPrescription()));
+      planItem.setPrescription(prescriptionMapper.toJsonNode(request.getPrescription()));
     }
 
     if (request.getNotes() != null) {
@@ -392,7 +426,11 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     planItem = planItemRepository.save(planItem);
 
     log.info("Successfully updated plan item: {}", planItemId);
-    return convertPlanItemToResponse(planItem);
+    ExerciseDetailResponse exerciseDetail = planItem.getExercise() != null
+        ? exerciseMapper.toExerciseDetailResponse(planItem.getExercise())
+        : null;
+    int timesCompleted = sessionRepository.countCompletedSessionsByPlanItemId(planItem.getId());
+    return planMapper.toPlanItemResponseWithDetails(planItem, exerciseDetail, timesCompleted);
   }
 
   @Transactional
@@ -454,7 +492,7 @@ public class CustomPlanServiceImpl implements CustomPlanService {
       planItem.setPlanDay(planDay);
       planItem.setExercise(exercise);
       planItem.setItemIndex(itemRequest.getItemIndex());
-      planItem.setPrescription(convertPrescriptionToJson(itemRequest.getPrescription()));
+      planItem.setPrescription(prescriptionMapper.toJsonNode(itemRequest.getPrescription()));
       planItem.setNotes(itemRequest.getNotes());
 
       planItemRepository.save(planItem);
@@ -521,133 +559,6 @@ public class CustomPlanServiceImpl implements CustomPlanService {
   }
 
   // Helper methods
-  private JsonNode convertPrescriptionToJson(
-      CreateCustomPlanItemRequest.PlanItemPrescription prescription) {
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("sets", prescription.getSets());
-    node.put("reps", prescription.getReps());
-
-    if (prescription.getRestSeconds() != null) {
-      node.put("restSeconds", prescription.getRestSeconds());
-    }
-    return node;
-  }
-
-  private PlanResponse convertPlanToResponse(Plan plan, boolean includeDetails) {
-    PlanResponse dto = new PlanResponse();
-    dto.setId(plan.getId());
-    dto.setTitle(plan.getTitle());
-    dto.setSource(plan.getSource());
-    dto.setCycleWeeks(plan.getCycleWeeks());
-    dto.setStatus(plan.getStatus());
-
-    // Calculate computed fields
-    if (plan.getPlanDays() != null) {
-      dto.setTotalDays(plan.getPlanDays().size());
-      dto.setTotalExercises(
-          plan.getPlanDays().stream()
-              .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
-              .sum());
-    }
-
-    // Calculate progress
-    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
-    dto.setCompletedSessions(completedSessions);
-
-    if (dto.getTotalDays() != null && dto.getTotalDays() > 0) {
-      dto.setProgressPercentage((double) completedSessions / dto.getTotalDays() * 100);
-    }
-
-    if (includeDetails && plan.getPlanDays() != null) {
-      List<PlanDayResponse> dayResponses =
-          plan.getPlanDays().stream().map(day -> convertPlanDayToResponse(day, true)).toList();
-      dto.setPlanDays(dayResponses);
-    }
-
-    return dto;
-  }
-
-  private PlanDayResponse convertPlanDayToResponse(PlanDay planDay, boolean includeItems) {
-    PlanDayResponse dto = new PlanDayResponse();
-    dto.setId(planDay.getId());
-    dto.setDayIndex(planDay.getDayIndex());
-    dto.setSplitName(planDay.getSplitName());
-    dto.setScheduledDate(planDay.getScheduledDate());
-    dto.setCreatedAt(planDay.getCreatedAt());
-
-    if (planDay.getPlanItems() != null) {
-      dto.setTotalExercises(planDay.getPlanItems().size());
-
-      // Estimate duration based on sets, reps, and rest times
-      int estimatedMinutes =
-          planDay.getPlanItems().stream().mapToInt(this::estimateExerciseDuration).sum();
-      dto.setEstimatedDurationMinutes(estimatedMinutes);
-
-      if (includeItems) {
-        List<PlanItemResponse> itemDtos =
-            planDay.getPlanItems().stream()
-                .map(this::convertPlanItemToResponse)
-                .toList();
-        dto.setPlanItems(itemDtos);
-      }
-    }
-
-    // Check if day is completed
-    dto.setIsCompleted(
-        sessionRepository.existsByPlanDayIdAndStatus(planDay.getId(), SessionStatus.COMPLETED));
-
-    return dto;
-  }
-
-  private PlanItemResponse convertPlanItemToResponse(PlanItem planItem) {
-    PlanItemResponse dto = new PlanItemResponse();
-    dto.setId(planItem.getId());
-    dto.setItemIndex(planItem.getItemIndex());
-    dto.setPrescription(planItem.getPrescription());
-    dto.setNotes(planItem.getNotes());
-    dto.setCreatedAt(planItem.getCreatedAt());
-
-    if (planItem.getExercise() != null) {
-      dto.setExercise(convertExerciseToResponse(planItem.getExercise()));
-    }
-
-    // Performance tracking data
-    dto.setTimesCompleted(sessionRepository.countCompletedSessionsByPlanItemId(planItem.getId()));
-
-    return dto;
-  }
-
-  private ExerciseDetailResponse convertExerciseToResponse(Exercise exercise) {
-    ExerciseDetailResponse dto = new ExerciseDetailResponse();
-    dto.setId(exercise.getId());
-    dto.setSlug(exercise.getSlug());
-    dto.setName(exercise.getName());
-    dto.setPrimaryMuscle(
-        exercise.getPrimaryMuscle() != null
-            ? List.of(exercise.getPrimaryMuscle().getName())
-            : Collections.emptyList());
-    dto.setEquipment(exercise.getEquipment() != null ? exercise.getEquipment().getName() : null);
-    dto.setThumbnailUrl(exercise.getThumbnailUrl());
-    dto.setExerciseCategory(
-        exercise.getExerciseCategory() != null ? exercise.getExerciseCategory().getName() : null);
-    dto.setExerciseType(
-        exercise.getExerciseType() != null ? exercise.getExerciseType().name() : null);
-    dto.setBodyPart(exercise.getBodyPart());
-    if (exercise.getExerciseMuscles() != null) {
-      List<String> secondaryMuscles =
-          exercise.getExerciseMuscles().stream()
-              .map(em -> em.getMuscle().getName())
-              .toList();
-      dto.setSecondaryMuscles(secondaryMuscles);
-    } else {
-      dto.setSecondaryMuscles(Collections.emptyList());
-    }
-    dto.setSafetyNotes(exercise.getSafetyNotes());
-    dto.setCreatedAt(exercise.getCreatedAt());
-    dto.setUpdatedAt(exercise.getUpdatedAt());
-    // Add other exercise fields as needed
-    return dto;
-  }
 
   private int estimateExerciseDuration(PlanItem planItem) {
     try {
@@ -663,31 +574,4 @@ public class CustomPlanServiceImpl implements CustomPlanService {
     }
   }
 
-  private PlanSummaryResponse convertPlanToSummaryResponse(Plan plan) {
-    PlanSummaryResponse dto = new PlanSummaryResponse();
-    dto.setId(plan.getId());
-    dto.setTitle(plan.getTitle());
-    dto.setSource(plan.getSource());
-    dto.setTotalWeeks(plan.getCycleWeeks());
-    dto.setStatus(plan.getStatus());
-
-    // Calculate computed fields
-    if (plan.getPlanDays() != null) {
-      dto.setTotalDays(plan.getPlanDays().size());
-      dto.setTotalExercises(
-          plan.getPlanDays().stream()
-              .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
-              .sum());
-    }
-
-    // Calculate progress
-    int completedSessions = sessionRepository.countCompletedSessionsByPlanId(plan.getId());
-    dto.setCompletedSessions(completedSessions);
-
-    if (dto.getTotalDays() != null && dto.getTotalDays() > 0) {
-      dto.setTimelineProgressPercentage((double) completedSessions / dto.getTotalDays() * 100);
-    }
-
-    return dto;
-  }
 }

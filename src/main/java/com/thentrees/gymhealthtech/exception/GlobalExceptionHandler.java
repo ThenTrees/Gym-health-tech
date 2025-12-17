@@ -4,7 +4,11 @@ import com.thentrees.gymhealthtech.constant.ErrorCodes;
 import com.thentrees.gymhealthtech.dto.response.APIResponse;
 import com.thentrees.gymhealthtech.dto.response.ApiError;
 import com.thentrees.gymhealthtech.dto.response.FieldError;
-import com.thentrees.gymhealthtech.util.*;
+import com.thentrees.gymhealthtech.util.ClientIpExtractor;
+import com.thentrees.gymhealthtech.util.FileSizeFormatter;
+import com.thentrees.gymhealthtech.util.HttpStatusResolver;
+import com.thentrees.gymhealthtech.util.RequestDetailsExtractor;
+import com.thentrees.gymhealthtech.util.TraceIdGenerator;
 import io.lettuce.core.RedisCommandTimeoutException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
@@ -17,7 +21,6 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -45,17 +48,10 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
 @Slf4j(topic = "GLOBAL-EXCEPTION")
-@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
   private static final String TRACE_ID_HEADER = "X-Trace-ID";
   private static final String TRACE_ID = "traceId";
-
-  private final GenerateTraceId generateTraceId;
-  private final GetRequestDetails getRequestDetails;
-  private final GetClientIp getClientIp;
-  private final DetermineHttpStatus determineHttpStatus;
-  private final FormatFileSize formatFileSize;
 
   // =============================
   // COMMON LOGIC
@@ -63,7 +59,7 @@ public class GlobalExceptionHandler {
   private String getOrCreateTraceId() {
     String traceId = MDC.get(TRACE_ID);
     if (traceId == null) {
-      traceId = generateTraceId.generate();
+      traceId = TraceIdGenerator.generate();
       MDC.put(TRACE_ID, traceId);
     }
     return traceId;
@@ -131,7 +127,7 @@ public class GlobalExceptionHandler {
     List<FieldError> fieldErrors) {
 
     Map<String, Object> metadata = fieldErrors != null ? Map.of("fieldErrors", fieldErrors) : null;
-    return handleAndLog(ex.getMessage(), request, logPrefix, status, errorCode, getRequestDetails.getRequestDetails(request), metadata);
+    return handleAndLog(ex.getMessage(), request, logPrefix, status, errorCode, RequestDetailsExtractor.extract(request), metadata);
   }
 
   // =============================
@@ -139,15 +135,15 @@ public class GlobalExceptionHandler {
   // =============================
   @ExceptionHandler(BaseException.class)
   public ResponseEntity<APIResponse<Object>> handleBaseException(BaseException ex, HttpServletRequest request) {
-    HttpStatus status = determineHttpStatus.determineHttpStatus(ex.getErrorCode());
-    return handleAndLog(ex, request, "Business exception", status, ex.getErrorCode(),
-      getRequestDetails.getRequestDetails(request), ex.getMetadata());
+    HttpStatus status = HttpStatusResolver.resolve(ex.getErrorCode());
+    return handleAndLog(ex.getMessage(), request, "Business exception", status, ex.getErrorCode(),
+      RequestDetailsExtractor.extract(request), ex.getMetadata());
   }
 
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<APIResponse<Object>> handleBusinessException(BusinessException ex, HttpServletRequest request) {
-    return handleAndLog(ex, request, "Business logic error", HttpStatus.BAD_REQUEST, ex.getErrorCode(),
-      getRequestDetails.getRequestDetails(request), ex.getMetadata());
+    return handleAndLog(ex.getMessage(), request, "Business logic error" + ex.getMessage(), HttpStatus.BAD_REQUEST, ex.getErrorCode(),
+      RequestDetailsExtractor.extract(request), ex.getMetadata());
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
@@ -157,7 +153,7 @@ public class GlobalExceptionHandler {
     if (ex.getResourceId() != null) metadata.put("resourceId", ex.getResourceId());
     String prefixMsg = "Resource not found: %s with id %s";
     return handleAndLog(ex.getMessage(), request, String.format(prefixMsg, ex.getResourceType(), ex.getResourceId()), HttpStatus.NOT_FOUND, ex.getErrorCode(),
-      getRequestDetails.getRequestDetails(request), metadata);
+      RequestDetailsExtractor.extract(request), metadata);
   }
 
   @ExceptionHandler(ValidationException.class)
@@ -187,7 +183,7 @@ public class GlobalExceptionHandler {
 
     String traceId = getOrCreateTraceId();
     log.warn("Authentication failed [{}] - Request: {} {} - IP: {}", traceId, request.getMethod(),
-      request.getRequestURI(), getClientIp.getClientIp(request), ex);
+      request.getRequestURI(), ClientIpExtractor.extract(request), ex);
 
     ApiError error = ApiError.builder()
       .code(errorCode)
@@ -371,10 +367,10 @@ public class GlobalExceptionHandler {
   public ResponseEntity<APIResponse<Object>> handleMaxUpload(MaxUploadSizeExceededException ex, HttpServletRequest request) {
     Map<String, Object> metadata = Map.of(
       "maxSize", ex.getMaxUploadSize(),
-      "maxSizeFormatted", formatFileSize.formatFileSize(ex.getMaxUploadSize())
+      "maxSizeFormatted", FileSizeFormatter.format(ex.getMaxUploadSize())
     );
     return handleAndLog(ex, request, "File size exceeded", HttpStatus.PAYLOAD_TOO_LARGE, "FILE_SIZE_EXCEEDED",
-      "Maximum allowed size: " + formatFileSize.formatFileSize(ex.getMaxUploadSize()), metadata);
+      "Maximum allowed size: " + FileSizeFormatter.format(ex.getMaxUploadSize()), metadata);
   }
 
   // =============================
@@ -399,12 +395,12 @@ public class GlobalExceptionHandler {
   public ResponseEntity<APIResponse<Object>> handleHttpExceptions(Exception ex, HttpServletRequest request) {
     String logPrefix = "HTTP/Request error";
     String code = ErrorCodes.BAD_REQUEST;
-    String details = getRequestDetails.getRequestDetails(request);
+    String details = RequestDetailsExtractor.extract(request);
     if (ex instanceof HttpRequestMethodNotSupportedException hmnse) {
       code = ErrorCodes.BAD_REQUEST;
       details = "Supported methods: " + Arrays.toString(hmnse.getSupportedMethods());
       return handleAndLog(ex, request, "Method not supported", HttpStatus.METHOD_NOT_ALLOWED, code, details, null);
-    } else if (ex instanceof HttpMessageNotReadableException hmne) {
+    } else if (ex instanceof HttpMessageNotReadableException) {
       return handleAndLog(ex, request, "Malformed JSON", HttpStatus.BAD_REQUEST, code,
         "Invalid JSON format", null);
     } else if (ex instanceof MissingServletRequestParameterException msrpe) {

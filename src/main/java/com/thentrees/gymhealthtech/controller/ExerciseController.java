@@ -1,6 +1,5 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
@@ -9,7 +8,6 @@ import com.thentrees.gymhealthtech.dto.request.UpdateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
-import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -18,15 +16,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

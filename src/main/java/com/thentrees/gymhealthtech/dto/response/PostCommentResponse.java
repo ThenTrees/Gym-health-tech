@@ -2,14 +2,19 @@ package com.thentrees.gymhealthtech.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class PostCommentResponse {
   private String id;
-  private UserSummaryDTO user;
+  private UserSummaryResponse user;
   private String content;
   private String mediaUrl;
   private Integer likesCount;

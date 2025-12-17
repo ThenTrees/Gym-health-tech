@@ -1,7 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
 import com.thentrees.gymhealthtech.constant.ValidationMessages;
-import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,7 +20,7 @@ public class CreateExerciseRequest {
   @Size(max = 120, message = ValidationMessages.EXERCISE_NAME_EXCEED_120)
   private String name;
 
-  private ExerciseLevel exerciseLevel;
+  private int difficultyLevel;
 
   private String equipmentTypeCode;
 

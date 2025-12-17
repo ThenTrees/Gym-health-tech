@@ -1,11 +1,12 @@
 package com.thentrees.gymhealthtech.mapper;
 
-import com.thentrees.gymhealthtech.dto.response.PlanSummaryDTO;
+import com.thentrees.gymhealthtech.dto.response.PlanSummaryResponse;
 import com.thentrees.gymhealthtech.dto.response.PostCommentResponse;
 import com.thentrees.gymhealthtech.dto.response.PostResponse;
-import com.thentrees.gymhealthtech.dto.response.UserSummaryDTO;
+import com.thentrees.gymhealthtech.dto.response.UserSummaryResponse;
 import com.thentrees.gymhealthtech.model.*;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -20,7 +21,7 @@ public interface PostMapper {
   @Mapping(target = "postId", source = "id")
   PostResponse toResponse(Post post);
 
-  default UserSummaryDTO toUserSummary(User user) {
+  default UserSummaryResponse toUserSummary(User user) {
     if (user == null) return null;
     String avatarUrl = null;
     try {
@@ -29,17 +30,17 @@ public interface PostMapper {
       avatarUrl = null; // tránh crash nếu lazy load fail
     }
 
-    return UserSummaryDTO.builder()
+    return UserSummaryResponse.builder()
         .id(user.getId().toString())
         .username(user.getProfile().getFullName())
         .avatarUrl(avatarUrl)
         .build();
   }
 
-  default PlanSummaryDTO toPlanSummary(Plan plan) {
+  default PlanSummaryResponse toPlanSummary(Plan plan) {
     if (plan == null) return null;
 
-    PlanSummaryDTO dto = new PlanSummaryDTO();
+    PlanSummaryResponse dto = new PlanSummaryResponse();
     dto.setId(plan.getId().toString());
     dto.setTitle(plan.getTitle());
     dto.setDescription(plan.getDescription());
@@ -52,6 +53,7 @@ public interface PostMapper {
       dto.setTotalDays(plan.getPlanDays().size());
       int totalExercises =
           plan.getPlanDays().stream()
+            .filter(Objects::nonNull)
               .mapToInt(day -> day.getPlanItems() != null ? day.getPlanItems().size() : 0)
               .sum();
       dto.setTotalExercises(totalExercises);
@@ -84,6 +86,6 @@ public interface PostMapper {
                     .postId(c.getPost() != null ? c.getPost().getId().toString() : null)
                     .replies(toCommentList(c.getReplies())) // đệ quy an toàn
                     .build())
-        .collect(Collectors.toList());
+        .toList();
   }
 }

@@ -82,9 +82,7 @@ public class PostServiceImpl implements PostService {
   @Transactional(readOnly = true)
   @Override
   public List<PostResponse> getAllPosts() {
-    List<Post> posts = postRepository.findAll().stream().filter(p -> !p.getIsDeleted())
-      .sorted(Comparator.comparing(Post::getCreatedAt).reversed())
-      .toList();
+    List<Post> posts = postRepository.findAllWithRelations();
     return posts.stream().map(postMapper::toResponse).toList();
   }
 

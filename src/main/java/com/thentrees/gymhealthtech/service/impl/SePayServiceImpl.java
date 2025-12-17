@@ -68,14 +68,14 @@ public class SePayServiceImpl implements SePayService {
     log.info("Received SePay webhook: {}", payload);
 
     String desc = payload.getContent();
-    if (desc == null || !desc.contains("-")) {
+    if (desc == null || desc.contains("-")) {
       return false;
     }
 
     // Extract transaction code safely
-    String[] parts = desc.split("-");
-    if (parts.length < 2) return false;
-    String txnCode = parts[1];
+    //String[] parts = desc.split("-");
+    ///if (parts.length < 2) return false;
+    String txnCode = desc;
 
     Payment tx = paymentRepository.findByTransactionCode(txnCode)
       .orElse(null);
