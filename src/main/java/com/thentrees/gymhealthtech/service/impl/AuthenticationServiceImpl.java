@@ -54,7 +54,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private long jwtExpiration;
 
   // Web Client ID from Firebase Console (for Google Sign-In)
-  private static final String GOOGLE_WEB_CLIENT_ID = "367621402821-jqemc9j1prn12u7q8qbq8oujk6dlhtmc.apps.googleusercontent.com";
+  @Value("${app.google.client-id}")
+  private String GOOGLE_WEB_CLIENT_ID;
 
   @Transactional
   @Override

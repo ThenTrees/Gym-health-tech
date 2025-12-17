@@ -136,13 +136,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BaseException.class)
   public ResponseEntity<APIResponse<Object>> handleBaseException(BaseException ex, HttpServletRequest request) {
     HttpStatus status = HttpStatusResolver.resolve(ex.getErrorCode());
-    return handleAndLog(ex, request, "Business exception", status, ex.getErrorCode(),
+    return handleAndLog(ex.getMessage(), request, "Business exception", status, ex.getErrorCode(),
       RequestDetailsExtractor.extract(request), ex.getMetadata());
   }
 
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<APIResponse<Object>> handleBusinessException(BusinessException ex, HttpServletRequest request) {
-    return handleAndLog(ex, request, "Business logic error", HttpStatus.BAD_REQUEST, ex.getErrorCode(),
+    return handleAndLog(ex.getMessage(), request, "Business logic error" + ex.getMessage(), HttpStatus.BAD_REQUEST, ex.getErrorCode(),
       RequestDetailsExtractor.extract(request), ex.getMetadata());
   }
 

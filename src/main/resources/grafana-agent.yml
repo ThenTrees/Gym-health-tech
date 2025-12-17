@@ -1,0 +1,34 @@
+server:
+  log_level: info
+
+metrics:
+  configs:
+    - name: springboot-metrics
+      scrape_configs:
+        - job_name: springboot
+          metrics_path: /actuator/prometheus
+          static_configs:
+            - targets: ["host.docker.internal:8080"]
+      remote_write:
+        - url: ${LOKI_METRICS_URL}
+          basic_auth:
+            username: ${LOKI_USERNAME}
+            password: ${LOKI_API_KEY}
+
+logs:
+  configs:
+    - name: springboot-logs
+      positions:
+        filename: /tmp/positions.yaml
+      clients:
+        - url: ${PROMETHEUS_URL}
+          basic_auth:
+            username: ${PROMETHEUS_USERNAME}
+            password: ${PROMETHEUS_API_KEY}
+      scrape_configs:
+        - job_name: springboot-logs
+          static_configs:
+            - targets: [localhost]
+              labels:
+                job: springboot
+                __path__: /logs/*.log
