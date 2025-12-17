@@ -4,28 +4,34 @@ import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
-import com.thentrees.gymhealthtech.dto.response.PagedResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
+
 import java.util.UUID;
 
 public interface SessionManagementService {
-  SessionResponse startSession(UUID userId, CreateStartSessionRequest request);
+  SessionResponse startSession(CreateStartSessionRequest request);
 
-  SessionResponse getActiveSession(UUID userId);
+  SessionResponse getActiveSession();
 
-  SessionResponse completeSession(UUID userId, UUID sessionId, CompleteSessionRequest request);
+  SessionResponse completeSession(UUID sessionId, CompleteSessionRequest request);
 
   SessionSetResponse updateSessionSet(
-      UUID userId, UUID sessionSetId, UpdateSessionSetRequest request);
+    UUID sessionSetId, UpdateSessionSetRequest request);
 
-  void cancelSession(UUID userId, UUID sessionId, String reason);
+  void cancelSession( UUID sessionId, String reason);
 
-  void pauseSession(UUID userId, UUID sessionId, String reason);
+  void pauseSession(UUID sessionId, String reason);
 
-  SessionResponse getSessionDetails(UUID userId, UUID sessionId);
+  SessionResponse getSessionDetails(UUID sessionId);
+  SessionResponse getSummaryDay(UUID planDayId);
 
-  SessionResponse resumeSession(UUID userId, UUID sessionId);
+  SessionResponse resumeSession(UUID sessionId);
 
-  PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request);
+  PagedResponse<SessionResponse> getAllSessions(SessionSearchRequest request);
+
+  WeeklySummaryResponse getSummaryWeekSessions();
+
+  MonthlySummaryResponse getSummaryMonthSessions();
+
+  PlanSummaryResponse getPlanSummary(UUID planId);
 }

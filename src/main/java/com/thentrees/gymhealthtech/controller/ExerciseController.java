@@ -1,12 +1,13 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.common.ExerciseLevel;
+import com.thentrees.gymhealthtech.constant.AppConstants;
+import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
+import com.thentrees.gymhealthtech.dto.request.UpdateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.enums.ExerciseLevel;
 import com.thentrees.gymhealthtech.service.ExerciseLibraryService;
-import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -15,27 +16,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("${app.prefix}/exercises")
+@RequestMapping(AppConstants.API_V1 + "/exercises")
 @RequiredArgsConstructor
 @Slf4j
 public class ExerciseController {
 
   private final ExerciseLibraryService exerciseLibraryService;
-  private final ExtractValidationErrors extractValidationErrors;
-  private final ObjectMapper objectMapper;
 
   @Operation(
       method = "GET",
@@ -74,17 +70,17 @@ public class ExerciseController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
       })
   @GetMapping
-  public ResponseEntity<APIResponse<PagedResponse<ExerciseListResponse>>> getExercises(
+  public ResponseEntity<APIResponse<PagedResponse<ExerciseListResponse>>> exercises(
       @RequestParam(required = false) String keyword,
       @RequestParam(required = false) ExerciseLevel level,
       @RequestParam(required = false) String primaryMuscle,
       @RequestParam(required = false) List<String> musclesCodes,
       @RequestParam(required = false) String equipmentType,
       @RequestParam(required = false) String exerciseType,
-      @RequestParam(defaultValue = "0") Integer page,
-      @RequestParam(defaultValue = "20") Integer size,
-      @RequestParam(defaultValue = "name") String sortBy,
-      @RequestParam(defaultValue = "ASC") String sortDirection) {
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) Integer page,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_SIZE) Integer size,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+      @RequestParam(defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDirection) {
     ExerciseSearchRequest request =
         ExerciseSearchRequest.builder()
             .keyword(keyword)
@@ -105,31 +101,9 @@ public class ExerciseController {
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<APIResponse<ExerciseDetailResponse>> createExercise(
-      @Valid @RequestBody CreateExerciseRequest request,
-      BindingResult bindingResult,
-      Authentication auth) {
-    if (bindingResult.hasErrors()) {
-      Map<String, String> errors = extractValidationErrors.extract(bindingResult);
-      ApiError apiError =
-          ApiError.builder()
-              .code("VALIDATION_ERROR")
-              .fieldErrors(
-                  errors.entrySet().stream()
-                      .map(
-                          entry ->
-                              FieldError.builder()
-                                  .field(entry.getKey())
-                                  .message(entry.getValue())
-                                  .build())
-                      .toList())
-              .build();
-      return ResponseEntity.badRequest()
-          .body(
-              APIResponse.error(
-                  "Validation failed", objectMapper.convertValue(apiError, ApiError.class)));
-    }
-    ExerciseDetailResponse exercise = exerciseLibraryService.createExercise(request, auth);
+  public ResponseEntity<APIResponse<ExerciseDetailResponse>> exercise(
+      @Valid @RequestBody CreateExerciseRequest request) {
+    ExerciseDetailResponse exercise = exerciseLibraryService.createExercise(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(exercise));
   }
 
@@ -182,11 +156,10 @@ public class ExerciseController {
             """))),
         @ApiResponse(responseCode = "404", description = "exercise with id not found")
       })
-  public ResponseEntity<APIResponse<ExerciseDetailResponse>> getExerciseDetail(
-      @PathVariable("id") String id) {
-    log.info("Get exercise by id: {}", id);
+  public ResponseEntity<APIResponse<ExerciseDetailResponse>> exerciseById(
+      @PathVariable("id") UUID id) {
     ExerciseDetailResponse exerciseDetailResponse =
-        exerciseLibraryService.getExerciseById(UUID.fromString(id));
+        exerciseLibraryService.getExerciseById(id);
     return ResponseEntity.ok(APIResponse.success(exerciseDetailResponse));
   }
 
@@ -201,12 +174,34 @@ public class ExerciseController {
         @ApiResponse(responseCode = "500", description = "internal server error")
       })
   @PostMapping("/import-exercise")
-  //  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   public String importJson(@RequestParam("file") MultipartFile file) throws Exception {
     int count = exerciseLibraryService.importExercisesFromJson(file);
     return "Imported/Updated " + count + " exercises.";
   }
 
+  @PutMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> updateExercise(
+    @PathVariable("id") UUID exerciseId,
+    @Valid @RequestBody UpdateExerciseRequest request
+  ){
+    exerciseLibraryService.updateExercise(exerciseId, request);
+    return ResponseEntity.ok(
+      APIResponse.success(SuccessMessages.UPDATE_EXERCISE_SUCCESS)
+    );
+  }
+
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<String>> deleteExercise(
+    @PathVariable("id") UUID exerciseId
+  ){
+    exerciseLibraryService.deleteExercise(exerciseId);
+    return ResponseEntity.ok(
+      APIResponse.success(SuccessMessages.DEL_EXERCISE_SUCCESS)
+    );
+  }
   @Operation(method = "GET", description = "Get all muscle", summary = "get muscles")
   @ApiResponses(
       value = {

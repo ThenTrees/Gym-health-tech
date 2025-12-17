@@ -1,0 +1,92 @@
+version: '3.8'
+services:
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: backend:prod
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.dev
+    networks:
+      - gym-health-tech
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: pgvector/pgvector:pg16 #postgres:${POSTGRES_VERSION}
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: "Asia/Ho_Chi_Minh"
+    env_file:
+      - .env.dev
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_SUPERUSER:-postgres} -d ${POSTGRES_DB:-postgres}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - gym-health-tech
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - gym-health-tech
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - gym-health-tech
+
+  grafana-agent:
+    image: grafana/agent:latest
+    container_name: grafana-agent
+    volumes:
+      - ./src/main/resources/grafana-agent.yml:/etc/agent/grafana-agent.yml:ro
+      - ./logs:/logs
+    command: --config.file=/etc/agent/grafana-agent.yml
+    restart: always
+    networks:
+      - gym-health-tech
+
+volumes:
+  pg_data:
+  redis-data:
+  rabbitmq_data:
+  grafana-storage:
+networks:
+  gym-health-tech:
+    driver: bridge

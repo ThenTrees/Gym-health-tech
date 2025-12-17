@@ -1,10 +1,11 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.ExperienceLevel;
-import com.thentrees.gymhealthtech.common.GenderType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.thentrees.gymhealthtech.enums.FitnessLevel;
+import com.thentrees.gymhealthtech.enums.GenderType;
 import jakarta.persistence.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Objects;
 import lombok.*;
 
 @Getter
@@ -14,11 +15,12 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "user_profiles")
-public class UserProfile extends BaseEntity {
+public class UserProfile extends BaseEntity implements Serializable {
 
   @OneToOne(fetch = FetchType.LAZY)
   @MapsId
   @JoinColumn(name = "user_id")
+  @JsonIgnore
   private User user;
 
   @Column(name = "full_name", length = 120)
@@ -59,45 +61,7 @@ public class UserProfile extends BaseEntity {
   private String unitLength = "cm";
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "experience_level")
-  private ExperienceLevel experienceLevel;
+  @Column(name = "fitness_level")
+  private FitnessLevel fitnessLevel;
 
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    UserProfile that = (UserProfile) o;
-    return Objects.equals(user, that.user)
-        && Objects.equals(fullName, that.fullName)
-        && gender == that.gender
-        && Objects.equals(age, that.age)
-        && Objects.equals(heightCm, that.heightCm)
-        && Objects.equals(weightKg, that.weightKg)
-        && Objects.equals(bmi, that.bmi)
-        && Objects.equals(healthNotes, that.healthNotes)
-        && Objects.equals(timezone, that.timezone)
-        && Objects.equals(unitWeight, that.unitWeight)
-        && Objects.equals(unitLength, that.unitLength);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        super.hashCode(),
-        user,
-        fullName,
-        gender,
-        age,
-        heightCm,
-        weightKg,
-        bmi,
-        healthNotes,
-        timezone,
-        unitWeight,
-        unitLength);
-  }
 }

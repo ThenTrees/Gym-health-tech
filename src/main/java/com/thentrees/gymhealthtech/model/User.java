@@ -1,12 +1,13 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.UserRole;
-import com.thentrees.gymhealthtech.common.UserStatus;
+import com.thentrees.gymhealthtech.enums.UserRole;
+import com.thentrees.gymhealthtech.enums.UserStatus;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,7 +25,7 @@ public class User extends BaseEntity implements UserDetails {
   @Column(name = "phone", unique = true, length = 20)
   private String phone;
 
-  @Column(name = "password_hash", nullable = false)
+  @Column(name = "password_hash", nullable = true)
   private String passwordHash;
 
   @Enumerated(EnumType.STRING)
@@ -37,6 +38,15 @@ public class User extends BaseEntity implements UserDetails {
 
   @Column(name = "email_verified", nullable = false)
   private Boolean emailVerified = false;
+
+  @Column(name = "profile_completed", nullable = false)
+  private Boolean profileCompleted = false;
+
+  @Column(name = "is_premium", nullable = false)
+  private Boolean isPremium = false;
+
+  @Column(name = "premium_expires_at")
+  private LocalDateTime premiumExpiresAt;
 
   // One-to-One relationship with UserProfile
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -56,7 +66,7 @@ public class User extends BaseEntity implements UserDetails {
 
   @Override
   public String getUsername() {
-    return profile.getFullName();
+    return this.email;
   }
 
   @Override
@@ -77,29 +87,5 @@ public class User extends BaseEntity implements UserDetails {
   @Override
   public boolean isEnabled() {
     return status == UserStatus.ACTIVE && Boolean.TRUE.equals(emailVerified);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    User user = (User) o;
-    return Objects.equals(email, user.email)
-        && Objects.equals(phone, user.phone)
-        && Objects.equals(passwordHash, user.passwordHash)
-        && status == user.status
-        && role == user.role
-        && Objects.equals(emailVerified, user.emailVerified)
-        && Objects.equals(profile, user.profile);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        super.hashCode(), email, phone, passwordHash, status, role, emailVerified, profile);
   }
 }

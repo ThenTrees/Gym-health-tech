@@ -1,17 +1,25 @@
 package com.thentrees.gymhealthtech.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import lombok.Getter;
-import lombok.Setter;
+
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "plan_days")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PlanDay {
 
   @Id
@@ -34,6 +42,7 @@ public class PlanDay {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt = OffsetDateTime.now();
 
-  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-  private List<PlanItem> planItems;
+  @OneToMany(mappedBy = "planDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+  @OrderColumn(name = "item_index")
+  private List<PlanItem> planItems = new ArrayList<>();
 }

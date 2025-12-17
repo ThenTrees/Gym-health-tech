@@ -31,7 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
-.env
+.env.dev
+.env.prod
 # .gitignore
 logs/
 *.log
+/loki
+NT_GymMate.pem

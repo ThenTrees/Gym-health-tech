@@ -2,6 +2,7 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.CreateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.request.ExerciseSearchRequest;
+import com.thentrees.gymhealthtech.dto.request.UpdateExerciseRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
 import java.io.IOException;
 import java.util.List;
@@ -13,11 +14,15 @@ public interface ExerciseLibraryService {
   PagedResponse<ExerciseListResponse> getExercises(ExerciseSearchRequest request);
 
   ExerciseDetailResponse createExercise(
-      CreateExerciseRequest request, Authentication authentication);
+      CreateExerciseRequest request);
 
   int importExercisesFromJson(MultipartFile file) throws IOException;
 
   ExerciseDetailResponse getExerciseById(UUID id);
 
   List<MuscleResponse> getMuscles();
+
+  void updateExercise(UUID exerciseId, UpdateExerciseRequest request);
+
+  void deleteExercise(UUID exerciseId);
 }

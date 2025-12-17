@@ -1,8 +1,8 @@
 package com.thentrees.gymhealthtech.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.thentrees.gymhealthtech.common.GoalStatus;
-import com.thentrees.gymhealthtech.common.ObjectiveType;
+import com.thentrees.gymhealthtech.enums.GoalStatus;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "goals")
 public class Goal extends BaseEntity {
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 

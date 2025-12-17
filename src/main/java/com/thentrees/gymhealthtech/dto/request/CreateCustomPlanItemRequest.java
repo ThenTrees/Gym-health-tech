@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
+import com.thentrees.gymhealthtech.constant.ValidationMessages;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -8,16 +9,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CreateCustomPlanItemRequest {
 
-  @NotNull(message = "Exercise ID là bắt buộc")
+  @NotNull(message = ValidationMessages.EX_ID_REQUIRE)
   private UUID exerciseId;
 
-  @NotNull(message = "Thứ tự bài tập là bắt buộc")
-  @Min(value = 1, message = "Thứ tự bài tập tối thiểu là 1")
+  @NotNull(message = ValidationMessages.EX_IDX_REQUIRE)
+  @Min(value = 1, message = ValidationMessages.EX_IDX_MIN)
   private Integer itemIndex;
 
-  @NotNull(message = "Thông số bài tập là bắt buộc")
+  @NotNull(message = ValidationMessages.PARAMETER_EXERCISE_REQUIRE)
   private PlanItemPrescription prescription;
 
   private String notes;
@@ -27,16 +31,15 @@ public class CreateCustomPlanItemRequest {
   @AllArgsConstructor
   @NoArgsConstructor
   public static class PlanItemPrescription {
-    @NotNull(message = "Số sets là bắt buộc")
-    @Min(value = 1, message = "Số sets tối thiểu là 1")
-    @Max(value = 10, message = "Số sets tối đa là 10")
+    @NotNull(message = ValidationMessages.SET_REQUIRE)
+    @Min(value = 1, message = ValidationMessages.SET_MIN)
+    @Max(value = 10, message = ValidationMessages.SET_MAX)
     private Integer sets;
 
-    @NotBlank(message = "Số reps là bắt buộc")
-    @Size(max = 50, message = "Số reps không được vượt quá 50 ký tự")
+    @NotBlank(message = ValidationMessages.REP_REQUIRE)
     private String reps; // "8-12", "max", "30 seconds"
 
-    @Min(value = 0, message = "Thời gian nghỉ không được âm")
+    @Min(value = 0, message = ValidationMessages.REST_TIME_NOT_NEGATIVE)
     @Builder.Default
     private Integer restSeconds = 60;
 

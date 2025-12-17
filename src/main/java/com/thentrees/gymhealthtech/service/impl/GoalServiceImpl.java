@@ -2,13 +2,14 @@ package com.thentrees.gymhealthtech.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thentrees.gymhealthtech.common.GoalStatus;
-import com.thentrees.gymhealthtech.common.ObjectiveType;
 import com.thentrees.gymhealthtech.dto.request.CreateGoalRequest;
 import com.thentrees.gymhealthtech.dto.response.GoalResponse;
+import com.thentrees.gymhealthtech.enums.GoalStatus;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import com.thentrees.gymhealthtech.event.GoalCreatedEvent;
 import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.exception.DataProcessingException;
+import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.model.Goal;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.UserProfile;
@@ -22,12 +23,13 @@ import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "GOAL-SERVICE")
 @Transactional
 public class GoalServiceImpl implements GoalService {
 
@@ -38,70 +40,84 @@ public class GoalServiceImpl implements GoalService {
   private final UserRepository userRepository;
 
   @Override
-  public GoalResponse createGoal(User user, CreateGoalRequest request) {
+  public GoalResponse createGoal(Authentication authentication, CreateGoalRequest request) {
+    User user = (User) authentication.getPrincipal();
 
-    log.info("Creating goal for user: {}, objective: {}", user.getId(), request.getObjective());
-
-    log.info("request data: {}", request);
-
-    UUID userId = user.getId();
-
-    UserProfile profile = userProfileService.getUserProfileById(userId);
-    // Validate goal preferences
+    UserProfile profile = userProfileService.getUserProfileById(user.getId());
     if (request.getPreferences() != null) {
       request.getPreferences().validate(request.getObjective());
     }
 
-    // 3. Perform health and safety checks
     performHealthSafetyChecks(profile, request);
 
-    // 4. End any existing active goals
-    endActiveGoals(userId);
-    // 5. Create and save new goal
+    endActiveGoals(user.getId());
     Goal goal = createGoalEntity(user, request, profile);
     Goal savedGoal = goalRepository.save(goal);
-
-    // 6. Publish goal created event for AI plan generation
     eventPublisher.publishEvent(new GoalCreatedEvent(savedGoal, profile));
 
-    // 7. Build and return response
-    GoalResponse response = GoalResponse.from(savedGoal);
-    log.info("Goal created successfully: {}", savedGoal.getId());
-    return response;
+    return GoalResponse.from(savedGoal);
   }
 
   @Override
-  public List<GoalResponse> getUserGoals(String userId, boolean includeCompleted) {
+  public List<GoalResponse> getUserGoals(Authentication authentication, boolean includeCompleted) {
 
-    User user = userRepository.findById(UUID.fromString(userId)).get();
-
+    User user = (User) authentication.getPrincipal();
     List<Goal> goals;
     if (includeCompleted) {
       goals = goalRepository.findAllByUserIdIncludingCompleted(user.getId());
     } else {
       goals = goalRepository.findAllByUserIdExcludingCompleted(user.getId(), GoalStatus.COMPLETED);
     }
-
-    return goals.stream().map(goal -> GoalResponse.from(goal)).toList();
+    return goals.stream().map(GoalResponse::from).toList();
   }
 
   @Override
-  public GoalResponse getActiveGoal(String userId) {
-    log.info("Fetching active goal for user: {}", userId);
-
+  public GoalResponse getActiveGoal(Authentication authentication) {
+    User user = (User) authentication.getPrincipal();
     Goal activeGoal =
         goalRepository
-            .findActiveGoalByUserId(UUID.fromString(userId), GoalStatus.ACTIVE)
+            .findActiveGoalByUserId(user.getId(), GoalStatus.ACTIVE)
             .orElse(null);
     return GoalResponse.from(activeGoal);
   }
 
-  /**
-   * check age of user to warning safety health
-   *
-   * @param profile
-   * @param request
-   */
+  @Override
+  public GoalResponse updateGoal(Authentication authentication, UUID goalId, CreateGoalRequest request) {
+    boolean flag = false;
+
+    User user = (User) authentication.getPrincipal();
+
+    Goal goalExist =
+        goalRepository
+            .findById(goalId)
+            .orElseThrow(() -> new ResourceNotFoundException("Goal", goalId.toString()));
+
+    if (!goalExist.getObjective().equals(request.getObjective())) {
+      goalExist.setObjective(request.getObjective());
+      flag = true;
+    }
+
+    if (goalExist.getSessionsPerWeek() != request.getSessionsPerWeek()) {
+      goalExist.setSessionsPerWeek(request.getSessionsPerWeek());
+      flag = true;
+    }
+
+    if (goalExist.getSessionMinutes() != request.getSessionMinutes()) {
+      goalExist.setSessionMinutes(request.getSessionMinutes());
+      flag = true;
+    }
+    if (flag) {
+      UserProfile profile = userProfileService.getUserProfileById(user.getId());
+      goalExist.setEstimatedCaloriesPerSession(calculateEstimatedCalories(request, profile));
+      goalExist.setDifficultyAssessment(assessDifficulty(request, profile));
+      goalExist.setRecommendedEquipment(recommendEquipment(request.getObjective()));
+      goalExist.setHealthSafetyNotes(generateSafetyNotes(request, profile));
+      goalRepository.save(goalExist);
+    }
+
+    return GoalResponse.from(goalExist);
+  }
+
   private void performHealthSafetyChecks(UserProfile profile, CreateGoalRequest request) {
     // Age-based checks
     if (profile.getAge() != null) {

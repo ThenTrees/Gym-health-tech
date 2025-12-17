@@ -1,32 +1,36 @@
 package com.thentrees.gymhealthtech.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.thentrees.gymhealthtech.common.SessionStatus;
 import com.thentrees.gymhealthtech.dto.request.CompleteSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.CreateStartSessionRequest;
 import com.thentrees.gymhealthtech.dto.request.SessionSearchRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateSessionSetRequest;
-import com.thentrees.gymhealthtech.dto.response.PagedResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionResponse;
-import com.thentrees.gymhealthtech.dto.response.SessionSetResponse;
+import com.thentrees.gymhealthtech.dto.response.*;
+import com.thentrees.gymhealthtech.enums.DifficultyLevel;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import com.thentrees.gymhealthtech.exception.ResourceNotFoundException;
 import com.thentrees.gymhealthtech.exception.ValidationException;
 import com.thentrees.gymhealthtech.model.*;
-import com.thentrees.gymhealthtech.repository.PlanDayRepository;
-import com.thentrees.gymhealthtech.repository.PlanItemRepository;
-import com.thentrees.gymhealthtech.repository.SessionRepository;
-import com.thentrees.gymhealthtech.repository.SessionSetRepository;
+import com.thentrees.gymhealthtech.mapper.SessionMapper;
+import com.thentrees.gymhealthtech.repository.*;
 import com.thentrees.gymhealthtech.repository.spec.SessionSpecification;
+import com.thentrees.gymhealthtech.service.RedisService;
 import com.thentrees.gymhealthtech.service.SessionManagementService;
-import com.thentrees.gymhealthtech.service.UserService;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import com.thentrees.gymhealthtech.util.CacheKeyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,51 +38,57 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Slf4j
+@Slf4j(topic = "SESSION-SERVICE")
 @RequiredArgsConstructor
 public class SessionManagementServiceImpl implements SessionManagementService {
 
-  private final UserService userService;
   private final PlanDayRepository planDayRepository;
   private final SessionRepository sessionRepository;
   private final PlanItemRepository planItemRepository;
   private final SessionSetRepository sessionSetRepository;
   private final ObjectMapper objectMapper;
+  private final PlanRepository planRepository;
+  private final SessionMapper sessionMapper;
 
-  public SessionResponse getSessionDetails(UUID userId, UUID sessionId) {
-    log.info("Getting session details for user: {} and session: {}", userId, sessionId);
-
+  @Transactional(readOnly = true)
+  public SessionResponse getSessionDetails(UUID sessionId) {
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserIdWithSets(sessionId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
-
-    return convertSessionToResponse(session, true);
+            .findByIdAndUserIdWithSets(sessionId, user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
+    return sessionMapper.toResponse(session, true);
   }
 
-  /**
-   * Starts a new workout session for the user based on the specified plan day. business logic: -
-   * Check if user has an active session - Check if plan day exists and is associated with user -
-   * Create session entity - Create session sets based on plan items - Return session details
-   *
-   * @param userId
-   * @param request
-   * @return SessionResponse
-   */
+  @Transactional(readOnly = true)
+  @Override
+  public SessionResponse getSummaryDay(UUID planDayId) {
+    User user = getCurrentUser();
+    Session session =
+      sessionRepository
+        .findByPlanDayIdAndUserIdWithSets(planDayId, user.getId())
+        .orElseThrow(() -> new ResourceNotFoundException("Session", planDayId.toString()));
+
+    SessionResponse response = sessionMapper.toResponse(session, true);
+//    redisService.set(cacheKey, response, Duration.ofHours(1)); // Cache for 1 hour
+
+    return response;
+  }
+
   @Override
   @Transactional
-  public SessionResponse startSession(UUID userId, CreateStartSessionRequest request) {
-    log.info("Starting session for user {} with plan day {}", userId, request.getPlanDayId());
+  public SessionResponse startSession(CreateStartSessionRequest request) {
 
-    User user = userService.getUserById(userId);
-
+    User user = getCurrentUser();
     PlanDay planDay =
         planDayRepository
-            .findByIdAndPlanUserId(request.getPlanDayId(), userId)
+            .findByIdAndPlanUserId(request.getPlanDayId(), user.getId())
             .orElseThrow(
                 () ->
                     new ResourceNotFoundException(
@@ -86,9 +96,9 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     // Check if there is already an active session for the user
     Optional<Session> activeSession =
-        sessionRepository.findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS);
+        sessionRepository.findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS);
     if (activeSession.isPresent()) {
-      log.error("Session already active for user {} with plan day {}", userId, planDay.getId());
+      log.error("Session already active for user {} with plan day {}", user.getId(), planDay.getId());
       throw new ValidationException(
           "You already have an active workout session. Complete it first.");
     }
@@ -143,36 +153,34 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     }
     session.setSessionSets(sessionSets);
 
-    log.info(
-        "Successfully started session {} with {} sets for user {}",
-        session.getId(),
-        sessionSets.size(),
-        userId);
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
+  @Transactional(readOnly = true)
   @Override
-  public SessionResponse getActiveSession(UUID userId) {
-    log.info("Getting active session for user: {}", userId);
+  public SessionResponse getActiveSession() {
+
+    User user = getCurrentUser();
 
     Session session =
         sessionRepository
-            .findByUserIdAndStatus(userId, SessionStatus.IN_PROGRESS)
+            .findByUserIdAndStatus(user.getId(), SessionStatus.IN_PROGRESS)
             .orElseThrow(() -> new ResourceNotFoundException("No active workout session found"));
 
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
   @Override
   @Transactional
   public SessionResponse completeSession(
-      UUID userId, UUID sessionId, CompleteSessionRequest request) {
-    log.info("Completing session {} for user {}", sessionId, userId);
+    UUID sessionId, CompleteSessionRequest request) {
+
+    User user = getCurrentUser();
 
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+            .findByIdAndUserId(sessionId, user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Session", sessionId.toString()));
 
     if (session.getStatus() != SessionStatus.IN_PROGRESS) {
       throw new ValidationException("Session is not in progress");
@@ -181,7 +189,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     // Update session
     session.setEndedAt(request.getEndTime() != null ? request.getEndTime() : LocalDateTime.now());
     session.setStatus(SessionStatus.COMPLETED);
-    //    session.setSessionRpe(request.getSessionRpe());
+    session.setSessionRpe(request.getSessionRpe());
 
     // Combine notes
     String completedNotes = session.getNotes() != null ? session.getNotes() : "";
@@ -193,10 +201,6 @@ public class SessionManagementServiceImpl implements SessionManagementService {
       completedNotes +=
           (completedNotes.isEmpty() ? "" : "\n") + "Feeling: " + request.getWorkoutFeeling();
     }
-    //    if (request.getInjuryOccurred() && request.getInjuryNotes() != null) {
-    //      completedNotes += (completedNotes.isEmpty() ? "" : "\n") + "⚠️ Injury: " +
-    // request.getInjuryNotes();
-    //    }
 
     session.setNotes(completedNotes);
     session = sessionRepository.save(session);
@@ -205,18 +209,17 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     updatePlanProgression(session);
 
     log.info("Successfully completed session: {}", sessionId);
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
   @Override
   @Transactional
   public SessionSetResponse updateSessionSet(
-      UUID userId, UUID sessionSetId, UpdateSessionSetRequest request) {
-    log.info("Updating session set {} for user {}", sessionSetId, userId);
-
+      UUID sessionSetId, UpdateSessionSetRequest request) {
+    User user = getCurrentUser();
     SessionSet sessionSet =
         sessionSetRepository
-            .findByIdAndSessionUserId(sessionSetId, userId)
+            .findByIdAndSessionUserId(sessionSetId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session set not found"));
 
     if (sessionSet.getSession().getStatus() != SessionStatus.IN_PROGRESS) {
@@ -239,36 +242,31 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     if (request.getSetDurationSeconds() != null) {
       actualNode.put("setDurationSeconds", request.getSetDurationSeconds());
     }
-    //    if (request.getIsSkipped()) {
-    //      actualNode.put("isSkipped", true);
-    //      if (request.getFailureReason() != null) {
-    //        actualNode.put("failureReason", request.getFailureReason());
-    //      }
-    //    }
-    if (request.getNotes() != null) {
-      actualNode.put("notes", request.getNotes());
+    if (Boolean.TRUE.equals(request.getIsSkipped())) {
+      actualNode.put("isSkipped", true);
+    } else {
+      actualNode.put("completedAt", LocalDateTime.now().toString());
     }
 
-    // Mark as completed if not skipped
-    if (!request.getIsSkipped()) {
-      actualNode.put("completedAt", LocalDateTime.now().toString());
+    if (request.getNotes() != null) {
+      actualNode.put("notes", request.getNotes());
     }
 
     sessionSet.setActual(actualNode);
     sessionSet = sessionSetRepository.save(sessionSet);
 
     log.info("Successfully updated session set: {}", sessionSetId);
-    return convertSessionSetToResponse(sessionSet);
+    return sessionMapper.toSessionSetResponseWithComputed(sessionSet);
   }
 
   @Override
   @Transactional
-  public void cancelSession(UUID userId, UUID sessionId, String reason) {
-    log.info("Cancelling session {} for user {} - reason: {}", sessionId, userId, reason);
-
+  public void cancelSession(UUID sessionId, String reason) {
+    log.info("Cancelling session {} for user {} - reason: {}", sessionId, reason);
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() == SessionStatus.COMPLETED) {
@@ -293,12 +291,11 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Override
   @Transactional
-  public void pauseSession(UUID userId, UUID sessionId, String reason) {
-    log.info("Pausing session {} for user {} - reason: {}", sessionId, userId, reason);
-
+  public void pauseSession(UUID sessionId, String reason) {
+    User user = getCurrentUser();
     Session session =
         sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() != SessionStatus.IN_PROGRESS) {
@@ -322,11 +319,12 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
   @Transactional
   @Override
-  public SessionResponse resumeSession(UUID userId, UUID sessionId) {
-    log.info("Resuming session {} for user {}", sessionId, userId);
+  public SessionResponse resumeSession(UUID sessionId) {
+    log.info("Resuming session {}", sessionId);
+    User user = getCurrentUser();
     Session session =
-        sessionRepository
-            .findByIdAndUserId(sessionId, userId)
+          sessionRepository
+            .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
     if (session.getStatus() != SessionStatus.PAUSED) {
@@ -338,14 +336,16 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     session.setNotes(currentNotes + (currentNotes.isEmpty() ? "" : "\n") + resumeNote);
     session = sessionRepository.save(session);
     log.info("Successfully resumed session: {}", sessionId);
-    return convertSessionToResponse(session, true);
+    return sessionMapper.toResponse(session, true);
   }
 
+  @Transactional(readOnly = true)
   @Override
-  public PagedResponse<SessionResponse> getAllSessions(UUID userId, SessionSearchRequest request) {
-    log.info("Getting all sessions for user: {}", userId);
+  public PagedResponse<SessionResponse> getAllSessions(SessionSearchRequest request) {
 
-    Specification<Session> spec = buildSessionSpecification(userId, request);
+    User user = getCurrentUser();
+
+    Specification<Session> spec = buildSessionSpecification(user.getId(), request);
 
     Pageable pageable =
         PageRequest.of(
@@ -356,8 +356,357 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
     Page<Session> sessionPage = sessionRepository.findAll(spec, pageable);
     Page<SessionResponse> response =
-        sessionPage.map(session -> convertSessionToResponse(session, false));
+        sessionPage.map(session -> sessionMapper.toResponse(session, false));
     return PagedResponse.of(response);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public WeeklySummaryResponse getSummaryWeekSessions() {
+    User user = getCurrentUser();
+    LocalDate today = LocalDate.now();
+    LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+    List<Session> sessions =
+        sessionRepository.findByUserAndStartedAtBetween(
+            user,
+            startOfWeek.atStartOfDay(),
+            endOfWeek.plusDays(1).atStartOfDay().minusSeconds(1));
+
+    if (sessions.isEmpty()) {
+      return buildEmptyWeeklySummary(startOfWeek, endOfWeek);
+    }
+
+    List<SessionResponse> sessionResponses = buildSessionResponses(sessions, true);
+    SessionStatistics statistics = computeSessionStatistics(sessionResponses);
+
+    String mostTrainedDayName =
+        sessionResponses.stream()
+            .max(
+                Comparator.comparingInt(
+                    summary -> Optional.ofNullable(summary.getTotalVolume()).orElse(0)))
+            .map(SessionResponse::getPlanDayName)
+            .orElse(null);
+
+    WeeklySummaryResponse response = WeeklySummaryResponse.builder()
+      .weekStart(startOfWeek)
+      .weekEnd(endOfWeek)
+      .totalSessions(statistics.totalSessions())
+      .completedSessions(statistics.completedSessions())
+      .totalSets(statistics.totalSets())
+      .completedSets(statistics.completedSets())
+      .avgCompletionPercentage(statistics.avgCompletionPercentage())
+      .totalVolume(statistics.totalVolume())
+      .totalDurationMinutes(statistics.totalDurationMinutes())
+      .mostTrainedDayName(mostTrainedDayName)
+      .dailySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
+      .build();
+
+    return response;
+  }
+
+  @Transactional
+  @Override
+  public MonthlySummaryResponse getSummaryMonthSessions() {
+    User user = getCurrentUser();
+    LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+    LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+    List<Session> sessions = sessionRepository.findByUserAndAllSessionsInCurrentMonth(
+      user.getId(), startOfMonth, endOfMonth
+    );
+
+    if (sessions.isEmpty()) {
+      return buildEmptyMonthlySummary();
+    }
+
+    List<SessionResponse> sessionResponses = buildSessionResponses(sessions, true);
+    SessionStatistics statistics = computeSessionStatistics(sessionResponses);
+
+    double completionRate = statistics.completionRate();
+    double avgCompletionPercentage = statistics.avgCompletionPercentage();
+    double avgRpe = statistics.avgRpe();
+
+    double avgVolumePerSession = statistics.avgVolumePerCompletedSession();
+    double avgDurationPerSession = statistics.avgDurationPerCompletedSession();
+
+    String feedback = generateFeedback(completionRate, avgRpe, avgCompletionPercentage);
+
+    MonthlySummaryResponse response = MonthlySummaryResponse.builder()
+      .month(startOfMonth.toLocalDate())
+      .totalSessions(statistics.totalSessions())
+      .completedSessions(statistics.completedSessions())
+      .completionRate(completionRate)
+      .totalSets(statistics.totalSets())
+      .completedSets(statistics.completedSets())
+      .avgCompletionPercentage(avgCompletionPercentage)
+      .totalVolume(statistics.totalVolume())
+      .avgVolumePerSession(avgVolumePerSession)
+      .totalDurationMinutes(statistics.totalDurationMinutes())
+      .avgDurationPerSession(avgDurationPerSession)
+      .avgRpe(avgRpe)
+      .weeklySummaries(sessionResponses.stream().map(this::mapToDailySummary).toList())
+      .feedback(feedback)
+      .build();
+
+    return response;
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PlanSummaryResponse getPlanSummary(UUID planId) {
+
+    User user = getCurrentUser();
+    Plan plan =
+        planRepository
+            .findByIdAndUserId(planId, user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
+
+    List<PlanDay> planDays =
+        Optional.ofNullable(plan.getPlanDays())
+            .filter(days -> !days.isEmpty())
+            .orElseGet(() -> planDayRepository.findAllByPlanId(planId));
+    if (planDays == null) {
+      planDays = Collections.emptyList();
+    }
+
+    List<Session> sessions = sessionRepository.findByPlanDayPlanIdAndUserId(planId, user.getId());
+    Map<UUID, List<Session>> sessionsByDay =
+        sessions.stream()
+            .filter(session -> session.getPlanDay() != null)
+            .collect(Collectors.groupingBy(session -> session.getPlanDay().getId()));
+
+    int totalDays = planDays.size();
+    int totalExercises =
+        planDays.stream()
+            .map(PlanDay::getPlanItems)
+            .filter(Objects::nonNull)
+            .mapToInt(List::size)
+            .sum();
+
+    int totalSessions = sessions.size();
+    long completedSessions =
+        sessions.stream().filter(s -> s.getStatus() == SessionStatus.COMPLETED).count();
+    long cancelledSessions =
+        sessions.stream().filter(s -> s.getStatus() == SessionStatus.CANCELLED).count();
+
+    long totalDurationMinutes =
+        sessions.stream()
+            .filter(s -> s.getStartedAt() != null && s.getEndedAt() != null)
+            .mapToLong(s -> Duration.between(s.getStartedAt(), s.getEndedAt()).toMinutes())
+            .sum();
+
+    double totalCalories = 0d;
+
+    BigDecimal completionRate =
+        totalSessions == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(completedSessions)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(totalSessions), 2, RoundingMode.HALF_UP);
+
+    BigDecimal avgDurationPerSession =
+        completedSessions == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(totalDurationMinutes)
+                .divide(BigDecimal.valueOf(completedSessions), 2, RoundingMode.HALF_UP);
+
+    BigDecimal avgCaloriesPerSession =
+        totalSessions == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(totalCalories)
+                .divide(BigDecimal.valueOf(totalSessions), 2, RoundingMode.HALF_UP);
+
+    Double timelineProgressPercentage =
+        totalDays == 0 ? 0.0 : Math.min(100.0, completedSessions * 100.0 / totalDays);
+
+    LocalDateTime startedAt =
+        sessions.stream()
+            .map(Session::getStartedAt)
+            .filter(Objects::nonNull)
+            .min(LocalDateTime::compareTo)
+            .orElse(null);
+
+    LocalDateTime lastEndedAt =
+        sessions.stream()
+            .map(Session::getEndedAt)
+            .filter(Objects::nonNull)
+            .max(LocalDateTime::compareTo)
+            .orElse(null);
+
+    LocalDate lastWorkoutDate =
+        Optional.ofNullable(lastEndedAt)
+            .map(LocalDateTime::toLocalDate)
+            .orElseGet(
+                () ->
+                    sessions.stream()
+                        .map(Session::getStartedAt)
+                        .filter(Objects::nonNull)
+                        .map(LocalDateTime::toLocalDate)
+                        .max(LocalDate::compareTo)
+                        .orElse(null));
+
+    LocalDate today = LocalDate.now();
+
+    int missedDays =
+        (int)
+            planDays.stream()
+                .filter(day -> day.getScheduledDate() != null)
+                .filter(day -> day.getScheduledDate().isBefore(today))
+                .filter(
+                    day ->
+                        sessionsByDay
+                            .getOrDefault(day.getId(), Collections.emptyList())
+                            .stream()
+                            .noneMatch(s -> s.getStatus() == SessionStatus.COMPLETED))
+                .count();
+
+    LocalDate nextScheduledDate =
+        planDays.stream()
+            .filter(day -> day.getScheduledDate() != null)
+            .filter(day -> !day.getScheduledDate().isBefore(today))
+            .filter(
+                day ->
+                    sessionsByDay
+                        .getOrDefault(day.getId(), Collections.emptyList())
+                        .stream()
+                        .noneMatch(s -> s.getStatus() == SessionStatus.COMPLETED))
+            .map(PlanDay::getScheduledDate)
+            .min(LocalDate::compareTo)
+            .orElse(null);
+
+    List<String> mainMuscleGroups =
+        planDays.stream()
+            .map(PlanDay::getPlanItems)
+            .filter(Objects::nonNull)
+            .flatMap(List::stream)
+            .map(PlanItem::getExercise)
+            .filter(Objects::nonNull)
+            .map(
+                exercise -> {
+                  if (exercise.getPrimaryMuscle() != null) {
+                    return exercise.getPrimaryMuscle().getName();
+                  }
+                  String bodyPart = exercise.getBodyPart();
+                  return bodyPart != null && !bodyPart.isBlank() ? bodyPart : null;
+                })
+            .filter(Objects::nonNull)
+            .collect(Collectors.groupingBy(name -> name, Collectors.counting()))
+            .entrySet()
+            .stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+            .limit(3)
+            .map(Map.Entry::getKey)
+            .toList();
+
+    int estimatedPlanMinutes =
+        planDays.stream()
+            .map(PlanDay::getPlanItems)
+            .filter(Objects::nonNull)
+            .flatMap(List::stream)
+            .mapToInt(this::estimateExerciseDuration)
+            .sum();
+
+    Integer estimatedWeeklyHours = null;
+    if (estimatedPlanMinutes > 0) {
+      int weeks = plan.getCycleWeeks() != null && plan.getCycleWeeks() > 0 ? plan.getCycleWeeks() : 1;
+      double weeklyHours = (double) estimatedPlanMinutes / weeks / 60.0;
+      estimatedWeeklyHours = (int) Math.round(weeklyHours);
+    }
+
+    double avgExerciseLevel =
+        planDays.stream()
+            .map(PlanDay::getPlanItems)
+            .filter(Objects::nonNull)
+            .flatMap(List::stream)
+            .map(PlanItem::getExercise)
+            .filter(Objects::nonNull)
+            .map(Exercise::getDifficultyLevel)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(0.0);
+
+    DifficultyLevel difficultyLevel =
+        avgExerciseLevel > 0 ? resolveDifficultyLevel(avgExerciseLevel) : null;
+
+    // Note: PlanSummaryResponse only has basic fields for sharing in posts
+    // This method returns a simple summary - complex stats would need a different DTO
+    PlanSummaryResponse summary = new PlanSummaryResponse();
+    summary.setId(plan.getId().toString());
+    summary.setTitle(plan.getTitle());
+    summary.setDescription(plan.getDescription());
+    summary.setSource(plan.getSource());
+    summary.setStatus(plan.getStatus());
+    summary.setCycleWeeks(plan.getCycleWeeks());
+    summary.setTotalDays(totalDays);
+    summary.setTotalExercises(totalExercises);
+    if (plan.getGoal() != null && plan.getGoal().getObjective() != null) {
+      summary.setGoalName(plan.getGoal().getObjective().name());
+    }
+    return summary;
+  }
+
+  private List<SessionResponse> buildSessionResponses(List<Session> sessions, boolean includeSessionSets) {
+    return sessions.stream()
+        .map(session -> sessionMapper.toResponse(session, includeSessionSets))
+        .toList();
+  }
+
+  private MonthlySummaryResponse buildEmptyMonthlySummary() {
+    return MonthlySummaryResponse.builder()
+      .totalSessions(0)
+      .completedSessions(0)
+      .completionRate(0.0)
+      .totalSets(0)
+      .completedSets(0)
+      .avgCompletionPercentage(0.0)
+      .totalVolume(0)
+      .avgVolumePerSession(0.0)
+      .totalDurationMinutes(0)
+      .avgDurationPerSession(0.0)
+      .avgRpe(0.0)
+      .weeklySummaries(Collections.emptyList())
+      .feedback("Chưa có dữ liệu tập luyện trong tháng này.")
+      .build();
+  }
+
+
+  private WeeklySummaryResponse buildEmptyWeeklySummary(LocalDate startOfWeek, LocalDate endOfWeek) {
+    return WeeklySummaryResponse.builder()
+        .weekStart(startOfWeek)
+        .weekEnd(endOfWeek)
+        .totalSessions(0)
+        .completedSessions(0)
+        .totalSets(0)
+        .completedSets(0)
+        .avgCompletionPercentage(0)
+        .totalVolume(0)
+        .totalDurationMinutes(0)
+        .dailySummaries(Collections.emptyList())
+        .build();
+  }
+
+  private SessionResponse mapToDailySummary(SessionResponse sessionResponse) {
+    SessionResponse summary = new SessionResponse();
+    summary.setId(sessionResponse.getId());
+    summary.setPlanDayId(sessionResponse.getPlanDayId());
+    summary.setPlanDayName(sessionResponse.getPlanDayName());
+    summary.setStartedAt(sessionResponse.getStartedAt());
+    summary.setEndedAt(sessionResponse.getEndedAt());
+    summary.setStatus(sessionResponse.getStatus());
+    summary.setSessionRpe(sessionResponse.getSessionRpe());
+    summary.setNotes(sessionResponse.getNotes());
+    summary.setCreatedAt(sessionResponse.getCreatedAt());
+    summary.setDurationMinutes(sessionResponse.getDurationMinutes());
+    summary.setTotalSets(sessionResponse.getTotalSets());
+    summary.setCompletedSets(sessionResponse.getCompletedSets());
+    summary.setCompletionPercentage(sessionResponse.getCompletionPercentage());
+    summary.setTotalVolume(sessionResponse.getTotalVolume());
+    summary.setSessionSets(sessionResponse.getSessionSets());
+    summary.setPlannedItems(sessionResponse.getPlannedItems());
+    return summary;
   }
 
   private Specification<Session> buildSessionSpecification(
@@ -393,78 +742,82 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     return session;
   }
 
-  // Helper methods
-  private SessionResponse convertSessionToResponse(Session session, boolean includeSessionSets) {
-    SessionResponse dto = new SessionResponse();
-    dto.setId(session.getId());
-    dto.setPlanDayId(session.getPlanDay().getId());
-    dto.setPlanDayName(session.getPlanDay().getSplitName());
-    dto.setStartedAt(session.getStartedAt());
-    dto.setEndedAt(session.getEndedAt());
-    dto.setStatus(session.getStatus());
-    dto.setNotes(session.getNotes());
-    dto.setCreatedAt(session.getCreatedAt());
 
-    // Calculate duration
-    if (session.getEndedAt() != null) {
-      long minutes =
-          java.time.Duration.between(session.getStartedAt(), session.getEndedAt()).toMinutes();
-      dto.setDurationMinutes((int) minutes);
-    }
+  private SessionStatistics computeSessionStatistics(List<SessionResponse> sessionResponses) {
+    int totalSessions = sessionResponses.size();
+    int completedSessions =
+        (int)
+            sessionResponses.stream()
+                .filter(s -> s.getStatus() == SessionStatus.COMPLETED)
+                .count();
 
-    if (includeSessionSets && session.getSessionSets() != null) {
-      List<SessionSetResponse> sessionSetDtos =
-          session.getSessionSets().stream()
-              .map(this::convertSessionSetToResponse)
-              .collect(Collectors.toList());
-      dto.setSessionSets(sessionSetDtos);
+    int totalSets =
+        sessionResponses.stream()
+            .map(SessionResponse::getTotalSets)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
 
-      // Calculate summary stats
-      dto.setTotalSets(sessionSetDtos.size());
-      dto.setCompletedSets(
-          (int) sessionSetDtos.stream().filter(SessionSetResponse::getIsCompleted).count());
-      dto.setCompletionPercentage(
-          dto.getTotalSets() > 0
-              ? (double) dto.getCompletedSets() / dto.getTotalSets() * 100
-              : 0.0);
-      dto.setTotalVolume(
-          sessionSetDtos.stream().mapToInt(s -> s.getVolume() != null ? s.getVolume() : 0).sum());
-    }
+    int completedSets =
+        sessionResponses.stream()
+            .map(SessionResponse::getCompletedSets)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
 
-    return dto;
-  }
+    int totalVolume =
+        sessionResponses.stream()
+            .map(SessionResponse::getTotalVolume)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
 
-  private SessionSetResponse convertSessionSetToResponse(SessionSet sessionSet) {
-    SessionSetResponse dto = new SessionSetResponse();
-    dto.setId(sessionSet.getId());
-    dto.setSessionId(sessionSet.getSession().getId());
-    dto.setExerciseId(sessionSet.getExercise().getId());
-    dto.setExerciseName(sessionSet.getExercise().getName());
-    dto.setSetIndex(sessionSet.getSetIndex());
-    dto.setPlanned(sessionSet.getPlanned());
-    dto.setActual(sessionSet.getActual());
-    dto.setCreatedAt(sessionSet.getCreatedAt());
+    int totalDurationMinutes =
+        sessionResponses.stream()
+            .map(SessionResponse::getDurationMinutes)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
 
-    // Determine completion status
-    JsonNode actual = sessionSet.getActual();
-    dto.setIsSkipped(actual.has("isSkipped") && actual.get("isSkipped").asBoolean());
-    dto.setIsCompleted(actual.has("completedAt") && !dto.getIsSkipped());
+    double avgCompletionPercentage =
+        sessionResponses.stream()
+            .map(SessionResponse::getCompletionPercentage)
+            .filter(Objects::nonNull)
+            .mapToDouble(Double::doubleValue)
+            .average()
+            .orElse(0.0);
 
-    if (dto.getIsCompleted() && actual.has("completedAt")) {
-      dto.setCompletedAt(LocalDateTime.parse(actual.get("completedAt").asText()));
-    }
+    double avgRpe =
+        sessionResponses.stream()
+            .map(SessionResponse::getSessionRpe)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(0.0);
 
-    // Calculate volume
-    if (actual.has("reps") && actual.has("weight")) {
-      int reps = actual.get("reps").asInt();
-      double weight = actual.get("weight").asDouble();
-      dto.setVolume((int) (reps * weight));
-    }
+    double avgVolumePerCompletedSession =
+        completedSessions == 0 ? 0.0 : (double) totalVolume / completedSessions;
 
-    // Performance comparison
-    dto.setPerformanceComparison(calculatePerformanceComparison(sessionSet.getPlanned(), actual));
+    double avgDurationPerCompletedSession =
+        sessionResponses.stream()
+                    .filter(s -> s.getStatus() == SessionStatus.COMPLETED)
+                    .map(SessionResponse::getDurationMinutes)
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .average()
+                    .orElse(0.0);
 
-    return dto;
+    return new SessionStatistics(
+        totalSessions,
+        completedSessions,
+        totalSets,
+        completedSets,
+        totalVolume,
+        totalDurationMinutes,
+        avgCompletionPercentage,
+        avgRpe,
+        avgVolumePerCompletedSession,
+        avgDurationPerCompletedSession);
   }
 
   private String calculatePerformanceComparison(JsonNode planned, JsonNode actual) {
@@ -518,5 +871,68 @@ public class SessionManagementServiceImpl implements SessionManagementService {
     log.info(
         "Session completed - plan progression check completed for session: {}",
         completedSession.getId());
+  }
+
+  private int estimateExerciseDuration(PlanItem planItem) {
+    try {
+      JsonNode prescription = planItem.getPrescription();
+      int sets = prescription.path("sets").asInt(1);
+      int restSeconds = prescription.path("restSeconds").asInt(90);
+      int tempoSeconds = prescription.path("tempoSeconds").asInt(0);
+
+      int perSetSeconds = tempoSeconds > 0 ? tempoSeconds : 40;
+      int totalRestSeconds = Math.max(0, sets - 1) * restSeconds;
+      int totalSeconds = sets * perSetSeconds + totalRestSeconds;
+      return Math.max(1, totalSeconds / 60);
+    } catch (Exception e) {
+      return 5;
+    }
+  }
+
+  private DifficultyLevel resolveDifficultyLevel(double avgLevel) {
+    if (avgLevel >= 2.5) {
+      return DifficultyLevel.ADVANCED;
+    }
+    if (avgLevel >= 1.5) {
+      return DifficultyLevel.INTERMEDIATE;
+    }
+    return DifficultyLevel.BEGINNER;
+  }
+
+  private User getCurrentUser(){
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return (User)authentication.getPrincipal();
+  }
+
+  private String generateFeedback(double completionRate, double avgRpe, double avgCompletion) {
+    if (completionRate < 40) {
+      return "Cố gắng duy trì thói quen tập luyện đều hơn nhé!";
+    }
+    if (completionRate < 70) {
+      return "Bạn đang tiến bộ tốt! Hãy cố gắng hoàn thành các buổi còn lại.";
+    }
+    if (avgRpe > 8) {
+      return "Cường độ cao! Hãy đảm bảo bạn nghỉ ngơi và hồi phục đủ.";
+    }
+    if (avgCompletion > 90) {
+      return "Tuyệt vời! Bạn đã gần như hoàn thành toàn bộ mục tiêu trong tháng!";
+    }
+    return "Bạn đang duy trì phong độ tốt, tiếp tục nhé!";
+  }
+
+  private record SessionStatistics(
+      int totalSessions,
+      int completedSessions,
+      int totalSets,
+      int completedSets,
+      int totalVolume,
+      int totalDurationMinutes,
+      double avgCompletionPercentage,
+      double avgRpe,
+      double avgVolumePerCompletedSession,
+      double avgDurationPerCompletedSession) {
+    double completionRate() {
+      return totalSessions == 0 ? 0.0 : completedSessions * 100.0 / totalSessions;
+    }
   }
 }

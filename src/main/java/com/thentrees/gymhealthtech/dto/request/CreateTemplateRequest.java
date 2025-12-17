@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
-import com.thentrees.gymhealthtech.common.ObjectiveType;
+import com.thentrees.gymhealthtech.enums.ObjectiveType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.List;
@@ -12,6 +12,8 @@ public class CreateTemplateRequest {
   @NotBlank(message = "Tên template không được để trống")
   @Size(max = 200, message = "Tên template không được vượt quá 200 ký tự")
   private String name;
+
+  private String description;
 
   @NotNull(message = "Mục tiêu tập luyện là bắt buộc")
   private ObjectiveType objective;
@@ -31,10 +33,6 @@ public class CreateTemplateRequest {
   @Max(value = 180, message = "Thời gian tập tối đa là 180 phút")
   private Integer sessionDurationMinutes;
 
-  private String thumbnailUrl;
-  private Boolean isFeatured = false;
-
-  @Valid
   @NotEmpty(message = "Template phải có ít nhất 1 ngày tập")
   private List<CreateTemplateDayRequest> templateDays;
 }

@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.request;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

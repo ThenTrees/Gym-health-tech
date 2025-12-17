@@ -2,13 +2,17 @@ package com.thentrees.gymhealthtech.service;
 
 import com.thentrees.gymhealthtech.dto.request.CreateGoalRequest;
 import com.thentrees.gymhealthtech.dto.response.GoalResponse;
-import com.thentrees.gymhealthtech.model.User;
+import org.springframework.security.core.Authentication;
+
 import java.util.List;
+import java.util.UUID;
 
 public interface GoalService {
-  GoalResponse createGoal(User user, CreateGoalRequest request);
+  GoalResponse createGoal(Authentication authentication, CreateGoalRequest request);
 
-  List<GoalResponse> getUserGoals(String userId, boolean includeCompleted);
+  List<GoalResponse> getUserGoals(Authentication authentication, boolean includeCompleted);
 
-  GoalResponse getActiveGoal(String userId);
+  GoalResponse getActiveGoal(Authentication authentication);
+
+  GoalResponse updateGoal(Authentication authentication, UUID goalId, CreateGoalRequest request);
 }

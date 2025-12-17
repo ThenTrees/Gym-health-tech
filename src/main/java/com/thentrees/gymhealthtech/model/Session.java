@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,11 +13,11 @@ import lombok.Setter;
 @Table(name = "sessions")
 public class Session extends BaseEntity {
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "plan_day_id")
   private PlanDay planDay;
 
@@ -34,6 +34,9 @@ public class Session extends BaseEntity {
   @Column(name = "notes", columnDefinition = "TEXT")
   private String notes;
 
-  @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @Column(name = "session_rpe")
+  private Integer sessionRpe; // Rate of Perceived Exertion (1-10)
+
+  @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<SessionSet> sessionSets;
 }

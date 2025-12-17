@@ -1,20 +1,21 @@
 package com.thentrees.gymhealthtech.model;
 
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import lombok.Getter;
-import lombok.Setter;
+
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "template_days")
-public class TemplateDay {
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class TemplateDay extends BaseEntity{
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "template_id", nullable = false)
@@ -35,8 +36,8 @@ public class TemplateDay {
   @Column(name = "notes", columnDefinition = "TEXT")
   private String notes;
 
-  @OneToMany(mappedBy = "templateDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  private List<TemplateItem> templateItems;
+  @OneToMany(mappedBy = "templateDay", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+  private List<TemplateItem> templateItems = new ArrayList<>();
 
   // Computed field for API response
   @Transient private Integer totalExercises;

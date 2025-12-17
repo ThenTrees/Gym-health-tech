@@ -1,18 +1,14 @@
 package com.thentrees.gymhealthtech.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thentrees.gymhealthtech.constant.AppConstants;
 import com.thentrees.gymhealthtech.constant.SuccessMessages;
 import com.thentrees.gymhealthtech.dto.request.ForgotPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.ResetPasswordRequest;
 import com.thentrees.gymhealthtech.dto.request.UpdateProfileRequest;
 import com.thentrees.gymhealthtech.dto.request.VerifyOtpRequest;
 import com.thentrees.gymhealthtech.dto.response.*;
-import com.thentrees.gymhealthtech.exception.BusinessException;
 import com.thentrees.gymhealthtech.service.UserProfileService;
 import com.thentrees.gymhealthtech.service.UserService;
-import com.thentrees.gymhealthtech.util.ExtractValidationErrors;
-import com.thentrees.gymhealthtech.util.S3Util;
-import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -21,8 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.io.IOException;
-import java.util.Map;
+
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,25 +25,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("${app.prefix}/users")
+@RequestMapping(AppConstants.API_V1 + "/users")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User", description = "Endpoints for user management")
 public class UserController {
 
   private final UserProfileService userProfileService;
-  private final ExtractValidationErrors extractValidationErrors;
-  private final ObjectMapper objectMapper;
-  private final S3Util s3Util;
   private final UserService userService;
-
   @Operation(
       method = "GET",
       summary = "Get profile for user",
@@ -89,19 +77,9 @@ public class UserController {
       })
   @GetMapping("/my-profile")
   public ResponseEntity<APIResponse<UserProfileResponse>> getUserProfile() {
-    try {
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-      log.info("Authenticated user: {}", authentication.getName()); // email
-
-      UserProfileResponse userProfile = userProfileService.getUserProfile(authentication.getName());
-
+      UserProfileResponse userProfile = userProfileService.getUserProfile();
       return ResponseEntity.ok(APIResponse.success(userProfile, SuccessMessages.GET_PROFILE));
-    } catch (JwtException ex) {
-      log.error("JWT error: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(APIResponse.error("Invalid or expired token"));
-    }
+
   }
 
   @Operation(method = "PUT", description = "Update user profile", summary = "Update user profile")
@@ -154,40 +132,10 @@ public class UserController {
       })
   @PatchMapping("/update-profile")
   public ResponseEntity<APIResponse<UserProfileResponse>> updateUserProfile(
-      @Valid @RequestBody UpdateProfileRequest request, BindingResult bindingResult) {
-    try {
-      if (bindingResult.hasErrors()) {
-        Map<String, String> errors = extractValidationErrors.extract(bindingResult);
-        ApiError apiError =
-            ApiError.builder()
-                .code("VALIDATION_ERROR")
-                .fieldErrors(
-                    errors.entrySet().stream()
-                        .map(
-                            entry ->
-                                FieldError.builder()
-                                    .field(entry.getKey())
-                                    .message(entry.getValue())
-                                    .build())
-                        .toList())
-                .build();
-        return ResponseEntity.badRequest()
-            .body(
-                APIResponse.error(
-                    "Validation failed", objectMapper.convertValue(apiError, ApiError.class)));
-      }
-
-      UserProfileResponse updatedProfile = userProfileService.updateUserProfile(request);
-
+      @Valid @RequestBody UpdateProfileRequest request) {
+            UserProfileResponse updatedProfile = userProfileService.updateUserProfile(request);
       return ResponseEntity.ok(
           APIResponse.success(updatedProfile, SuccessMessages.PROFILE_UPDATED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error updating user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to update profile"));
-    }
   }
 
   @Operation(
@@ -222,25 +170,8 @@ public class UserController {
       })
   @DeleteMapping("/delete-profile")
   public ResponseEntity<APIResponse<Void>> deleteProfile() {
-    try {
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-      log.info("Authenticated user: {}", authentication.getName()); // email
-
-      String email = authentication.getName();
-
       userProfileService.deleteProfile();
-      log.info("Deleting profile for user with email: {}", email);
-      log.info("Profile deleted successfully for user with email: {}", email);
-
       return ResponseEntity.ok(APIResponse.success(null, SuccessMessages.PROFILE_DELETED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error deleting user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to delete profile"));
-    }
   }
 
   @Operation(
@@ -280,19 +211,9 @@ public class UserController {
   @DeleteMapping("/admin/delete-profile")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<APIResponse<Void>> deleteProfile(@RequestParam("userId") UUID userId) {
-    try {
       userProfileService.deleteProfile(userId);
-      log.info("Admin Deleting profile for user with ID: {}", userId);
-
-      return ResponseEntity.ok( // nen tra ve 204 => no content
+      return ResponseEntity.ok(
           APIResponse.success(null, SuccessMessages.PROFILE_DELETED));
-    } catch (BusinessException e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(APIResponse.error(e.getMessage()));
-    } catch (Exception ex) {
-      log.error("Error deleting user profile: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(APIResponse.error("Failed to delete profile"));
-    }
   }
 
   /** Upload user avatar */
@@ -339,26 +260,8 @@ public class UserController {
       })
   @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<APIResponse<UploadResponse>> uploadAvatar(
-      @RequestParam("file") MultipartFile file) throws IOException {
+      @RequestParam("file") MultipartFile file) {
     try {
-      // Validate file
-      if (file.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(APIResponse.error("File is empty"));
-      }
-
-      // Validate file type
-      if (!s3Util.isValidImageFile(file)) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(APIResponse.error("Only image files are allowed"));
-      }
-
-      // Validate file size (max 5MB)
-      if (file.getSize() > 5 * 1024 * 1024) {
-        return ResponseEntity.badRequest()
-            .body(APIResponse.error("File size must be less than 5MB"));
-      }
-
       String fileUrl = userProfileService.uploadProfileImage(file);
 
       UploadResponse uploadResponse =
@@ -418,18 +321,13 @@ public class UserController {
   @PostMapping("/forgot-password")
   public ResponseEntity<APIResponse<String>> forgotPassword(
       @Valid @RequestBody ForgotPasswordRequest request) {
-    try {
       userService.forgotPassword(request);
       return ResponseEntity.ok(APIResponse.success("OTP code sent to email"));
-    } catch (BusinessException e) {
-      return ResponseEntity.badRequest().body(APIResponse.error(e.getMessage()));
-    }
   }
 
   @PostMapping("/verify-otp")
   public ResponseEntity<APIResponse<String>> verifyOtp(
       @Valid @RequestBody VerifyOtpRequest request) {
-    log.info("Verify OTP request for email: {}", request.getEmail());
     String response = userService.verifyOtp(request);
     return ResponseEntity.ok(APIResponse.success(response));
   }
@@ -437,9 +335,26 @@ public class UserController {
   @PostMapping("/reset-password")
   public ResponseEntity<APIResponse<String>> resetPassword(
       @Valid @RequestBody ResetPasswordRequest request) {
-    log.info("Reset password request for email: {}", request.getEmail());
+
     userService.resetPassword(request);
     return ResponseEntity.status(HttpStatus.OK)
         .body(APIResponse.success("Password reset successfully"));
+  }
+
+  @GetMapping()
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<APIResponse<PagedResponse<UserResponse>>> getAllUserProfile(
+      @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+      @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+      @RequestParam(
+              value = "sortDirection",
+              defaultValue = AppConstants.DEFAULT_SORT_DIRECTION)
+          String sortDirection
+  ) {
+
+      PagedResponse<UserResponse> userSummary = userService.getAllUsers(page, size, sortBy, sortDirection);
+
+    return ResponseEntity.ok(APIResponse.success(userSummary, SuccessMessages.GET_PROFILE));
   }
 }

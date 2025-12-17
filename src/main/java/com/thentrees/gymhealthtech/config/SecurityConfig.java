@@ -1,6 +1,7 @@
 package com.thentrees.gymhealthtech.config;
 
 import com.thentrees.gymhealthtech.filter.JwtAuthenticationFilter;
+import com.thentrees.gymhealthtech.filter.MDCFilter;
 import com.thentrees.gymhealthtech.service.impl.UserDetailsServiceImpl;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthFilter;
+  private final MDCFilter mdcFilter;
   private final UserDetailsServiceImpl userDetailsService;
 
   @Bean
@@ -40,6 +42,7 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .addFilterBefore(mdcFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
@@ -51,18 +54,24 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
                     .permitAll()
-                    .requestMatchers("/actuator/health", "/actuator/info")
+                    .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus")
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()
                     .requestMatchers("/api/v1/exercises/**")
+                    .permitAll()
+                    .requestMatchers("/api/v1/posts/plans/**")
                     .permitAll()
                     .requestMatchers(
                         "/api/v1/users/forgot-password",
                         "/api/v1/users/reset-password",
                         "/api/v1/users/verify-otp")
                     .permitAll()
-                    .anyRequest()
+                    .requestMatchers("/api/v1/admin/nutrition/foods/import")
+                    .permitAll()
+                  .requestMatchers("/api/v1/payments/sep-pay-webhook")
+                  .permitAll()
+                  .anyRequest()
                     .authenticated())
         .authenticationProvider(authenticationProvider());
     return http.build();

@@ -1,6 +1,6 @@
 package com.thentrees.gymhealthtech.dto.response;
 
-import com.thentrees.gymhealthtech.common.SessionStatus;
+import com.thentrees.gymhealthtech.enums.SessionStatus;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;

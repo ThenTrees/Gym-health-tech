@@ -1,60 +1,59 @@
 <configuration>
+<springProfile name="dev">
 
-  <!-- ===== DEV PROFILE: Text log, dễ đọc ===== -->
-  <springProfile name="dev">
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-      <encoder>
-        <!-- Pattern: [2025-08-23 12:00:01] INFO  [thread] com.gymai.AuthService - Login success -->
-        <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
-      </encoder>
-    </appender>
-    <root level="DEBUG">
-      <appender-ref ref="CONSOLE"/>
-    </root>
+  <logger name="org.springframework" level="INFO"/>
+  <logger name="org.hibernate" level="WARN"/>
+  <logger name="reactor" level="WARN"/>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <file>logs/app.log</file>
-      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <fileNamePattern>logs/app.%d{yyyy-MM-dd}.log</fileNamePattern>
-        <maxHistory>7</maxHistory> <!-- giữ log 7 ngày -->
-      </rollingPolicy>
-      <encoder>
-        <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
-      </encoder>
-    </appender>
+  <appender name="DEV_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %highlight(%-5level) %logger - traceId=%X{traceId} userId=%X{userId} - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
 
-    <root level="DEBUG">
-      <appender-ref ref="CONSOLE" />
-      <appender-ref ref="FILE" />
-    </root>
-  </springProfile>
+  <appender name="DEV_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/app.log</file>
 
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
 
-  <!-- ===== PROD PROFILE: JSON log, structured + MDC ===== -->
-  <springProfile name="prod">
-    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-        <providers>
-          <!-- timestamp, level, thread, logger, message -->
-          <timestamp />
-          <level />
-          <threadName />
-          <loggerName />
-          <message />
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - traceId=%X{traceId} userId=%X{userId} - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
 
-          <!-- Thêm MDC vào log -->
-          <mdc />
+  <root level="DEBUG">
+    <appender-ref ref="DEV_CONSOLE"/>
+    <appender-ref ref="DEV_FILE"/>
+  </root>
+</springProfile>
 
-          <!-- optional: exception stacktrace -->
-          <stackTrace />
-        </providers>
-      </encoder>
-    </appender>
+<springProfile name="prod">
+<appender name="JSON_PROD" class="ch.qos.logback.core.ConsoleAppender">
+  <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+    <providers>
 
-    <root level="INFO">
-      <appender-ref ref="JSON_CONSOLE" />
-    </root>
-  </springProfile>
+      <timestamp />
+      <level />
+      <threadName />
+      <loggerName />
+      <message />
+      <!-- thêm service name để Loki query -->
+      <globalCustomFields>{"service":"fitness-app"}</globalCustomFields>
+      <mdc />
+      <!-- thêm line-number -->
+      <callerData />
+      <stackTrace />
+    </providers>
+  </encoder>
+</appender>
 
-
-</configuration>
+<root level="INFO">
+  <appender-ref ref="JSON_PROD"/>
+</root>
+</springProfile>
+  </configuration>

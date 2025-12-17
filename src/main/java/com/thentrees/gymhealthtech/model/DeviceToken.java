@@ -1,16 +1,18 @@
 package com.thentrees.gymhealthtech.model;
 
-import com.thentrees.gymhealthtech.common.DevicePlatform;
+import com.thentrees.gymhealthtech.enums.DevicePlatform;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "device_tokens")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class DeviceToken {
 
   @Id
