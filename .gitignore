@@ -31,7 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
-*.env
+.env.dev
+.env.prod
 # .gitignore
 logs/
 *.log
