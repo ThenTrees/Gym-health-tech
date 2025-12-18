@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 @Configuration
 @RequiredArgsConstructor
@@ -21,6 +22,7 @@ public class ApplicationInitConfig {
   private final PasswordEncoder passwordEncoder;
 
   @Bean
+  @Transactional
   ApplicationRunner applicationRunner(UserRepository userRepository, UserProfileRepository profileRepository) {
     log.info("Initializing application.....");
     return args -> {
@@ -40,7 +42,6 @@ public class ApplicationInitConfig {
         profile.setFullName("Admin User");
         admin.setProfile(profile);
 
-        profileRepository.save(profile);
         userRepository.save(admin);
         log.warn("admin user has been created with default password: admin, please change it");
       }
