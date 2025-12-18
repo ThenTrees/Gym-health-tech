@@ -1,5 +1,6 @@
 package com.thentrees.gymhealthtech.config;
 
+import com.thentrees.gymhealthtech.enums.UserRole;
 import com.thentrees.gymhealthtech.enums.UserStatus;
 import com.thentrees.gymhealthtech.model.User;
 import com.thentrees.gymhealthtech.model.UserProfile;
@@ -35,6 +36,7 @@ public class ApplicationInitConfig {
         admin.setEmailVerified(true);
         admin.setIsDeleted(false);
         admin.setEmail("admin@gymmate.com");
+        admin.setRole(UserRole.ADMIN);
         admin.setProfileCompleted(true);
 
         UserProfile profile = new UserProfile();
